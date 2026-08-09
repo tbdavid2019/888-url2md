@@ -457,7 +457,7 @@ If you are an LLM or AI Agent accessing this service for the first time:
         @Ctx() ctx: Context,
         @Param({ type: AUTH_DTO_CLS }) auth: BaseAuthDTO,
         crawlerOptionsParamsAllowed: CrawlerOptions,
-    ) {
+    ): Promise<any> {
         if (crawlerOptionsParamsAllowed.url || (crawlerOptionsParamsAllowed.urls && crawlerOptionsParamsAllowed.urls.length > 0) || (crawlerOptionsParamsAllowed.file || crawlerOptionsParamsAllowed.pdf || crawlerOptionsParamsAllowed.html)) {
             return this.crawl(rpcReflect, ctx, auth, crawlerOptionsParamsAllowed, crawlerOptionsParamsAllowed);
         }
@@ -684,7 +684,7 @@ If you are an LLM or AI Agent accessing this service for the first time:
         @Param({ type: AUTH_DTO_CLS }) auth: BaseAuthDTO,
         crawlerOptionsHeaderOnly: CrawlerOptionsHeaderOnly,
         crawlerOptionsParamsAllowed: CrawlerOptions,
-    ) {
+    ): Promise<any> {
         if (crawlerOptionsParamsAllowed.urls && crawlerOptionsParamsAllowed.urls.length > 0) {
             return this.crawlBatch(rpcReflect, ctx, auth, crawlerOptionsParamsAllowed);
         }
@@ -696,9 +696,20 @@ If you are an LLM or AI Agent accessing this service for the first time:
         const futureRateLimit = this.storageLayer.rateLimit(ctx, rpcReflect, auth as any);
 
         // Use koa ctx.URL, a standard URL object to avoid node.js framework prop naming confusion
+        const rawPath = tryDecodeURIComponent(`${ctx.URL.pathname}`).replace(/^\/+/, '');
+        if (rawPath === 'llms.txt') {
+            return this.getLlmstxtCtrl(ctx);
+        }
+        if (rawPath === 'llms-full.txt') {
+            return this.getLlmsFulltxtCtrl(ctx);
+        }
+        if (rawPath === 'skill.md' || rawPath.toLowerCase() === 'skill.md') {
+            return this.getSkillMdCtrl(ctx);
+        }
+
         const targetUrl = await this.getTargetUrl(tryDecodeURIComponent(`${ctx.URL.pathname}${ctx.URL.search}`), crawlerOptions, ctx.URL.host);
         if (!targetUrl) {
-            return await this.getIndex(auth);
+            return this.getIndexCtrl(rpcReflect, ctx, auth, crawlerOptionsParamsAllowed);
         }
         crawlerOptions.url = targetUrl.toString();
 
