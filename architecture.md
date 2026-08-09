@@ -1,83 +1,92 @@
-# Architecture
+# 888 URL2MD Architecture
 
-## Introduction
-Jina Reader is an API-first SaaS application that turns URLs of web pages, PDFs, and other documents into markdown or images. It's built to help developers prepare data context for LLMs — now widely known as context engineering.
+## Overview
 
-## Application Architecture
-Jina Reader is a multi-threaded Node.js application.
+**888 URL2MD** converts web pages, documents, and web-search results into clean Markdown. It provides both a browser interface for people and HTTP endpoints for LLMs, agents, and applications.
 
-- Web pages are rendered using a headless Chrome browser, with text content extracted via a stack of techniques (see [HTML to Markdown profiles](#multiple-html-to-markdown-profiles)).
-- PDF parsing and rendering are done using PDF.js.
-- MS Office documents are processed using LibreOffice.
+The same conversion pipeline serves both entry points:
 
-## Stateless Core Features
+```text
+Browser user ─┐
+              ├─ HTTPS / Nginx ─ HTTP/1.1 :8083→:8081 ─ 888-url2md container
+LLM / API ────┘                                      │
+                                                     ├─ URL / document fetch and render
+                                                     ├─ Markdown formatting
+                                                     └─ Search providers
+```
 
-### URL to Markdown / Image
-Given a URL, Jina Reader fetches the content and renders it using headless Chrome if it's a web page (HTML/xHTML). If the content is a PDF, it uses PDF.js to parse and render. For MS Office documents, LibreOffice converts them to PDF + HTML first, after which the PDF/HTML path takes over.
+## Entry Points
 
-Advanced options let you filter or manipulate the page content — CSS-selector-based filtering, custom JavaScript execution, custom proxy routing, and more.
+### Human Web Interface
 
-### HTML to Markdown
-Reader can also take raw HTML and convert it to markdown, using the same conversion pipeline as the URL-to-Markdown feature.
+`GET /` returns the **888 URL2MD** browser interface when the request accepts HTML. It provides:
 
-### PDF to Markdown / Image
-Reader can take a PDF file, extract text content as markdown, and render each page as an image.
+- URL-to-Markdown conversion for one or more URLs.
+- Automatic `https://` completion for bare domains such as `david888.com`.
+- Web search using the existing `/search?q=...` endpoint.
+- Markdown preview, clipboard copy, and `.md` download.
+- Automatic Traditional Chinese / English selection from the browser language, with a persistent manual language switch.
 
-### MS Office to Markdown / Image
-Reader can take MS Office documents (Word, Excel, PowerPoint) and convert them to markdown or images by first converting them to PDF/HTML using LibreOffice.
+### LLM and API Interface
 
-### Image to Text
-Reader can take an image and produce a text description (captioning). This is built on the `jina-vlm` small vision-language model and can be extended to VQA tasks. Note: this is not exactly OCR.
+Non-browser requests to `GET /` retain the machine-facing behaviour and return the generated Skill document. LLM-specific documentation remains available from `GET /skill.md` and `GET /SKILL.md`; discovery documents are available from `/llms.txt` and `/llms-full.txt`.
 
-## Multiple URL-to-HTML Engines
-Reader supports several engines for fetching/rendering web pages to HTML.
+The main data endpoints are:
 
-### Browser
-The most-used engine. The current implementation runs latest headless Chrome via the `puppeteer` library. It provides the most accurate rendering and can execute JavaScript on the page, which is essential for modern web pages.
+- `GET /<URL>` — convert one URL to Markdown.
+- `POST /v1/batch` or `POST /batch` — convert one or more URLs concurrently.
+- `GET /search?q=<query>` or `GET /s/<query>` — return web search results as Markdown.
 
-### CURL
-A lightweight engine that uses `curl-impersonate` to fetch the raw HTML of a web page. It does not execute JavaScript. Reader's implementation includes a simulated cookie layer to handle basic cookie-based redirection.
+## Conversion Pipeline
 
-### CF-Browser-Rendering
-Uses Cloudflare's Browser Rendering REST API for URL-to-HTML. Strict rate limits apply; this engine is meant for testing and as a fallback.
+888 URL2MD is a multi-threaded Node.js 24 application.
 
-### Auto
-The default. Reader intelligently uses the CURL and Browser engines in combination, based on content characteristics and request requirements.
+1. It validates and normalizes the requested URL. Batch requests automatically add `https://` to bare domains.
+2. It fetches and renders content using the appropriate engine:
+   - **Auto** combines lightweight HTTP fetching and browser rendering.
+   - **Browser** uses headless Chrome through Puppeteer for JavaScript-heavy pages.
+   - **CURL** uses `curl-impersonate` when browser rendering is unnecessary.
+   - **CF Browser Rendering** is an optional fallback.
+3. It extracts the useful document content:
+   - HTML uses Readability plus rule-based Markdown conversion.
+   - PDF uses PDF.js.
+   - Office documents use LibreOffice before entering the PDF/HTML path.
+4. It returns Markdown, JSON, or server-sent events according to the request's `Accept` header.
 
-## Multiple HTML-to-Markdown Profiles
-Reader supports several profiles for converting HTML to markdown.
+Search uses the built-in SERP integrations and fallbacks, so the browser UI does not need a separate search service.
 
-### `@mozilla/readability`
-Readability is automatically used to clean HTML before converting to markdown. It produces a clean, readable version of the HTML content for many pages.
+## Production Deployment: create360.ai
 
-### Rule-based engine
-A custom implementation inspired by the `turndown` library, with custom rules and plugins to convert HTML into markdown.
+The active production deployment is self-hosted on `m.aiurl.tw`, not Cloud Run.
 
-### ReaderLM v2
-An experimental engine that uses a specifically trained small language model to convert HTML to markdown.
+- **Domain:** `https://create360.ai`
+- **Reverse proxy:** Nginx terminates TLS and proxies all traffic to `127.0.0.1:8083`.
+- **Container:** `888-url2md` runs the Node application. Its HTTP/1.1 compatibility listener is container port `8081`; the application h2c listener is port `8080`.
+- **Runtime:** Node 24, Google Chrome, LibreOffice, and required fonts are packaged by the project Dockerfile.
+- **Container hardening:** `seccomp=unconfined` is required for the headless-browser runtime.
 
-### ReaderLM v3 / JinaOCR / VLM
-WIP / future engine that uses a vision-language model to convert webpage screenshots directly to markdown.
+### Docker Compose
 
-## Abuse Mitigation (SaaS)
-- **Request filtering**: block requests targeting suspicious addresses.
-- **Request throttling**: cap concurrent requests per page.
-- **Anonymous-user pressure relief**: when one URL receives excessive anonymous traffic, temporarily block that website for anonymous users.
-- **Excessive HTML nodes/depth**: fall back to HTML-to-text instead of markdown.
+`docker-compose.yml` is the canonical deployment definition:
 
-## Progressive Clustering
-- **Stage 0**: fully stateless — no caching, no rate limit, no persistence.
-- **Stage 1**: S3-like object storage for caching, no rate limit.
-- **Stage 2**: MongoDB + S3-like object storage. MongoDB indexes the cached objects; rate limiting is available. This is the SaaS configuration and is not part of the open source branch.
+```bash
+PUBLIC_DOMAIN=https://create360.ai docker compose up -d --build
+```
 
-## Vendor-Provided Features
-- **Proxy**: Reader supports a built-in proxy provider for fetching content via a different IP.
-- **SERP**: Reader primarily relies on external SERP providers for web search results.
-- **VLM**: Reader relies on a vision-language model for image captioning. The current model is `gemini-2.5-flash-lite`, but it can be switched to any model with similar capabilities.
+By default it builds and starts `888-url2md:latest`, exposing host port `8083` to container port `8081`. Override the host port with `HOST_PORT`; override the internal h2c port with `APP_PORT`.
 
-## Deployment Architecture
-The SaaS version of Jina Reader is deployed as a Docker image on GCP Cloud Run. MongoDB Atlas is used for metadata indexing and rate limiting; Google Cloud Storage is used for cache data. Internal services and dependencies — such as billing, `jina-vlm`, and `readerlm-v2` — are reached over a private VPC peering link.
+MinIO is retained only for local development and is not part of the default production startup. Start it explicitly when needed:
 
-We run two independent clusters: **US** and **EU**. The US cluster spans 3 regions (`us-central1`, `us-east1`, `us-west1`); the EU cluster runs in 1 region (`europe-west1`).
+```bash
+docker compose --profile dev up -d
+```
 
-Due to the high resource requirements of headless Chrome and LibreOffice, Reader is best deployed on serverless platforms that handle auto-scaling and resource management.
+## CI/CD
+
+GitHub Actions tests the project and builds multi-architecture container images for GHCR and, when configured, Docker Hub. The workflows and their JavaScript actions use the Node 24 runtime. Production can be updated directly from the host with `git pull` followed by Docker Compose build/up; it does not depend on a GitHub Actions deployment job.
+
+## Operational Notes
+
+- Headless Chrome and LibreOffice are resource-intensive. Size the host for concurrent browser and document-conversion work.
+- The open-source deployment is stateless by default. Object storage, database indexing, billing, and SaaS rate limiting are optional integrations, not required for `create360.ai`.
+- Request validation, robots handling, concurrency limits, and content-size/depth fallbacks protect the conversion pipeline from unsafe or excessively expensive requests.

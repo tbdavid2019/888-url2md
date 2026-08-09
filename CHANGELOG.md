@@ -16,6 +16,7 @@ All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888
 
 ### 🐳 Deployment
 - Replaced the legacy MinIO-only `docker-compose.yml` with a production-ready `888-url2md` service. `docker compose up -d --build` now builds and starts the application on host port `8083` by default; MinIO is available only with the optional `dev` profile.
+- Rewrote `architecture.md` to document the actual `create360.ai` deployment, the browser/API route split, and the current Docker Compose workflow.
 
 ---
 
