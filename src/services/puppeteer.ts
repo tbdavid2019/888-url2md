@@ -742,29 +742,29 @@ export class PuppeteerControl extends AsyncService {
             '--no-zygote',
             '--disable-gpu',
         ];
-        this.browser = await puppeteer.launch({
+        this.browser = (await puppeteer.launch({
             timeout: 30_000,
             headless: !Boolean(process.env.DEBUG_BROWSER),
             executablePath: process.env.OVERRIDE_CHROME_EXECUTABLE_PATH,
             args,
         }).catch((err: any) => {
-            this.logger.error(`Failed to launch browser. This is fatal.`, { err });
-            process.nextTick(() => {
-                this.emit('error', err);
-                // process.exit(1);
-            });
-            return Promise.reject(err);
-        });
-        this.browser.once('disconnected', () => {
-            this.logger.warn(`Browser disconnected`);
-            this.browser = undefined;
-        });
-        this.ua = await this.browser.userAgent();
-        this.logger.info(`Browser launched: ${this.browser.process()?.pid}, ${this.ua}`);
-        this.effectiveUA = this.ua.replace(/Headless/i, '').replace('Mozilla/5.0 (X11; Linux x86_64)', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)');
-        this.curlControl.impersonateChrome(this.effectiveUA);
+            this.logger.error(`Failed to launch browser`, { err });
+            return undefined;
+        })) as any;
 
-        await this.newPage('beware_deadlock').then((r) => this.__loadedPage.push(r));
+        if (this.browser) {
+            this.browser.once('disconnected', () => {
+                this.logger.warn(`Browser disconnected`);
+                this.browser = undefined;
+            });
+            this.ua = await this.browser.userAgent().catch(() => '');
+            this.logger.info(`Browser launched: ${this.browser.process()?.pid}, ${this.ua}`);
+            this.effectiveUA = (this.ua || '').replace(/Headless/i, '').replace('Mozilla/5.0 (X11; Linux x86_64)', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)');
+            if (this.effectiveUA) {
+                this.curlControl.impersonateChrome(this.effectiveUA);
+            }
+            await this.newPage('beware_deadlock').then((r) => this.__loadedPage.push(r)).catch(() => undefined);
+        }
 
         this.emit('ready');
     }
