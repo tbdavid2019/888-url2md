@@ -1,4 +1,4 @@
-run-name: CI test (reusable)
+name: CI test (reusable)
 on:
   workflow_call:
     inputs:
