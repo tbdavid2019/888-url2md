@@ -30,6 +30,45 @@ Currently deployed at: **[create360.ai](https://create360.ai)** (or easily self-
 
 ---
 
+## 🐳 Docker 安裝與部署 (Docker Deployment)
+
+本專案已發布至 Docker Hub：[**tbdavid2019/888-url2md**](https://hub.docker.com/repository/docker/tbdavid2019/888-url2md/)
+
+### 1. 快速啟動 (Quickstart)
+
+```bash
+# 從 Docker Hub 拉取最新映像檔
+docker pull tbdavid2019/888-url2md:latest
+
+# 啟動容器 (預設對外 Port 8081)
+docker run -d \
+  --name 888-url2md \
+  -p 8081:8081 \
+  --security-opt seccomp=unconfined \
+  --restart always \
+  -e PUBLIC_DOMAIN='https://create360.ai' \
+  tbdavid2019/888-url2md:latest
+```
+
+### 2. Docker Compose 部署範例
+
+```yaml
+version: '3.8'
+services:
+  888-url2md:
+    image: tbdavid2019/888-url2md:latest
+    container_name: 888-url2md
+    ports:
+      - "8081:8081"
+    security_opt:
+      - seccomp:unconfined
+    restart: always
+    environment:
+      - PUBLIC_DOMAIN=https://create360.ai
+```
+
+---
+
 ## 📖 API 使用指南 (Usage)
 
 ### 1. 單網址抓取 (Single URL Reading)
