@@ -263,19 +263,14 @@ export class SERPSpecializedPuppeteerControl extends AsyncService {
 
     override async init() {
         await this.dependencyReady();
-        if (process.env.NODE_ENV?.includes('dry-run')) {
-            this.emit('ready');
+        this.emit('ready');
+    }
+
+    async ensureBrowser() {
+        if (this.browser?.connected) {
             return;
         }
-
-        if (this.browser) {
-            if (this.browser.connected) {
-                await this.browser.close();
-            } else {
-                this.browser.process()?.kill('SIGKILL');
-            }
-        }
-        this.browser = await puppeteer.launch({
+        this.browser = (await puppeteer.launch({
             timeout: 10_000,
             headless: !Boolean(process.env.DEBUG_BROWSER),
             executablePath: process.env.OVERRIDE_CHROME_EXECUTABLE_PATH,
@@ -283,30 +278,24 @@ export class SERPSpecializedPuppeteerControl extends AsyncService {
                 '--disable-dev-shm-usage', '--disable-blink-features=AutomationControlled', '--no-sandbox', '--disable-setuid-sandbox'
             ]
         }).catch((err: any) => {
-            this.logger.error(`Unknown firebase issue, just die fast.`, { err });
-            process.nextTick(() => {
-                this.emit('error', err);
-                // process.exit(1);
-            });
-            return Promise.reject(err);
-        });
-        this.browser.once('disconnected', () => {
-            this.logger.warn(`Browser disconnected`);
-            if (this.browser) {
-                this.emit('crippled');
+            this.logger.error(`Failed to launch SERP browser`, { err });
+            return undefined;
+        })) as any;
+        if (this.browser) {
+            this.ua = await this.browser.userAgent().catch(() => '');
+            this.effectiveUA = (this.ua || '').replace(/Headless/i, '').replace('Mozilla/5.0 (X11; Linux x86_64)', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)');
+            if (this.effectiveUA) {
+                this.curlControl.impersonateChrome(this.effectiveUA);
             }
-            process.nextTick(() => this.serviceReady());
-        });
-        this.ua = await this.browser.userAgent();
-        this.logger.info(`Browser launched: ${this.browser.process()?.pid}, ${this.ua}`);
-        this.effectiveUA = this.ua.replace(/Headless/i, '').replace('Mozilla/5.0 (X11; Linux x86_64)', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)');
-        this.curlControl.impersonateChrome(this.effectiveUA);
-
-        this.emit('ready');
+        }
     }
 
     async newPage<T>(context?: BrowserContext) {
         await this.serviceReady();
+        await this.ensureBrowser();
+        if (!this.browser) {
+            throw new ServiceNodeResourceDrainError(`Failed to initialize SERP browser`);
+        }
         const sn = this._sn++;
         let page;
         context ??= await this.browser.createBrowserContext();
