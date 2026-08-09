@@ -91,3 +91,12 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64,linux/arm64
+      - name: Update Docker Hub Description
+        if: secrets.DOCKERHUB_TOKEN != ''
+        uses: peter-evans/dockerhub-description@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME || 'tbdavid2019' }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          repository: tbdavid2019/888-url2md
+          short-description: "Web Reader & Batch Web Reader Agent Skill 888 URL to Markdown"
+          readme-filepath: ./README.md
