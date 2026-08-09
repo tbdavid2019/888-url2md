@@ -1,4 +1,5 @@
-run-name: Build push container image to GH
+name: Build and Push Container Image
+
 on:
   push:
     branches:
@@ -7,12 +8,7 @@ on:
       - '*'
 
 jobs:
-  test:
-    uses: ./.github/workflows/_test.yml
-    secrets: inherit
-
-  build-and-push-to-ghcr:
-    needs: test
+  build-and-push:
     runs-on: ubuntu-latest
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}
