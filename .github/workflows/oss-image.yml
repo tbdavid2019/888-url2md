@@ -63,8 +63,7 @@ jobs:
             ghcr.io/${{ github.repository }}
             tbdavid2019/888-url2md
           labels: |
-            org.opencontainers.image.created={{timestamp}}
-            org.opencontainers.image.source="https://github.com/${{ github.repository }}"
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
           tags: |
             type=schedule
             type=ref,event=branch
