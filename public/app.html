@@ -90,7 +90,12 @@
         const copyButton = document.querySelector('#copy');
         const downloadButton = document.querySelector('#download');
 
-        const getUrls = () => urlsInput.value.split(/[\s,]+/).map(value => value.trim()).filter(Boolean);
+        const normalizeUrl = value => {
+          const url = value.trim();
+          if (/^[a-z][a-z\d+.-]*:/i.test(url)) return url;
+          return `https://${url.replace(/^\/\//, '')}`;
+        };
+        const getUrls = () => urlsInput.value.split(/[\s,]+/).map(value => value.trim()).filter(Boolean).map(normalizeUrl);
         const setStatus = (message, isError = false) => {
           status.textContent = message;
           status.classList.toggle('error', isError);
@@ -108,6 +113,9 @@
             urlsInput.focus();
             return;
           }
+
+          // Reflect the normalized URLs back to the user before sending them.
+          urlsInput.value = urls.join('\n');
 
           convertButton.disabled = true;
           setStatus(`正在轉換 ${urls.length} 個網址…`);

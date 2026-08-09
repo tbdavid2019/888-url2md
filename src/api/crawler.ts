@@ -550,7 +550,10 @@ If you are an LLM or AI Agent accessing this service for the first time:
         const urlEntries: { raw: string; url?: URL; error?: string }[] = [];
         for (const raw of rawUrls) {
             try {
-                const fixedUrlStr = this._attemptURLFix(raw.trim(), ctx.URL.host);
+                let fixedUrlStr = this._attemptURLFix(raw.trim(), ctx.URL.host);
+                if (!/^[a-z][a-z\d+.-]*:/i.test(fixedUrlStr)) {
+                    fixedUrlStr = `https://${fixedUrlStr.replace(/^\/\//, '')}`;
+                }
                 if (fixedUrlStr && URL.canParse(fixedUrlStr)) {
                     const normalizedHref = new URL(fixedUrlStr).href;
                     const { url: safeURL } = await this.miscService.assertNormalizedUrl(normalizedHref);

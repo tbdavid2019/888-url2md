@@ -6,6 +6,7 @@ All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888
 
 ### ✨ Human-facing Web Interface
 - Added a browser landing page at `GET /` for `create360.ai`. Users can paste one or more URLs to convert them into Markdown, preview the result, copy it, or download it as a `.md` file.
+- Bare domains entered in the web interface or batch API are normalized to `https://…` automatically.
 - Added a web search input to the landing page. It uses the existing `GET /search?q=...` endpoint and presents the Markdown result in the same interface.
 - Kept the API and LLM-facing behaviour unchanged: non-browser requests to `GET /` continue to receive the `SKILL.md` content, and `GET /skill.md` remains the direct LLM documentation endpoint.
 
