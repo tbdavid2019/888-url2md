@@ -1,6 +1,7 @@
 {
   "name": "reader",
-  "version": "0.5.0",
+  "version": "0.6.0",
+  "license": "AGPL-3.0-or-later",
   "scripts": {
     "lint": "eslint --ext .js,.ts .",
     "assets:download": "bash ./download-external-assets.sh",

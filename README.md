@@ -177,6 +177,5 @@ curl -X POST 'https://create360.ai/v1/batch' \
 
 ## 📄 開源協議與致謝 (License & Attribution)
 
-- 原創作者: [Jina AI](https://jina.ai)
-- 原始專案: [jina-ai/reader](https://github.com/jina-ai/reader)
-- 本專案採用 Apache-2.0 / MIT 相關開源協議，歡迎社群自由使用與二次開發。
+- **開源協議**: 本專案基於 **GNU Affero General Public License v3.0 ([AGPL-3.0](LICENSE))** 開源。
+- **原創致謝**: 原創核心模組衍生自 [Jina AI](https://jina.ai) 的開源專案 (`jina-ai/reader`)。特別感謝 Jina AI 團隊與原創社群之貢獻！
