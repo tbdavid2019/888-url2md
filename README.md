@@ -36,14 +36,14 @@ Currently deployed at: **[create360.ai](https://create360.ai)** (or easily self-
 
 **GET 方式**：在網址前加上服務域名
 ```bash
-curl 'https://create360.ai/https://example.com'
+curl 'https://create360.ai/https://podcast.david888.com/post/2026-08-09'
 ```
 
 **POST 方式**：傳送 JSON Payload
 ```bash
 curl -X POST 'https://create360.ai/' \
   -H 'Content-Type: application/json' \
-  -d '{"url": "https://example.com"}'
+  -d '{"url": "https://podcast.david888.com/post/2026-08-09"}'
 ```
 
 ---
@@ -81,8 +81,8 @@ curl -X POST 'https://create360.ai/v1/batch' \
   -H 'Accept: text/plain' \
   -d '{
     "urls": [
-      "https://example.com/page1",
-      "https://example.com/page2"
+      "https://podcast.david888.com/",
+      "https://podcast.david888.com/post/2026-08-09"
     ]
   }'
 ```
@@ -95,8 +95,8 @@ curl -X POST 'https://create360.ai/v1/batch' \
   -H 'Accept: application/json' \
   -d '{
     "urls": [
-      "https://example.com/page1",
-      "https://example.com/page2"
+      "https://podcast.david888.com/",
+      "https://podcast.david888.com/post/2026-08-09"
     ]
   }'
 ```

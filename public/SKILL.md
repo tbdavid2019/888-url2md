@@ -20,12 +20,12 @@ If you are an LLM or AI Agent accessing this service for the first time:
 
 ### 1. Single URL Reading
 - **GET Request**: `/<URL>`
-  *Example*: `/https://example.com`
+  *Example*: `/https://podcast.david888.com/post/2026-08-09`
 - **POST Request**: `/`
   *JSON Body*:
   ```json
   {
-    "url": "https://example.com"
+    "url": "https://podcast.david888.com/post/2026-08-09"
   }
   ```
 
@@ -35,8 +35,8 @@ If you are an LLM or AI Agent accessing this service for the first time:
   ```json
   {
     "urls": [
-      "https://example.com/page1",
-      "https://example.com/page2"
+      "https://podcast.david888.com/",
+      "https://podcast.david888.com/post/2026-08-09"
     ]
   }
   ```
@@ -51,8 +51,8 @@ If you are an LLM or AI Agent accessing this service for the first time:
     "code": 200,
     "status": 20000,
     "data": [
-      { "url": "https://example.com/page1", "title": "...", "content": "..." },
-      { "url": "https://example.com/page2", "title": "...", "content": "..." }
+      { "url": "https://podcast.david888.com/", "title": "...", "content": "..." },
+      { "url": "https://podcast.david888.com/post/2026-08-09", "title": "...", "content": "..." }
     ]
   }
   ```
