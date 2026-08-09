@@ -74,6 +74,52 @@ export class DuckDuckGoSERP extends AsyncService {
 
         if (results.length === 0) {
             try {
+                const bingRes = await fetch(`https://www.bing.com/search?q=${encodeURIComponent(q)}`, {
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+                        'Accept-Language': 'en-US,en;q=0.9,zh-TW;q=0.8,zh;q=0.7',
+                    },
+                });
+                const html = await bingRes.text();
+                const items = html.split('class="b_algo"');
+                for (const item of items.slice(1)) {
+                    const linkMatch = item.match(/<h2[^>]*><a[^>]+href="([^"]+)"[^>]*>(.*?)<\/a><\/h2>/s);
+                    if (linkMatch) {
+                        let rawHref = linkMatch[1].replace(/&amp;/g, '&');
+                        let title = linkMatch[2].replace(/<[^>]+>/g, '').replace(/&#x27;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&').trim();
+                        let link = rawHref;
+                        if (rawHref.includes('&u=a1')) {
+                            try {
+                                const u = rawHref.split('&u=a1')[1].split('&')[0];
+                                const decoded = Buffer.from(u, 'base64').toString('utf-8');
+                                if (decoded.startsWith('http')) {
+                                    link = decoded;
+                                }
+                            } catch {
+                                // ignore base64 decode failure
+                            }
+                        }
+                        let snipMatch = item.match(/<p[^>]*>(.*?)<\/p>/s);
+                        let snippet = snipMatch ? snipMatch[1].replace(/<[^>]+>/g, '').replace(/&#x27;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&').trim() : title;
+                        if (title && link.startsWith('http') && !results.some(r => r.link === link)) {
+                            results.push({
+                                title,
+                                link,
+                                snippet: snippet || title,
+                            });
+                        }
+                    }
+                    if (results.length >= num) {
+                        break;
+                    }
+                }
+            } catch (err) {
+                this.logger.warn('Bing SERP fallback fetch error', { err });
+            }
+        }
+
+        if (results.length === 0) {
+            try {
                 const isChinese = /[\u4e00-\u9fa5]/.test(q);
                 const wikiDomain = isChinese ? 'zh.wikipedia.org' : 'en.wikipedia.org';
                 const wikiRes = await fetch(`https://${wikiDomain}/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(q)}&format=json`, {
