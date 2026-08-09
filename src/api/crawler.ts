@@ -685,6 +685,19 @@ If you are an LLM or AI Agent accessing this service for the first time:
         crawlerOptionsHeaderOnly: CrawlerOptionsHeaderOnly,
         crawlerOptionsParamsAllowed: CrawlerOptions,
     ): Promise<any> {
+        const pathName = tryDecodeURIComponent(`${ctx.URL?.pathname || ctx.path || ''}`).replace(/^\/+/, '');
+        const cleanPath = pathName.toLowerCase().split('?')[0];
+
+        if (cleanPath === 'llms.txt') {
+            return this.getLlmstxtCtrl(ctx);
+        }
+        if (cleanPath === 'llms-full.txt') {
+            return this.getLlmsFulltxtCtrl(ctx);
+        }
+        if (cleanPath === 'skill.md') {
+            return this.getSkillMdCtrl(ctx);
+        }
+
         if (crawlerOptionsParamsAllowed.urls && crawlerOptionsParamsAllowed.urls.length > 0) {
             return this.crawlBatch(rpcReflect, ctx, auth, crawlerOptionsParamsAllowed);
         }
@@ -694,18 +707,6 @@ If you are an LLM or AI Agent accessing this service for the first time:
         const crawlerOptions = ctx.method === 'GET' ? crawlerOptionsHeaderOnly : crawlerOptionsParamsAllowed;
         const tierPolicy = await this.saasAssertTierPolicy(crawlerOptions, auth);
         const futureRateLimit = this.storageLayer.rateLimit(ctx, rpcReflect, auth as any);
-
-        // Use koa ctx.URL, a standard URL object to avoid node.js framework prop naming confusion
-        const rawPath = tryDecodeURIComponent(`${ctx.URL.pathname}`).replace(/^\/+/, '');
-        if (rawPath === 'llms.txt') {
-            return this.getLlmstxtCtrl(ctx);
-        }
-        if (rawPath === 'llms-full.txt') {
-            return this.getLlmsFulltxtCtrl(ctx);
-        }
-        if (rawPath === 'skill.md' || rawPath.toLowerCase() === 'skill.md') {
-            return this.getSkillMdCtrl(ctx);
-        }
 
         const targetUrl = await this.getTargetUrl(tryDecodeURIComponent(`${ctx.URL.pathname}${ctx.URL.search}`), crawlerOptions, ctx.URL.host);
         if (!targetUrl) {
@@ -994,6 +995,11 @@ If you are an LLM or AI Agent accessing this service for the first time:
     }
 
     async getTargetUrl(originPath: string, crawlerOptions: CrawlerOptions, thisServerHost?: string) {
+        const cleanOrigin = originPath.replace(/^\/+/, '').toLowerCase().split('?')[0];
+        if (cleanOrigin === 'llms.txt' || cleanOrigin === 'llms-full.txt' || cleanOrigin === 'skill.md') {
+            return '';
+        }
+
         let url: string = '';
 
         const targetUrlFromGet = originPath.slice(1);
