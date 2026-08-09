@@ -29,6 +29,7 @@ import { Readable } from 'stream';
 import { once } from 'events';
 import { Defer } from 'civkit/defer';
 import { BingSERP } from '../services/serp/bing';
+import { DuckDuckGoSERP } from '../services/serp/ddg';
 import { bcp47ToIso639_3 } from '../utils/languages';
 import { parseSearchQuery } from '../utils/search-query';
 import { JSDomControl } from '../services/jsdom';
@@ -70,6 +71,7 @@ export class SearcherHost extends RPCHost {
         protected googleSERP: GoogleSERP,
         protected googleSERPOld: GoogleSERPOldFashion,
         protected bingSERP: BingSERP,
+        protected ddgSERP: DuckDuckGoSERP,
         protected storageLayer: StorageLayer,
     ) {
         super(...arguments);
@@ -657,6 +659,7 @@ export class SearcherHost extends RPCHost {
         if (this.envConfig.SERPER_SEARCH_API_KEY) {
             yield this.serperGoogle;
         }
+        yield this.ddgSERP;
         yield this.googleSERP;
         yield this.bingSERP;
         yield this.commonGoogleSerp;
