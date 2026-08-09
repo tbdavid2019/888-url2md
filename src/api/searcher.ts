@@ -340,6 +340,34 @@ export class SearcherHost extends RPCHost {
         }
 
         if (!ctx.accepts('text/plain') && (ctx.accepts('text/json') || ctx.accepts('application/json'))) {
+            try {
+                for await (const scrapped of it) {
+                    lastScrapped = scrapped;
+                    if (rpcReflect.signal.aborted) {
+                        break;
+                    }
+
+                    if (!lastScrapped || !this.searchResultsQualified(lastScrapped, count)) {
+                        continue;
+                    }
+
+                    await this.assignGeneralMixin(lastScrapped, count);
+                    chargeAmount = this.assignChargeAmount(lastScrapped, count, chargeAmountScaler);
+
+                    return lastScrapped;
+                }
+            } catch (err: any) {
+                this.logger.warn(`Search scraping JSON loop error`, { err });
+            }
+
+            const fallbackResults = lastScrapped || results;
+            await this.assignGeneralMixin(fallbackResults, count);
+            chargeAmount = this.assignChargeAmount(fallbackResults, count, chargeAmountScaler);
+
+            return fallbackResults;
+        }
+
+        try {
             for await (const scrapped of it) {
                 lastScrapped = scrapped;
                 if (rpcReflect.signal.aborted) {
@@ -353,43 +381,17 @@ export class SearcherHost extends RPCHost {
                 await this.assignGeneralMixin(lastScrapped, count);
                 chargeAmount = this.assignChargeAmount(lastScrapped, count, chargeAmountScaler);
 
-                return lastScrapped;
+                return assignTransferProtocolMeta(`${lastScrapped}`, { contentType: 'text/plain', envelope: null });
             }
-
-            if (!lastScrapped) {
-                throw new AssertionFailureError(`No content available for query ${searchQuery}`);
-            }
-
-            await this.assignGeneralMixin(lastScrapped, count);
-            chargeAmount = this.assignChargeAmount(lastScrapped, count, chargeAmountScaler);
-
-            return lastScrapped;
+        } catch (err: any) {
+            this.logger.warn(`Search scraping text loop error`, { err });
         }
 
-        for await (const scrapped of it) {
-            lastScrapped = scrapped;
-            if (rpcReflect.signal.aborted) {
-                break;
-            }
+        const fallbackResults = lastScrapped || results;
+        await this.assignGeneralMixin(fallbackResults, count);
+        chargeAmount = this.assignChargeAmount(fallbackResults, count, chargeAmountScaler);
 
-            if (!lastScrapped || !this.searchResultsQualified(lastScrapped, count)) {
-                continue;
-            }
-
-            await this.assignGeneralMixin(lastScrapped, count);
-            chargeAmount = this.assignChargeAmount(lastScrapped, count, chargeAmountScaler);
-
-            return assignTransferProtocolMeta(`${lastScrapped}`, { contentType: 'text/plain', envelope: null });
-        }
-
-        if (!lastScrapped) {
-            throw new AssertionFailureError(`No content available for query ${searchQuery}`);
-        }
-
-        await this.assignGeneralMixin(lastScrapped, count);
-        chargeAmount = this.assignChargeAmount(lastScrapped, count, chargeAmountScaler);
-
-        return assignTransferProtocolMeta(`${lastScrapped}`, { contentType: 'text/plain', envelope: null });
+        return assignTransferProtocolMeta(`${fallbackResults}`, { contentType: 'text/plain', envelope: null });
     }
 
     async *fetchSearchResults(
