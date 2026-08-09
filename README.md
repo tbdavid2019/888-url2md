@@ -82,7 +82,9 @@ curl -X POST 'https://create360.ai/v1/batch' \
   -d '{
     "urls": [
       "https://podcast.david888.com/",
-      "https://podcast.david888.com/post/2026-08-09"
+      "https://podcast.david888.com/post/2026-08-08",
+      "https://podcast.david888.com/post/2026-08-09",
+      "https://podcast.david888.com/post/2026-08-06"
     ]
   }'
 ```
@@ -96,7 +98,9 @@ curl -X POST 'https://create360.ai/v1/batch' \
   -d '{
     "urls": [
       "https://podcast.david888.com/",
-      "https://podcast.david888.com/post/2026-08-09"
+      "https://podcast.david888.com/post/2026-08-08",
+      "https://podcast.david888.com/post/2026-08-09",
+      "https://podcast.david888.com/post/2026-08-06"
     ]
   }'
 ```

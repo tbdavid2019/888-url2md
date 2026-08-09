@@ -231,7 +231,6 @@ export class CrawlerHost extends RPCHost {
     }
 
     generateSkillMd(baseDomain: string): string {
-        const todayStr = new Date().toISOString().split('T')[0];
         return `# 888 URL to Markdown (888-url2md) Agent Skill
 
 ---
@@ -256,12 +255,12 @@ If you are an LLM or AI Agent accessing this service for the first time:
 
 ### 1. Single URL Reading
 - **GET Request**: \`${baseDomain}/<URL>\`
-  *Example*: \`${baseDomain}/https://podcast.david888.com/post/${todayStr}\` (URL path supports dynamic dates YYYY-MM-DD)
+  *Example*: \`${baseDomain}/https://podcast.david888.com/post/2026-08-09\`
 - **POST Request**: \`${baseDomain}/\`
   *JSON Body*:
   \`\`\`json
   {
-    "url": "https://podcast.david888.com/post/${todayStr}"
+    "url": "https://podcast.david888.com/post/2026-08-09"
   }
   \`\`\`
 
@@ -278,7 +277,9 @@ If you are an LLM or AI Agent accessing this service for the first time:
   {
     "urls": [
       "https://podcast.david888.com/",
-      "https://podcast.david888.com/post/${todayStr}"
+      "https://podcast.david888.com/post/2026-08-08",
+      "https://podcast.david888.com/post/2026-08-09",
+      "https://podcast.david888.com/post/2026-08-06"
     ]
   }
   \`\`\`
@@ -294,7 +295,9 @@ If you are an LLM or AI Agent accessing this service for the first time:
     "status": 20000,
     "data": [
       { "url": "https://podcast.david888.com/", "title": "...", "content": "..." },
-      { "url": "https://podcast.david888.com/post/2026-08-09", "title": "...", "content": "..." }
+      { "url": "https://podcast.david888.com/post/2026-08-08", "title": "...", "content": "..." },
+      { "url": "https://podcast.david888.com/post/2026-08-09", "title": "...", "content": "..." },
+      { "url": "https://podcast.david888.com/post/2026-08-06", "title": "...", "content": "..." }
     ]
   }
   \`\`\`

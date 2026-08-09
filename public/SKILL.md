@@ -20,7 +20,7 @@ If you are an LLM or AI Agent accessing this service for the first time:
 
 ### 1. Single URL Reading
 - **GET Request**: `/<URL>`
-  *Example*: `/https://podcast.david888.com/post/2026-08-09` (Supports dynamic dates YYYY-MM-DD)
+  *Example*: `/https://podcast.david888.com/post/2026-08-09`
 - **POST Request**: `/`
   *JSON Body*:
   ```json
@@ -36,7 +36,9 @@ If you are an LLM or AI Agent accessing this service for the first time:
   {
     "urls": [
       "https://podcast.david888.com/",
-      "https://podcast.david888.com/post/2026-08-09"
+      "https://podcast.david888.com/post/2026-08-08",
+      "https://podcast.david888.com/post/2026-08-09",
+      "https://podcast.david888.com/post/2026-08-06"
     ]
   }
   ```
@@ -52,7 +54,9 @@ If you are an LLM or AI Agent accessing this service for the first time:
     "status": 20000,
     "data": [
       { "url": "https://podcast.david888.com/", "title": "...", "content": "..." },
-      { "url": "https://podcast.david888.com/post/2026-08-09", "title": "...", "content": "..." }
+      { "url": "https://podcast.david888.com/post/2026-08-08", "title": "...", "content": "..." },
+      { "url": "https://podcast.david888.com/post/2026-08-09", "title": "...", "content": "..." },
+      { "url": "https://podcast.david888.com/post/2026-08-06", "title": "...", "content": "..." }
     ]
   }
   ```
