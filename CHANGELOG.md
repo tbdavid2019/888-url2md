@@ -14,6 +14,9 @@ All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888
 ### 🛠 CI
 - Migrated GitHub Actions to Node 24-compatible action releases and configured the workflows to force remaining JavaScript actions to run on Node 24 ahead of Node 20 removal.
 
+### 🐳 Deployment
+- Replaced the legacy MinIO-only `docker-compose.yml` with a production-ready `888-url2md` service. `docker compose up -d --build` now builds and starts the application on host port `8083` by default; MinIO is available only with the optional `dev` profile.
+
 ---
 
 ## [v0.6.1] - 888-url2md Fixes & Docker Hub Sync (2026-08-09)

@@ -1,10 +1,30 @@
 services:
+  888-url2md:
+    build:
+      context: .
+    image: 888-url2md:latest
+    container_name: 888-url2md
+    ports:
+      # The app listens on h2c at APP_PORT (8080 by default) and HTTP/1.1 at
+      # APP_PORT + 1. Nginx on the production host proxies to this port.
+      - "${HOST_PORT:-8083}:8081"
+    environment:
+      PUBLIC_DOMAIN: ${PUBLIC_DOMAIN:-https://create360.ai}
+      APP_PORT: ${APP_PORT:-8080}
+      PORT: ${APP_PORT:-8080}
+    security_opt:
+      - seccomp=unconfined
+    restart: always
+
+  # Optional local dependency for development. It is excluded from the default
+  # production deployment so its ports do not conflict with other services.
   minio:
+    profiles: ["dev"]
     image: minio/minio
     hostname: minio
     ports:
-      - 9001:9001
-      - 9000:9000
+      - "9001:9001"
+      - "9000:9000"
     environment:
       MINIO_ROOT_USER: minio
       MINIO_ROOT_PASSWORD: minio123
@@ -14,10 +34,10 @@ services:
     healthcheck:
       test:
         [
-          'CMD',
-          'curl',
-          '-f',
-          'http://localhost:9001/minio/health/live'
+          "CMD",
+          "curl",
+          "-f",
+          "http://localhost:9001/minio/health/live"
         ]
       interval: 30s
       timeout: 20s
