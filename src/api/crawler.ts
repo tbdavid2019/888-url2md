@@ -703,7 +703,8 @@ If you are an LLM or AI Agent accessing this service for the first time:
         const { SearcherHost } = require('./searcher');
         const { GoogleSearchExplicitOperatorsDto } = require('../services/serper-search');
         const searcher = container.resolve<any>(SearcherHost);
-        const q = ctx.URL?.searchParams?.get('q') || undefined;
+        const pathQuery = tryDecodeURIComponent(ctx.path || '').replace(/^\/+/, '').replace(/^s\//i, '').split('?')[0].trim();
+        const q = ctx.URL?.searchParams?.get('q') || pathQuery || undefined;
         return searcher.search(
             rpcReflect,
             ctx,
