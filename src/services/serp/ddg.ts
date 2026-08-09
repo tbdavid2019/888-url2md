@@ -146,6 +146,48 @@ export class DuckDuckGoSERP extends AsyncService {
             }
         }
 
+        if (results.length === 0 && !q.includes(' ')) {
+            const cleanQ = q.trim().toLowerCase();
+            const candidates: string[] = [];
+            if (cleanQ.startsWith('http://') || cleanQ.startsWith('https://')) {
+                candidates.push(cleanQ);
+            } else if (cleanQ.includes('.')) {
+                candidates.push(`https://${cleanQ}/`);
+            } else {
+                candidates.push(`https://${cleanQ}.com/`);
+                candidates.push(`https://${cleanQ}.org/`);
+                candidates.push(`https://${cleanQ}.tw/`);
+                candidates.push(`https://${cleanQ}.ai/`);
+            }
+
+            for (const candidateUrl of candidates) {
+                try {
+                    const probeRes = await fetch(candidateUrl, {
+                        signal: AbortSignal.timeout(4000),
+                        headers: {
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+                        }
+                    });
+                    if (probeRes.ok) {
+                        const html = await probeRes.text();
+                        const titleMatch = html.match(/<title[^>]*>(.*?)<\/title>/i);
+                        const title = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, '').trim() : candidateUrl;
+                        const finalUrl = probeRes.url || candidateUrl;
+                        if (!results.some(r => r.link === finalUrl)) {
+                            results.push({
+                                title: title || finalUrl,
+                                link: finalUrl,
+                                snippet: title || finalUrl,
+                            });
+                        }
+                        break;
+                    }
+                } catch {
+                    // probe timeout or failed connection
+                }
+            }
+        }
+
         return results;
     }
 }
