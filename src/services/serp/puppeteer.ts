@@ -275,7 +275,7 @@ export class SERPSpecializedPuppeteerControl extends AsyncService {
             headless: !Boolean(process.env.DEBUG_BROWSER),
             executablePath: process.env.OVERRIDE_CHROME_EXECUTABLE_PATH,
             args: [
-                '--disable-dev-shm-usage', '--disable-blink-features=AutomationControlled', '--no-sandbox', '--disable-setuid-sandbox'
+                '--disable-dev-shm-usage', '--disable-blink-features=AutomationControlled', '--no-sandbox', '--disable-setuid-sandbox', '--no-zygote', '--disable-gpu'
             ]
         }).catch((err: any) => {
             this.logger.error(`Failed to launch SERP browser`, { err });

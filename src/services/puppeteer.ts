@@ -736,9 +736,12 @@ export class PuppeteerControl extends AsyncService {
         }
         const args = [
             '--disable-dev-shm-usage',
-            '--disable-blink-features=AutomationControlled'
+            '--disable-blink-features=AutomationControlled',
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--no-zygote',
+            '--disable-gpu',
         ];
-        args.push('--no-sandbox', '--disable-setuid-sandbox');
         this.browser = await puppeteer.launch({
             timeout: 30_000,
             headless: !Boolean(process.env.DEBUG_BROWSER),
