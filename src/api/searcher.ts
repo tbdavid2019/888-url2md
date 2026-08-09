@@ -612,6 +612,9 @@ export class SearcherHost extends RPCHost {
 
                 if (!stale && Array.isArray(cache.response) && cache.response.length > 0) {
                     results = cache.response.filter((x) => x.link).map((x) => this.mapSearchEntryToPartialFormattedPage(x));
+                    results.toString = function (this: FormattedPage[]) {
+                        return this.map((x, i) => x ? Reflect.apply(x.toString, x, [i]) : '').join('\n\n').trimEnd() + '\n';
+                    };
                     cacheUsed = true;
                     yield results;
                 }
@@ -688,6 +691,9 @@ export class SearcherHost extends RPCHost {
                 }
 
                 results = r.map((x) => this.mapSearchEntryToPartialFormattedPage(x));
+                results.toString = function (this: FormattedPage[]) {
+                    return this.map((x, i) => x ? Reflect.apply(x.toString, x, [i]) : '').join('\n\n').trimEnd() + '\n';
+                };
                 yield results;
             } catch (err: any) {
                 if (cache) {
@@ -723,6 +729,7 @@ export class SearcherHost extends RPCHost {
             description: Reflect.get(input, 'snippet'),
             ..._.pick(input, whitelistedProps),
         };
+        Object.setPrototypeOf(result, searchResultProto);
 
         return result;
     }
