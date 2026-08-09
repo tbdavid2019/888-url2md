@@ -22,6 +22,17 @@ jobs:
           lfs: true
           submodules: true
 
+      - name: Determine Docker Image Targets
+        run: |
+          IMAGES="ghcr.io/${{ github.repository }}"
+          if [ -n "${{ secrets.DOCKERHUB_TOKEN }}" ]; then
+            IMAGES="${IMAGES}
+          tbdavid2019/888-url2md"
+          fi
+          echo "TARGET_IMAGES<<EOF" >> $GITHUB_ENV
+          echo "$IMAGES" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -73,9 +84,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: |
-            ghcr.io/${{ github.repository }}
-            tbdavid2019/888-url2md
+          images: ${{ env.TARGET_IMAGES }}
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
           flavor: |
