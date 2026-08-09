@@ -4,7 +4,7 @@ on:
     inputs:
       node-version:
         type: string
-        default: '24.14.1'
+        default: '24'
         description: 'Node.js version to use.'
 
 jobs:
