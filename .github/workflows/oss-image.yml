@@ -61,18 +61,17 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            ghcr.io/jina-ai/reader
+            ghcr.io/${{ github.repository }}
           labels: |
             org.opencontainers.image.created={{timestamp}}
-            org.opencontainers.image.source="https://github.com/jina-ai/reader"
+            org.opencontainers.image.source="https://github.com/${{ github.repository }}"
           tags: |
             type=schedule
             type=ref,event=branch
             type=ref,event=tag
             type=ref,event=pr
             type=raw,value=oss,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
-          flavor: |
-            latest=true
+            type=raw,value=v0.6.0,enable=${{ github.ref == format('refs/heads/{0}', 'main') }}
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
       - name: Set up Docker Buildx
