@@ -2,6 +2,14 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [v0.6.1] - 888-url2md Fixes & Docker Hub Sync (2026-08-09)
+
+### 🐛 Bug Fixes & Improvements
+- **Google SERP User-Agent Fallback**: Added default fallback UA in `getGsaUserAgent()` to prevent unhandled exceptions when `gsa_useragents.txt` is absent in container environments.
+- **CI/CD Docker Hub & GHCR Dual-Publish**: Updated GitHub Actions workflow (`oss-image.yml`) to automatically build and push multi-arch Docker images to both GHCR (`ghcr.io/tbdavid2019/888-url2md`) and Docker Hub (`tbdavid2019/888-url2md`).
+- **Docker Hub README Auto-Sync**: Integrated `peter-evans/dockerhub-description@v4` action to automatically sync `README.md` to Docker Hub repository overview.
+- **Deployment Hardening**: Renamed remote container and image tags to official `888-url2md:latest` / `v0.6.1`.
+
 ---
 
 ## [v0.6.0] - 888 URL to Markdown Release (2026-08-09)
