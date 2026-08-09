@@ -11,6 +11,7 @@
       body { margin: 0; min-width: 320px; }
       main { width: min(960px, calc(100% - 32px)); margin: 0 auto; padding: 56px 0 40px; }
       header { margin-bottom: 28px; }
+      .brand-row { display: flex; justify-content: space-between; gap: 16px; align-items: center; }
       h1 { margin: 0 0 10px; font-size: clamp(2rem, 5vw, 3rem); letter-spacing: -.04em; }
       p { color: #5b667a; line-height: 1.65; }
       .card { background: #fff; border: 1px solid #e4e8f0; border-radius: 16px; padding: clamp(20px, 4vw, 32px); box-shadow: 0 12px 28px rgba(32, 47, 80, .06); }
@@ -40,41 +41,44 @@
   <body>
     <main>
       <header>
-        <h1>888 URL2MD</h1>
-        <p>貼上一個或多個網頁網址，即可擷取主要內容並轉成可複製、下載的 Markdown。</p>
+        <div class="brand-row">
+          <h1>888 URL2MD</h1>
+          <button class="secondary" id="language-toggle" type="button" aria-label="Switch language">English</button>
+        </div>
+        <p data-i18n="intro">貼上一個或多個網頁網址，即可擷取主要內容並轉成可複製、下載的 Markdown。</p>
       </header>
       <section class="card" aria-labelledby="urls-label">
         <form id="converter-form">
-          <label id="urls-label" for="urls">網址</label>
+          <label id="urls-label" for="urls" data-i18n="urlsLabel">網址</label>
           <textarea id="urls" name="urls" required spellcheck="false" placeholder="https://example.com/article\nhttps://example.com/another-article" aria-describedby="url-help"></textarea>
-          <p class="help" id="url-help">每行一個網址；也可以用空白或逗號分隔。多個網址會依序合併為同一份 Markdown。</p>
+          <p class="help" id="url-help" data-i18n="urlsHelp">每行一個網址；也可以用空白或逗號分隔。多個網址會依序合併為同一份 Markdown。</p>
           <div class="actions">
-            <button id="convert" type="submit">轉換成 Markdown</button>
+            <button id="convert" type="submit" data-i18n="convert">轉換成 Markdown</button>
           </div>
         </form>
         <p id="status" role="status" aria-live="polite"></p>
       </section>
       <section class="card" aria-labelledby="search-label" style="margin-top: 20px">
         <form id="search-form">
-          <label id="search-label" for="query">網頁搜尋</label>
-          <textarea id="query" name="query" required rows="2" spellcheck="true" placeholder="例如：台灣人工智慧最新新聞" aria-describedby="search-help"></textarea>
-          <p class="help" id="search-help">輸入關鍵字後搜尋網頁，結果會轉換成 Markdown。</p>
+          <label id="search-label" for="query" data-i18n="searchLabel">網頁搜尋</label>
+          <textarea id="query" name="query" required rows="2" spellcheck="true" placeholder="例如：台灣人工智慧最新新聞" data-i18n-placeholder="searchPlaceholder" aria-describedby="search-help"></textarea>
+          <p class="help" id="search-help" data-i18n="searchHelp">輸入關鍵字後搜尋網頁，結果會轉換成 Markdown。</p>
           <div class="actions">
-            <button id="search" type="submit">搜尋並轉成 Markdown</button>
+            <button id="search" type="submit" data-i18n="search">搜尋並轉成 Markdown</button>
           </div>
         </form>
       </section>
       <section id="result-area" hidden aria-labelledby="result-title">
         <div class="result-head">
-          <h2 id="result-title">轉換結果</h2>
+          <h2 id="result-title" data-i18n="result">轉換結果</h2>
           <div class="actions">
-            <button class="secondary" id="copy" type="button">複製</button>
-            <button class="secondary" id="download" type="button">下載 .md</button>
+            <button class="secondary" id="copy" type="button" data-i18n="copy">複製</button>
+            <button class="secondary" id="download" type="button" data-i18n="download">下載 .md</button>
           </div>
         </div>
         <pre id="result"></pre>
       </section>
-      <p class="footer">給 AI Agent / LLM 使用的說明請見 <a href="/skill.md">SKILL.md</a>。</p>
+      <p class="footer"><span data-i18n="footerPrefix">給 AI Agent / LLM 使用的說明請見 </span><a href="/skill.md">SKILL.md</a><span data-i18n="footerSuffix">。</span></p>
     </main>
     <script>
       (() => {
@@ -89,6 +93,73 @@
         const result = document.querySelector('#result');
         const copyButton = document.querySelector('#copy');
         const downloadButton = document.querySelector('#download');
+        const languageToggle = document.querySelector('#language-toggle');
+
+        const translations = {
+          'zh-Hant': {
+            intro: '貼上一個或多個網頁網址，即可擷取主要內容並轉成可複製、下載的 Markdown。',
+            urlsLabel: '網址',
+            urlsHelp: '每行一個網址；也可以用空白或逗號分隔。多個網址會依序合併為同一份 Markdown。',
+            convert: '轉換成 Markdown',
+            searchLabel: '網頁搜尋',
+            searchPlaceholder: '例如：台灣人工智慧最新新聞',
+            searchHelp: '輸入關鍵字後搜尋網頁，結果會轉換成 Markdown。',
+            search: '搜尋並轉成 Markdown',
+            result: '轉換結果', copy: '複製', download: '下載 .md',
+            footerPrefix: '給 AI Agent / LLM 使用的說明請見 ', footerSuffix: '。',
+            switchLanguage: '切換為英文',
+            urlsRequired: '請至少輸入一個網址。',
+            converting: count => `正在轉換 ${count} 個網址…`,
+            converted: count => `已完成 ${count} 個網址的轉換。`,
+            conversionFailed: error => `轉換失敗：${error}`,
+            queryRequired: '請輸入搜尋關鍵字。',
+            searching: query => `正在搜尋「${query}」…`,
+            searched: query => `已完成「${query}」的搜尋。`,
+            searchFailed: error => `搜尋失敗：${error}`,
+            copied: '已複製 Markdown 到剪貼簿。',
+            copyFailed: '無法自動複製，請手動選取結果。'
+          },
+          en: {
+            intro: 'Paste one or more web addresses to extract the main content as clean Markdown you can copy or download.',
+            urlsLabel: 'URLs',
+            urlsHelp: 'Enter one URL per line. Spaces and commas also work as separators; multiple pages are combined into one Markdown file.',
+            convert: 'Convert to Markdown',
+            searchLabel: 'Web search',
+            searchPlaceholder: 'For example: latest AI news in Taiwan',
+            searchHelp: 'Search the web by keyword and receive the results as Markdown.',
+            search: 'Search as Markdown',
+            result: 'Result', copy: 'Copy', download: 'Download .md',
+            footerPrefix: 'Instructions for AI agents and LLMs: ', footerSuffix: '.',
+            switchLanguage: '切換為中文',
+            urlsRequired: 'Enter at least one URL.',
+            converting: count => `Converting ${count} URL${count === 1 ? '' : 's'}…`,
+            converted: count => `Converted ${count} URL${count === 1 ? '' : 's'}.`,
+            conversionFailed: error => `Conversion failed: ${error}`,
+            queryRequired: 'Enter a search query.',
+            searching: query => `Searching for “${query}”…`,
+            searched: query => `Search complete for “${query}”.`,
+            searchFailed: error => `Search failed: ${error}`,
+            copied: 'Markdown copied to the clipboard.',
+            copyFailed: 'Could not copy automatically. Please select the result manually.'
+          }
+        };
+        const detectedLocale = (navigator.languages || [navigator.language || '']).some(language => language.toLowerCase().startsWith('zh')) ? 'zh-Hant' : 'en';
+        let locale;
+        try { locale = localStorage.getItem('888-url2md-locale') || detectedLocale; } catch { locale = detectedLocale; }
+        const text = key => translations[locale][key];
+        const applyLocale = () => {
+          document.documentElement.lang = locale;
+          document.querySelectorAll('[data-i18n]').forEach(element => { element.textContent = text(element.dataset.i18n); });
+          document.querySelectorAll('[data-i18n-placeholder]').forEach(element => { element.placeholder = text(element.dataset.i18nPlaceholder); });
+          languageToggle.textContent = locale === 'zh-Hant' ? 'English' : '中文';
+          languageToggle.setAttribute('aria-label', text('switchLanguage'));
+        };
+        applyLocale();
+        languageToggle.addEventListener('click', () => {
+          locale = locale === 'zh-Hant' ? 'en' : 'zh-Hant';
+          try { localStorage.setItem('888-url2md-locale', locale); } catch {}
+          applyLocale();
+        });
 
         const normalizeUrl = value => {
           const url = value.trim();
@@ -109,7 +180,7 @@
           event.preventDefault();
           const urls = getUrls();
           if (!urls.length) {
-            setStatus('請至少輸入一個網址。', true);
+            setStatus(text('urlsRequired'), true);
             urlsInput.focus();
             return;
           }
@@ -118,7 +189,7 @@
           urlsInput.value = urls.join('\n');
 
           convertButton.disabled = true;
-          setStatus(`正在轉換 ${urls.length} 個網址…`);
+          setStatus(text('converting')(urls.length));
           resultArea.hidden = true;
           try {
             const response = await fetch('/v1/batch', {
@@ -129,9 +200,9 @@
             const markdown = await response.text();
             if (!response.ok) throw new Error(markdown || `伺服器回應 ${response.status}`);
             showResult(markdown);
-            setStatus(`已完成 ${urls.length} 個網址的轉換。`);
+            setStatus(text('converted')(urls.length));
           } catch (error) {
-            setStatus(`轉換失敗：${error.message || '請稍後再試。'}`, true);
+            setStatus(text('conversionFailed')(error.message || 'Please try again.'), true);
           } finally {
             convertButton.disabled = false;
           }
@@ -141,13 +212,13 @@
           event.preventDefault();
           const query = queryInput.value.trim();
           if (!query) {
-            setStatus('請輸入搜尋關鍵字。', true);
+            setStatus(text('queryRequired'), true);
             queryInput.focus();
             return;
           }
 
           searchButton.disabled = true;
-          setStatus(`正在搜尋「${query}」…`);
+          setStatus(text('searching')(query));
           resultArea.hidden = true;
           try {
             const response = await fetch(`/search?q=${encodeURIComponent(query)}`, {
@@ -156,9 +227,9 @@
             const markdown = await response.text();
             if (!response.ok) throw new Error(markdown || `伺服器回應 ${response.status}`);
             showResult(markdown);
-            setStatus(`已完成「${query}」的搜尋。`);
+            setStatus(text('searched')(query));
           } catch (error) {
-            setStatus(`搜尋失敗：${error.message || '請稍後再試。'}`, true);
+            setStatus(text('searchFailed')(error.message || 'Please try again.'), true);
           } finally {
             searchButton.disabled = false;
           }
@@ -167,9 +238,9 @@
         copyButton.addEventListener('click', async () => {
           try {
             await navigator.clipboard.writeText(result.textContent);
-            setStatus('已複製 Markdown 到剪貼簿。');
+            setStatus(text('copied'));
           } catch {
-            setStatus('無法自動複製，請手動選取結果。', true);
+            setStatus(text('copyFailed'), true);
           }
         });
 
@@ -177,7 +248,7 @@
           const blob = new Blob([result.textContent], { type: 'text/markdown;charset=utf-8' });
           const link = document.createElement('a');
           link.href = URL.createObjectURL(blob);
-          link.download = `url2md-${new Date().toISOString().slice(0, 10)}.md`;
+          link.download = `888-url2md-${new Date().toISOString().slice(0, 10)}.md`;
           link.click();
           URL.revokeObjectURL(link.href);
         });
