@@ -265,7 +265,10 @@ export class SearcherHost extends RPCHost {
         }
 
         if (!results?.length) {
-            throw new AssertionFailureError(`No search results available for query ${searchQuery}`);
+            return assignTransferProtocolMeta(`No search results available for query: ${searchQuery}`, {
+                contentType: 'text/plain; charset=utf-8',
+                envelope: null
+            });
         }
 
         let lastScrapped: any[] | undefined;
