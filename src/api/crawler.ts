@@ -458,6 +458,11 @@ If you are an LLM or AI Agent accessing this service for the first time:
         @Param({ type: AUTH_DTO_CLS }) auth: BaseAuthDTO,
         crawlerOptionsParamsAllowed: CrawlerOptions,
     ): Promise<any> {
+        const paramUrlLower = (crawlerOptionsParamsAllowed.url || '').toLowerCase().trim();
+        if (['skill.md', 'llms.txt', 'llms-full.txt'].includes(paramUrlLower)) {
+            delete crawlerOptionsParamsAllowed.url;
+        }
+
         if (crawlerOptionsParamsAllowed.url || (crawlerOptionsParamsAllowed.urls && crawlerOptionsParamsAllowed.urls.length > 0) || (crawlerOptionsParamsAllowed.file || crawlerOptionsParamsAllowed.pdf || crawlerOptionsParamsAllowed.html)) {
             return this.crawl(rpcReflect, ctx, auth, crawlerOptionsParamsAllowed, crawlerOptionsParamsAllowed);
         }
@@ -685,16 +690,16 @@ If you are an LLM or AI Agent accessing this service for the first time:
         crawlerOptionsHeaderOnly: CrawlerOptionsHeaderOnly,
         crawlerOptionsParamsAllowed: CrawlerOptions,
     ): Promise<any> {
-        const pathName = tryDecodeURIComponent(`${ctx.URL?.pathname || ctx.path || ''}`).replace(/^\/+/, '');
-        const cleanPath = pathName.toLowerCase().split('?')[0];
+        const urlParam = (crawlerOptionsParamsAllowed.url || crawlerOptionsHeaderOnly.url || '').toLowerCase().trim();
+        const pathName = tryDecodeURIComponent(`${ctx.URL?.pathname || ctx.path || ''}`).replace(/^\/+/, '').toLowerCase().trim();
 
-        if (cleanPath === 'llms.txt') {
+        if (pathName === 'llms.txt' || urlParam === 'llms.txt') {
             return this.getLlmstxtCtrl(ctx);
         }
-        if (cleanPath === 'llms-full.txt') {
+        if (pathName === 'llms-full.txt' || urlParam === 'llms-full.txt') {
             return this.getLlmsFulltxtCtrl(ctx);
         }
-        if (cleanPath === 'skill.md') {
+        if (pathName === 'skill.md' || urlParam === 'skill.md') {
             return this.getSkillMdCtrl(ctx);
         }
 
@@ -996,7 +1001,9 @@ If you are an LLM or AI Agent accessing this service for the first time:
 
     async getTargetUrl(originPath: string, crawlerOptions: CrawlerOptions, thisServerHost?: string) {
         const cleanOrigin = originPath.replace(/^\/+/, '').toLowerCase().split('?')[0];
-        if (cleanOrigin === 'llms.txt' || cleanOrigin === 'llms-full.txt' || cleanOrigin === 'skill.md') {
+        const cleanUrlProp = (crawlerOptions.url || '').replace(/^\/+/, '').toLowerCase().split('?')[0];
+
+        if (['llms.txt', 'llms-full.txt', 'skill.md'].includes(cleanOrigin) || ['llms.txt', 'llms-full.txt', 'skill.md'].includes(cleanUrlProp)) {
             return '';
         }
 
