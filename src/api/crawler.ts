@@ -702,7 +702,8 @@ If you are an LLM or AI Agent accessing this service for the first time:
         if (pathName === 'skill.md' || urlParam === 'skill.md') {
             return this.getSkillMdCtrl(ctx);
         }
-        if (pathName.startsWith('s/') || pathName === 'search' || pathName.startsWith('search/') || urlParam.startsWith('s/') || urlParam === 'search') {
+        const hasDirectUrl = (crawlerOptionsParamsAllowed.url || crawlerOptionsHeaderOnly.url || '').match(/^https?:\/\//i);
+        if (!hasDirectUrl && (pathName.startsWith('s/') || pathName === 'search' || pathName.startsWith('search/') || (urlParam.startsWith('s/') && !urlParam.includes('://')) || urlParam === 'search')) {
             const { SearcherHost } = require('./searcher');
             const { GoogleSearchExplicitOperatorsDto } = require('../services/serper-search');
             const searcher = container.resolve<any>(SearcherHost);
