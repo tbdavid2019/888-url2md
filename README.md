@@ -34,7 +34,7 @@ Currently deployed at: **[create360.ai](https://create360.ai)** (or easily self-
 
 ### 1. 單網址抓取 (Single URL Reading)
 
-**GET 方式**：在網址前加上服務域名
+**GET 方式**：在網址前加上服務域名（支援隨日期變化的動態網址，如 `/post/YYYY-MM-DD`）
 ```bash
 curl 'https://create360.ai/https://podcast.david888.com/post/2026-08-09'
 ```

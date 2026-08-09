@@ -20,7 +20,7 @@ If you are an LLM or AI Agent accessing this service for the first time:
 
 ### 1. Single URL Reading
 - **GET Request**: `/<URL>`
-  *Example*: `/https://podcast.david888.com/post/2026-08-09`
+  *Example*: `/https://podcast.david888.com/post/2026-08-09` (Supports dynamic dates YYYY-MM-DD)
 - **POST Request**: `/`
   *JSON Body*:
   ```json

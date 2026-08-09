@@ -231,6 +231,7 @@ export class CrawlerHost extends RPCHost {
     }
 
     generateSkillMd(baseDomain: string): string {
+        const todayStr = new Date().toISOString().split('T')[0];
         return `# 888 URL to Markdown (888-url2md) Agent Skill
 
 ---
@@ -255,12 +256,12 @@ If you are an LLM or AI Agent accessing this service for the first time:
 
 ### 1. Single URL Reading
 - **GET Request**: \`${baseDomain}/<URL>\`
-  *Example*: \`${baseDomain}/https://podcast.david888.com/post/2026-08-09\`
+  *Example*: \`${baseDomain}/https://podcast.david888.com/post/${todayStr}\` (URL path supports dynamic dates YYYY-MM-DD)
 - **POST Request**: \`${baseDomain}/\`
   *JSON Body*:
   \`\`\`json
   {
-    "url": "https://podcast.david888.com/post/2026-08-09"
+    "url": "https://podcast.david888.com/post/${todayStr}"
   }
   \`\`\`
 
@@ -277,7 +278,7 @@ If you are an LLM or AI Agent accessing this service for the first time:
   {
     "urls": [
       "https://podcast.david888.com/",
-      "https://podcast.david888.com/post/2026-08-09"
+      "https://podcast.david888.com/post/${todayStr}"
     ]
   }
   \`\`\`
