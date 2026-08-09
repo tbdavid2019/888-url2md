@@ -779,7 +779,7 @@ If you are an LLM or AI Agent accessing this service for the first time:
 
         let chargeAmount = 0;
         let finalSnapshot: PageSnapshot | undefined;
-        const crawlerOptions = ctx.method === 'GET' ? crawlerOptionsHeaderOnly : crawlerOptionsParamsAllowed;
+        const crawlerOptions = (ctx.method === 'GET' && !crawlerOptionsParamsAllowed.url) ? crawlerOptionsHeaderOnly : crawlerOptionsParamsAllowed;
         const tierPolicy = await this.saasAssertTierPolicy(crawlerOptions, auth);
         const futureRateLimit = this.storageLayer.rateLimit(ctx, rpcReflect, auth as any);
 
@@ -1073,8 +1073,10 @@ If you are an LLM or AI Agent accessing this service for the first time:
         const cleanOrigin = originPath.replace(/^\/+/, '').toLowerCase().split('?')[0];
         const cleanUrlProp = (crawlerOptions.url || '').replace(/^\/+/, '').toLowerCase().split('?')[0];
 
-        if (['llms.txt', 'llms-full.txt', 'skill.md'].includes(cleanOrigin) || ['llms.txt', 'llms-full.txt', 'skill.md'].includes(cleanUrlProp)) {
-            return '';
+        if (['llms.txt', 'llms-full.txt', 'skill.md'].includes(cleanOrigin) || ['llms.txt', 'llms-full.txt', 'skill.md'].includes(cleanUrlProp) || cleanOrigin.startsWith('s/') || cleanOrigin === 'search' || cleanUrlProp.startsWith('s/') || cleanUrlProp === 'search') {
+            if (!crawlerOptions.url || !crawlerOptions.url.match(/^https?:\/\//i)) {
+                return '';
+            }
         }
 
         let url: string = '';
