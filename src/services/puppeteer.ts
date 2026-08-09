@@ -740,7 +740,7 @@ export class PuppeteerControl extends AsyncService {
         ];
         args.push('--no-sandbox', '--disable-setuid-sandbox');
         this.browser = await puppeteer.launch({
-            timeout: 10_000,
+            timeout: 30_000,
             headless: !Boolean(process.env.DEBUG_BROWSER),
             executablePath: process.env.OVERRIDE_CHROME_EXECUTABLE_PATH,
             args,
