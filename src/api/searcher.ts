@@ -687,7 +687,7 @@ export class SearcherHost extends RPCHost {
                     query, digest: queryDigest, age, stale
                 });
 
-                if (!stale && Array.isArray(cache.response)) {
+                if (!stale && Array.isArray(cache.response) && cache.response.length > 0) {
                     results = cache.response.filter((x) => x.link).map((x) => this.mapSearchEntryToPartialFormattedPage(x));
                     cacheUsed = true;
                     yield results;
