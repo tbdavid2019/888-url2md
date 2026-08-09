@@ -754,12 +754,7 @@ export class PuppeteerControl extends AsyncService {
         });
         this.browser.once('disconnected', () => {
             this.logger.warn(`Browser disconnected`);
-            if (this.browser) {
-                this.emit('crippled');
-            }
-            if (this.__status === 'crippled') {
-                process.nextTick(() => this.serviceReady());
-            }
+            this.browser = undefined;
         });
         this.ua = await this.browser.userAgent();
         this.logger.info(`Browser launched: ${this.browser.process()?.pid}, ${this.ua}`);
@@ -801,6 +796,9 @@ export class PuppeteerControl extends AsyncService {
         }
         const sn = this._sn++;
         let page;
+        if (!this.browser || !this.browser.connected) {
+            await this.init();
+        }
         try {
             const dedicatedContext = await this.browser!.createBrowserContext();
             page = await dedicatedContext.newPage();
