@@ -673,6 +673,55 @@ If you are an LLM or AI Agent accessing this service for the first time:
         returnType: [RawString, FormattedPageDto, OutputServerEventStream],
     })
     @Method({
+        name: 'searchByPath',
+        proto: {
+            http: {
+                action: ['GET', 'POST'],
+                path: '/s/::q',
+            }
+        },
+        tags: ['search'],
+        returnType: [RawString, FormattedPageDto, OutputServerEventStream],
+    })
+    @Method({
+        name: 'searchByQuery',
+        proto: {
+            http: {
+                action: ['GET', 'POST'],
+                path: '/search',
+            }
+        },
+        tags: ['search'],
+        returnType: [RawString, FormattedPageDto, OutputServerEventStream],
+    })
+    async handleSearchRoute(
+        @RPCReflect() rpcReflect: RPCReflection,
+        @Ctx() ctx: Context,
+        @Param({ type: AUTH_DTO_CLS }) auth: BaseAuthDTO,
+        crawlerOptionsParamsAllowed: CrawlerOptions,
+    ): Promise<any> {
+        const { SearcherHost } = require('./searcher');
+        const { GoogleSearchExplicitOperatorsDto } = require('../services/serper-search');
+        const searcher = container.resolve<any>(SearcherHost);
+        const q = ctx.URL?.searchParams?.get('q') || undefined;
+        return searcher.search(
+            rpcReflect,
+            ctx,
+            auth,
+            crawlerOptionsParamsAllowed,
+            new GoogleSearchExplicitOperatorsDto(),
+            'web',
+            10,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            q
+        );
+    }
+
+    @Method({
         description: 'Crawl any url into markdown',
         proto: {
             http: {
