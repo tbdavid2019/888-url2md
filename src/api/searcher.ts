@@ -19,7 +19,7 @@ import { Context, Ctx, Method, Param, RPCReflect } from '../services/registry';
 import { InputServerEventStream, OutputServerEventStream } from '../lib/transform-server-event-stream';
 
 import { SerperBingSearchService, SerperGoogleSearchService } from '../services/serp/serper';
-import { consumeAsyncGenerator, delayGenerator, finalYield, raceAsyncGenerators, timeoutGenerator, toAsyncGenerator } from '../utils/misc';
+import { finalYield, raceAsyncGenerators, timeoutGenerator } from '../utils/misc';
 import { SerperSearchQueryParams, WORLD_COUNTRIES, WORLD_LANGUAGES } from '../3rd-party/serper-search';
 import { WebSearchEntry } from '../services/serp/compat';
 import { CommonGoogleSERP } from '../services/serp/common-serp';
@@ -126,7 +126,6 @@ export class SearcherHost extends RPCHost {
         @Param('nfpr') nfpr?: boolean,
     ) {
         // Return content by default
-        const crawlWithoutContent = crawlerOptions.respondWith.includes('no-content');
         const withFavicon = Boolean(ctx.get('X-With-Favicons'));
         this.threadLocal.set('collect-favicon', withFavicon);
         crawlerOptions.respondTiming ??= RESPOND_TIMING.VISIBLE_CONTENT;
@@ -193,80 +192,18 @@ export class SearcherHost extends RPCHost {
         const timeoutMs = crawlOpts.timeoutMs || this.reasonableDelayMs;
         const t0 = performance.now();
 
-        let localSearchIterator: AsyncGenerator<FormattedPage[], void, undefined> | undefined;
-        let localResultsPromise: Promise<FormattedPage[] | undefined> | undefined;
-        let isDelayDemanding = false;
         let it;
-        let results: FormattedPage[];
         if (searchEngine === 'reader') {
             this.logger.debug(`Preparing local cache search`, { timeoutMs });
-            localSearchIterator = this.readerLocalSearch(searchParams, crawlOpts, crawlerOptions);
-            localResultsPromise = localSearchIterator.next().then((r) => r.value!);
-            results = await localResultsPromise || [];
-            it = localSearchIterator;
+            it = this.readerLocalSearch(searchParams, crawlOpts, crawlerOptions);
         } else {
             it = this.cachedSearch(searchParams, crawlOpts, crawlerOptions);
-            const liveRes = await it.next();
-            results = liveRes.value || [];
-            if (!results.length) {
-                localSearchIterator = this.readerLocalSearch(searchParams, crawlOpts, crawlerOptions);
-                const localRes = await localSearchIterator.next();
-                if (localRes.value?.length) {
-                    results = localRes.value;
-                    it = localSearchIterator;
-                }
-            }
-        }
-
-        if (!results?.length && fallback) {
-            this.logger.debug(`No results found, falling back to local search`, { searchQuery, timeoutMs });
-            const localResults = await localResultsPromise;
-            if (localResults?.length) {
-                results = localResults;
-                it = localSearchIterator!;
-                this.logger.debug(`Fallback to local search results`, { resultsNum: results.length, searchQuery });
-            }
-        }
-
-        if (!results?.length) {
-            return assignTransferProtocolMeta(`No search results available for query: ${searchQuery}`, {
-                contentType: 'text/plain; charset=utf-8',
-                envelope: null
-            });
         }
 
         let lastScrapped: any[] | undefined;
 
-
-        if (!crawlerOptions.respondWith.includes('no-content') &&
-            ['html', 'text', 'shot', 'markdown', 'content'].some((x) => crawlerOptions.respondWith.includes(x))
-        ) {
-            for (const x of results) {
-                x.content ??= '';
-            }
-        }
-
-        if (crawlWithoutContent || count === 0) {
-            if (localSearchIterator) {
-                localSearchIterator.return();
-            }
-            delete crawlerOptions.timeout;
-            delete crawlOpts.timeoutMs;
-
-            if (isDelayDemanding) {
-                consumeAsyncGenerator(it);
-            } else {
-                it.return();
-            }
-
-            it = toAsyncGenerator(results);
-        } else if (localSearchIterator && it !== localSearchIterator && (!page || page <= 1)) {
-            const dt = performance.now() - t0;
-            it = raceAsyncGenerators(it, delayGenerator(timeoutMs - dt, localSearchIterator));
-        } else {
-            const dt = performance.now() - t0;
-            it = raceAsyncGenerators(it, timeoutGenerator(Math.max(timeoutMs - dt, 2000)));
-        }
+        const dt = performance.now() - t0;
+        it = raceAsyncGenerators(it, timeoutGenerator(Math.max(timeoutMs - dt, 5000)));
 
         if (!ctx.accepts('text/plain') && ctx.accepts('text/event-stream')) {
             const sseStream = new OutputServerEventStream();
@@ -306,17 +243,20 @@ export class SearcherHost extends RPCHost {
         if (!ctx.accepts('text/plain') && (ctx.accepts('text/json') || ctx.accepts('application/json'))) {
             try {
                 for await (const scrapped of it) {
+                    if (!scrapped || !scrapped.length) {
+                        continue;
+                    }
                     lastScrapped = scrapped;
                     if (rpcReflect.signal.aborted) {
                         break;
                     }
 
-                    if (!lastScrapped || !this.searchResultsQualified(lastScrapped, count)) {
+                    if (!this.searchResultsQualified(lastScrapped!, count)) {
                         continue;
                     }
 
-                    await this.assignGeneralMixin(lastScrapped, count);
-                    chargeAmount = this.assignChargeAmount(lastScrapped, count, chargeAmountScaler);
+                    await this.assignGeneralMixin(lastScrapped!, count);
+                    chargeAmount = this.assignChargeAmount(lastScrapped!, count, chargeAmountScaler);
 
                     return lastScrapped;
                 }
@@ -324,26 +264,32 @@ export class SearcherHost extends RPCHost {
                 this.logger.warn(`Search scraping JSON loop error`, { err });
             }
 
-            const fallbackResults = lastScrapped || results;
-            await this.assignGeneralMixin(fallbackResults, count);
-            chargeAmount = this.assignChargeAmount(fallbackResults, count, chargeAmountScaler);
+            if (lastScrapped?.length) {
+                await this.assignGeneralMixin(lastScrapped, count);
+                chargeAmount = this.assignChargeAmount(lastScrapped, count, chargeAmountScaler);
 
-            return fallbackResults;
+                return lastScrapped;
+            }
+
+            return [];
         }
 
         try {
             for await (const scrapped of it) {
+                if (!scrapped || !scrapped.length) {
+                    continue;
+                }
                 lastScrapped = scrapped;
                 if (rpcReflect.signal.aborted) {
                     break;
                 }
 
-                if (!lastScrapped || !this.searchResultsQualified(lastScrapped, count)) {
+                if (!this.searchResultsQualified(lastScrapped!, count)) {
                     continue;
                 }
 
-                await this.assignGeneralMixin(lastScrapped, count);
-                chargeAmount = this.assignChargeAmount(lastScrapped, count, chargeAmountScaler);
+                await this.assignGeneralMixin(lastScrapped!, count);
+                chargeAmount = this.assignChargeAmount(lastScrapped!, count, chargeAmountScaler);
 
                 return assignTransferProtocolMeta(`${lastScrapped}`, { contentType: 'text/plain', envelope: null });
             }
@@ -351,11 +297,17 @@ export class SearcherHost extends RPCHost {
             this.logger.warn(`Search scraping text loop error`, { err });
         }
 
-        const fallbackResults = lastScrapped || results;
-        await this.assignGeneralMixin(fallbackResults, count);
-        chargeAmount = this.assignChargeAmount(fallbackResults, count, chargeAmountScaler);
+        if (lastScrapped?.length) {
+            await this.assignGeneralMixin(lastScrapped, count);
+            chargeAmount = this.assignChargeAmount(lastScrapped, count, chargeAmountScaler);
 
-        return assignTransferProtocolMeta(`${fallbackResults}`, { contentType: 'text/plain', envelope: null });
+            return assignTransferProtocolMeta(`${lastScrapped}`, { contentType: 'text/plain', envelope: null });
+        }
+
+        return assignTransferProtocolMeta(`No search results available for query: ${searchQuery}`, {
+            contentType: 'text/plain; charset=utf-8',
+            envelope: null
+        });
     }
 
     async *fetchSearchResults(
