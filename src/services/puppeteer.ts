@@ -760,10 +760,9 @@ export class PuppeteerControl extends AsyncService {
             this.ua = await this.browser.userAgent().catch(() => '');
             this.logger.info(`Browser launched: ${this.browser.process()?.pid}, ${this.ua}`);
             this.effectiveUA = (this.ua || '').replace(/Headless/i, '').replace('Mozilla/5.0 (X11; Linux x86_64)', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)');
-            if (this.effectiveUA) {
-                this.curlControl.impersonateChrome(this.effectiveUA);
-            }
-            await this.newPage('beware_deadlock').then((r) => this.__loadedPage.push(r)).catch(() => undefined);
+            process.nextTick(() => {
+                this.newPage('beware_deadlock').then((r) => this.__loadedPage.push(r)).catch(() => undefined);
+            });
         }
 
         this.emit('ready');
