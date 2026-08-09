@@ -10,8 +10,6 @@ on:
 jobs:
   test:
     uses: ./.github/workflows/_test.yml
-    permissions:
-      contents: read
     secrets: inherit
 
   build-and-push-to-ghcr:
