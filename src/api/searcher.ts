@@ -33,7 +33,6 @@ import { DuckDuckGoSERP } from '../services/serp/ddg';
 import { bcp47ToIso639_3 } from '../utils/languages';
 import { parseSearchQuery } from '../utils/search-query';
 import { JSDomControl } from '../services/jsdom';
-import { delay } from 'civkit/timeout';
 import { BaseAuthDTO } from '../dto/base-auth';
 import { SERPResult } from '../db/models';
 import { StorageLayer } from '../db/noop-storage';
@@ -205,53 +204,18 @@ export class SearcherHost extends RPCHost {
             localResultsPromise = localSearchIterator.next().then((r) => r.value!);
             results = await localResultsPromise || [];
             it = localSearchIterator;
-        } else if (variant === 'web' && !crawlerOptions.noCache) {
-            const cachedSearchIterator = this.cachedSearch(searchParams, crawlOpts, crawlerOptions);
-            localSearchIterator = this.readerLocalSearch(searchParams, crawlOpts, crawlerOptions);
-            let raceIsOver = false;
-            if (timeoutMs <= 5000) {
-                localResultsPromise = localSearchIterator.next().then((r) => r.value!);
-                isDelayDemanding = true;
-                this.logger.debug(`Preparing local cache search`, { timeoutMs });
-            } else {
-                localResultsPromise = delay(timeoutMs - 5000).then(() => {
-                    if (raceIsOver) {
-                        localSearchIterator?.return();
-                        return;
-                    }
-                    this.logger.debug(`Preparing local cache search`, { timeoutMs });
-                    return localSearchIterator!.next();
-                }).then((r) => r?.value || undefined);
-            }
-            const liveResults = cachedSearchIterator.next().then((r) => r.value!);
-            const t0 = performance.now();
-            const r = await Promise.race([
-                delay(timeoutMs)
-                    .then(() => localResultsPromise)
-                    .then((r) => ({ results: r, it: localSearchIterator! }))
-                    .catch((err) => {
-                        this.logger.warn(`Error happened during consumption of local search generator`, { err });
-                        return liveResults.then((r) => ({ results: r, it: cachedSearchIterator }));
-                    }),
-                liveResults.then((r) => ({ results: r, it: cachedSearchIterator }))
-            ]).finally(() => raceIsOver = true);
-
-            it = r.it;
-            const dt = performance.now() - t0;
-            if (it === localSearchIterator) {
-                this.logger.debug(`Local search won the race after ${dt.toFixed(1)}ms`, { timeoutMs });
-                delete crawlerOptions.timeout;
-                delete crawlOpts.timeoutMs;
-                consumeAsyncGenerator(cachedSearchIterator).catch((err) => {
-                    this.logger.warn(`Error happened during consumption of live search generator`, { err });
-                });
-            } else {
-                this.logger.debug(`Cached search won the race after ${dt.toFixed(1)}ms`, { timeoutMs });
-            }
-            results = r.results || [];
         } else {
             it = this.cachedSearch(searchParams, crawlOpts, crawlerOptions);
-            results = (await it.next()).value;
+            const liveRes = await it.next();
+            results = liveRes.value || [];
+            if (!results.length) {
+                localSearchIterator = this.readerLocalSearch(searchParams, crawlOpts, crawlerOptions);
+                const localRes = await localSearchIterator.next();
+                if (localRes.value?.length) {
+                    results = localRes.value;
+                    it = localSearchIterator;
+                }
+            }
         }
 
         if (!results?.length && fallback) {

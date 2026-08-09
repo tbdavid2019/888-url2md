@@ -104,6 +104,19 @@ curl -X POST 'https://create360.ai/v1/batch' \
     ]
   }'
 ```
+*JSON 回傳範例*：
+```json
+{
+  "code": 200,
+  "status": 20000,
+  "data": [
+    { "url": "https://podcast.david888.com/", "title": "...", "content": "..." },
+    { "url": "https://podcast.david888.com/post/2026-08-08", "title": "...", "content": "..." },
+    { "url": "https://podcast.david888.com/post/2026-08-09", "title": "...", "content": "..." },
+    { "url": "https://podcast.david888.com/post/2026-08-06", "title": "...", "content": "..." }
+  ]
+}
+```
 
 ---
 
