@@ -648,7 +648,9 @@ export class SearcherHost extends RPCHost {
                         r = await Reflect.apply(func, client, [query]);
                         const dt = Date.now() - t0;
                         this.logger.info(`Search took ${dt}ms, ${client.constructor.name}(${variant})`, { searchDt: dt, variant, client: client.constructor.name });
-                        break outerLoop;
+                        if (r && r.length > 0) {
+                            break outerLoop;
+                        }
                     } catch (err) {
                         lastError = err;
                         const dt = Date.now() - t0;
@@ -681,8 +683,8 @@ export class SearcherHost extends RPCHost {
                     }
                 } else if (lastError) {
                     throw lastError;
-                } else if (!r) {
-                    throw new AssertionFailureError(`No provider can do ${variant} search atm.`);
+                } else if (!r || r.length === 0) {
+                    throw new AssertionFailureError(`No provider returned results for ${variant} search atm.`);
                 }
 
                 results = r.map((x) => this.mapSearchEntryToPartialFormattedPage(x));
