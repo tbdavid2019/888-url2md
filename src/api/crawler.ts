@@ -231,22 +231,23 @@ export class CrawlerHost extends RPCHost {
     }
 
     generateSkillMd(baseDomain: string): string {
-        return `# Web Reader & Batch Web Reader Agent Skill
+        return `# 888 URL to Markdown (888-url2md) Agent Skill
 
 ---
-name: web-reader-batch
-description: Convert any web page or multiple URLs into LLM-friendly clean Markdown or structured JSON. Supports single URL and multi-URL batch crawling.
+name: 888-url2md
+description: Convert any web page, search query, or multiple URLs into LLM-friendly clean Markdown or structured JSON. Supports single URL, web search, and multi-URL batch crawling.
 ---
 
 ## Overview
-This service converts web pages into clean Markdown or JSON for LLM consumption.
+This service converts web pages and search queries into clean Markdown or JSON for LLM consumption.
 Server Base URL: ${baseDomain}
 
 ## Agent Installation & Setup Instructions
 If you are an LLM or AI Agent accessing this service for the first time:
 1. Use **Single URL mode** to read individual web pages.
-2. Use **Multi-URL Batch mode** to fetch and extract multiple pages in a single request.
-3. Include \`Accept: application/json\` header for JSON responses or \`Accept: text/plain\` for clean Markdown text.
+2. Use **Web Search mode** to execute live web search queries.
+3. Use **Multi-URL Batch mode** to fetch and extract multiple pages concurrently in a single request.
+4. Include \`Accept: application/json\` header for JSON responses or \`Accept: text/plain\` for clean Markdown text.
 
 ---
 
@@ -263,7 +264,11 @@ If you are an LLM or AI Agent accessing this service for the first time:
   }
   \`\`\`
 
-### 2. Multi-URL Batch Reading (Batch Crawl)
+### 2. Live Web Search (SERP)
+- **GET Request**: \`${baseDomain}/s/<SEARCH_QUERY>\` or \`${baseDomain}/search?q=<SEARCH_QUERY>\`
+  *Example*: \`${baseDomain}/s/%E5%8F%B0%E7%A9%8D%E9%9B%BB\` or \`${baseDomain}/search?q=NVIDIA\`
+
+### 3. Multi-URL Batch Reading (Batch Crawl)
 - **POST Request**: \`${baseDomain}/v1/batch\` or \`${baseDomain}/batch\` or \`${baseDomain}/\`
   *JSON Body*:
   \`\`\`json
@@ -275,7 +280,7 @@ If you are an LLM or AI Agent accessing this service for the first time:
   }
   \`\`\`
 
-### 3. Response Formats
+### 4. Response Formats
 - **Markdown / Plain Text (Default / \`Accept: text/plain\`)**:
   Returns clean Markdown content. Batch requests separate pages with \`---\`.
 - **JSON (\`Accept: application/json\`)**:
@@ -291,7 +296,7 @@ If you are an LLM or AI Agent accessing this service for the first time:
   }
   \`\`\`
 
-### 4. Optional Headers
+### 5. Optional Headers
 - \`X-Respond-With\`: \`markdown\` | \`html\` | \`text\` | \`frontmatter\`
 - \`X-Preset\`: \`reader\` | \`index\` | \`research\` | \`agent\` | \`spider\`
 - \`X-Target-Selector\`: Extract specific CSS selector.
@@ -303,8 +308,8 @@ If you are an LLM or AI Agent accessing this service for the first time:
 ## Tool Specification (Schema)
 \`\`\`json
 {
-  "name": "web_reader_batch",
-  "description": "Fetch and convert single or multiple web pages into clean Markdown.",
+  "name": "888_url2md",
+  "description": "Fetch and convert web pages, search results, or multiple URLs into clean Markdown.",
   "parameters": {
     "type": "object",
     "properties": {
@@ -315,7 +320,7 @@ If you are an LLM or AI Agent accessing this service for the first time:
       },
       "url": {
         "type": "string",
-        "description": "Single web page URL to scrape."
+        "description": "Single web page URL to scrape or search query."
       }
     }
   }
@@ -328,8 +333,10 @@ If you are an LLM or AI Agent accessing this service for the first time:
         const skillMd = this.generateSkillMd(baseDomain);
         const indexObject: Record<string, string | number | undefined> = Object.create(indexProto);
         Object.assign(indexObject, {
-            usage1: `${baseDomain}/YOUR_URL`,
-            usage2_batch: `POST ${baseDomain}/v1/batch with {"urls": ["URL1", "URL2"]}`,
+            name: '888-url2md (888 URL to Markdown)',
+            usage1_single: `${baseDomain}/YOUR_URL`,
+            usage2_search: `${baseDomain}/s/YOUR_SEARCH_QUERY`,
+            usage3_batch: `POST ${baseDomain}/v1/batch with {"urls": ["URL1", "URL2"]}`,
             skillDoc: `${baseDomain}/skill.md`,
             skillContent: skillMd,
         });
@@ -338,19 +345,21 @@ If you are an LLM or AI Agent accessing this service for the first time:
     }
 
     generateLlmstxt(baseDomain: string): string {
-        return `# Web Reader & Batch Web Reader API
+        return `# 888 URL to Markdown (888-url2md) API
 
-> High-performance Web Reader and Multi-URL Batch Crawling API service for LLMs and AI Agents. Converts web pages into clean Markdown or structured JSON.
+> High-performance Web Reader, Live Search, and Multi-URL Batch Crawling API service for LLMs and AI Agents. Converts web pages and search queries into clean Markdown or structured JSON.
 
 ## Capabilities
 
 - **Single URL Reading**: Convert any web page to clean Markdown by calling \`GET ${baseDomain}/<URL>\` or \`POST ${baseDomain}/\` with \`{"url": "..."}\`.
+- **Live Web Search**: Search web queries by calling \`GET ${baseDomain}/s/<QUERY>\` or \`GET ${baseDomain}/search?q=<QUERY>\`.
 - **Multi-URL Batch Reading**: Fetch and extract multiple URLs concurrently in a single request by calling \`POST ${baseDomain}/v1/batch\` or \`POST ${baseDomain}/\` with \`{"urls": ["...", "..."]}\`.
 - **Content Formats**: Supports clean Markdown (\`Accept: text/plain\`), structured JSON (\`Accept: application/json\`), or SSE event streaming (\`Accept: text/event-stream\`).
 
 ## Endpoints & Documentation
 
 - [Single Page Crawl](${baseDomain}/): \`GET ${baseDomain}/<URL>\` or \`POST ${baseDomain}/\`
+- [Live Web Search](${baseDomain}/s/): \`GET ${baseDomain}/s/<QUERY>\`
 - [Batch Crawl](${baseDomain}/v1/batch): \`POST ${baseDomain}/v1/batch\` with \`{"urls": ["URL1", "URL2"]}\`
 - [Skill Documentation](${baseDomain}/skill.md): Complete LLM skill specification and tool schema
 
