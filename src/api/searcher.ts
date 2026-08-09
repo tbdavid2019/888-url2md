@@ -2,7 +2,6 @@ import { singleton } from 'tsyringe';
 import {
     assignTransferProtocolMeta, RPCHost, RPCReflection, AssertionFailureError, assignMeta, RawString,
     DownstreamServiceFailureError,
-    AuthenticationRequiredError,
     ArrayOf,
 } from 'civkit/civ-rpc';
 import { marshalErrorLike } from 'civkit/lang';
@@ -97,7 +96,7 @@ export class SearcherHost extends RPCHost {
         ext: {
             http: {
                 action: ['get', 'post'],
-                path: '::q'
+                path: '/s/::q'
             }
         },
         tags: ['search'],
@@ -132,7 +131,7 @@ export class SearcherHost extends RPCHost {
         crawlerOptions.respondTiming ??= RESPOND_TIMING.VISIBLE_CONTENT;
 
         let chargeAmount = 0;
-        const noSlashPath = decodeURIComponent(ctx.path).slice(1);
+        const noSlashPath = decodeURIComponent(ctx.path).replace(/^\/+/, '').replace(/^s\//i, '');
         if (!noSlashPath && !q) {
             const index = await this.crawler.getIndex(auth);
             if (!auth.isInternal && !auth.bearerToken) {
@@ -152,12 +151,7 @@ export class SearcherHost extends RPCHost {
             uid,
             reportOptions,
             reportUsage,
-            isAnonymous,
         } = await this.storageLayer.rateLimit(ctx, rpcReflect, auth as any);
-
-        if (isAnonymous && !auth.isInternal) {
-            throw new AuthenticationRequiredError('Authentication is required to use this endpoint. Please provide a valid API key via Authorization header.');
-        }
 
         rpcReflect.finally(() => {
             reportOptions?.(crawlerOptions.customizedProps());

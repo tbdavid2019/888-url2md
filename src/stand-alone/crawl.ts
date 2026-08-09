@@ -5,6 +5,7 @@ import { KoaServer } from 'civkit/civ-rpc/koa';
 import http2 from 'http2';
 import http from 'http';
 import { CrawlerHost } from '../api/crawler';
+import { SearcherHost } from '../api/searcher';
 import { FsWalk, WalkOutEntity } from 'civkit/fswalk';
 import path from 'path';
 import fs from 'fs';
@@ -31,6 +32,7 @@ export class CrawlStandAloneServer extends KoaServer {
         protected globalLogger: GlobalLogger,
         protected registry: RPCRegistry,
         protected crawlerHost: CrawlerHost,
+        protected searcherHost: SearcherHost,
         protected threadLocal: AsyncLocalContext,
         protected threads: ThreadedServiceRegistry,
     ) {
