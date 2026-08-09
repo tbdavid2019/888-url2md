@@ -1,4 +1,4 @@
-run-name: Build push container image to GH
+name: Build and Push Container Image
 on:
   push:
     branches:
