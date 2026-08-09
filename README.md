@@ -37,8 +37,8 @@ Currently deployed at: **[create360.ai](https://create360.ai)** (or easily self-
 ### 1. 使用 GHCR 預建映像檔 (Quickstart via GHCR)
 
 ```bash
-# 1. 從 GitHub Container Registry 拉取最新 v0.6.0 映像檔
-docker pull ghcr.io/tbdavid2019/888-url2md:v0.6.0
+# 1. 從 GitHub Container Registry 拉取最新 (latest) 映像檔
+docker pull ghcr.io/tbdavid2019/888-url2md:latest
 
 # 2. 啟動容器 (對外 Port 8081，設定公開域名)
 docker run -d \
@@ -47,7 +47,7 @@ docker run -d \
   --security-opt seccomp=unconfined \
   --restart always \
   -e PUBLIC_DOMAIN='https://create360.ai' \
-  ghcr.io/tbdavid2019/888-url2md:v0.6.0
+  ghcr.io/tbdavid2019/888-url2md:latest
 ```
 
 ### 2. 從原始碼本地構建與運行 (Build from Source)
@@ -58,7 +58,7 @@ git clone https://github.com/tbdavid2019/888-url2md.git
 cd 888-url2md
 
 # 2. 構建 Docker 映像檔
-docker build -t 888-url2md:v0.6.0 .
+docker build -t 888-url2md:latest .
 
 # 3. 啟動容器
 docker run -d \
@@ -67,7 +67,7 @@ docker run -d \
   --security-opt seccomp=unconfined \
   --restart always \
   -e PUBLIC_DOMAIN='https://create360.ai' \
-  888-url2md:v0.6.0
+  888-url2md:latest
 ```
 
 ### 3. Docker Compose 部署指南
@@ -77,7 +77,7 @@ version: '3.8'
 
 services:
   888-url2md:
-    image: ghcr.io/tbdavid2019/888-url2md:v0.6.0
+    image: ghcr.io/tbdavid2019/888-url2md:latest
     container_name: 888-url2md
     ports:
       - "8081:8081"
