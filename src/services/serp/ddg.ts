@@ -72,6 +72,34 @@ export class DuckDuckGoSERP extends AsyncService {
             this.logger.warn('DuckDuckGoSERP fetch error', { err });
         }
 
+        if (results.length === 0) {
+            try {
+                const isChinese = /[\u4e00-\u9fa5]/.test(q);
+                const wikiDomain = isChinese ? 'zh.wikipedia.org' : 'en.wikipedia.org';
+                const wikiRes = await fetch(`https://${wikiDomain}/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(q)}&format=json`, {
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+                    }
+                });
+                const json = await wikiRes.json();
+                const wikiItems = json?.query?.search || [];
+                for (const item of wikiItems) {
+                    if (item.title && !results.some(r => r.title === item.title)) {
+                        results.push({
+                            title: item.title,
+                            link: `https://${wikiDomain}/wiki/${encodeURIComponent(item.title)}`,
+                            snippet: item.snippet ? item.snippet.replace(/<[^>]+>/g, '').replace(/&#x27;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&').trim() : item.title,
+                        });
+                    }
+                    if (results.length >= num) {
+                        break;
+                    }
+                }
+            } catch (err) {
+                this.logger.warn('Wikipedia SERP fallback fetch error', { err });
+            }
+        }
+
         return results;
     }
 }
