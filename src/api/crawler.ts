@@ -1,4 +1,4 @@
-import { singleton } from 'tsyringe';
+import { container, singleton } from 'tsyringe';
 import { randomUUID } from 'crypto';
 import _ from 'lodash';
 import { Blob, File } from 'buffer';
@@ -701,6 +701,26 @@ If you are an LLM or AI Agent accessing this service for the first time:
         }
         if (pathName === 'skill.md' || urlParam === 'skill.md') {
             return this.getSkillMdCtrl(ctx);
+        }
+        if (pathName.startsWith('s/') || pathName === 'search' || pathName.startsWith('search/') || urlParam.startsWith('s/') || urlParam === 'search') {
+            const { SearcherHost } = require('./searcher');
+            const { GoogleSearchExplicitOperatorsDto } = require('../services/serper-search');
+            const searcher = container.resolve<any>(SearcherHost);
+            return searcher.search(
+                rpcReflect,
+                ctx,
+                auth,
+                crawlerOptionsParamsAllowed,
+                new GoogleSearchExplicitOperatorsDto(),
+                'web',
+                10,
+                undefined,
+                undefined,
+                undefined,
+                undefined,
+                undefined,
+                (ctx.URL?.searchParams?.get('q') || undefined)
+            );
         }
 
         if (crawlerOptionsParamsAllowed.urls && crawlerOptionsParamsAllowed.urls.length > 0) {
