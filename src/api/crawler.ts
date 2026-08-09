@@ -265,8 +265,10 @@ If you are an LLM or AI Agent accessing this service for the first time:
   \`\`\`
 
 ### 2. Live Web Search (SERP)
-- **GET Request**: \`${baseDomain}/s/<SEARCH_QUERY>\` or \`${baseDomain}/search?q=<SEARCH_QUERY>\`
-  *Example*: \`${baseDomain}/s/%E5%8F%B0%E7%A9%8D%E9%9B%BB\` or \`${baseDomain}/search?q=NVIDIA\`
+- **A. Path-based Search (路徑式搜尋)**: \`${baseDomain}/s/<SEARCH_QUERY>\`
+  *Example*: \`${baseDomain}/s/%E5%8F%B0%E7%A9%8D%E9%9B%BB\` or \`${baseDomain}/s/NVIDIA\`
+- **B. Query Parameter-based Search (Query 參數式搜尋)**: \`${baseDomain}/search?q=<SEARCH_QUERY>\`
+  *Example*: \`${baseDomain}/search?q=%E8%98%8B%E6%9E%9C%E5%85%AC%E5%8F%B8\` or \`${baseDomain}/search?q=TSMC\`
 
 ### 3. Multi-URL Batch Reading (Batch Crawl)
 - **POST Request**: \`${baseDomain}/v1/batch\` or \`${baseDomain}/batch\` or \`${baseDomain}/\`

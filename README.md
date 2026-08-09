@@ -48,12 +48,24 @@ curl -X POST 'https://create360.ai/' \
 
 ---
 
-### 2. 即時 Web 搜尋 (Web Search)
+### 2. 即時 Web 搜尋 (Real-time Web Search)
 
+本服務提供兩種靈活的 Web 搜尋呼叫方式，皆會自動進行 Web 搜尋並將最相關結果轉譯為乾淨的 Markdown：
+
+#### **A. 路徑式搜尋 (Path-based Search)**
+直接將關鍵字放在 `/s/` 路徑後方（支援 URL 編碼）：
 ```bash
 curl 'https://create360.ai/s/%E5%8F%B0%E7%A9%8D%E9%9B%BB'
+# 或搜尋英文
+curl 'https://create360.ai/s/NVIDIA'
+```
+
+#### **B. Query 參數式搜尋 (Query-based Search)**
+使用標準 `?q=` 查詢參數：
+```bash
+curl 'https://create360.ai/search?q=%E8%98%8B%E6%9E%9C%E5%85%AC%E5%8F%B8'
 # 或
-curl 'https://create360.ai/search?q=NVIDIA'
+curl 'https://create360.ai/search?q=TSMC'
 ```
 
 ---
