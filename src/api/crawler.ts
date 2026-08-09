@@ -476,7 +476,7 @@ If you are an LLM or AI Agent accessing this service for the first time:
     }
 
     @Method({
-        name: 'crawlBatch',
+        name: 'crawlBatchV1',
         description: 'Batch crawl multiple URLs into markdown or JSON',
         proto: {
             http: {
