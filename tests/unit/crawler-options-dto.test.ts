@@ -559,3 +559,24 @@ describe('CrawlerOptions.page (body parameter)', () => {
         assert.strictEqual(opts.page, undefined);
     });
 });
+
+// ── batch urls parameter ───────────────────────────────────────────────────
+
+describe('CrawlerOptions.urls (batch parameters)', () => {
+    it('accepts urls array', () => {
+        const opts = CrawlerOptions.from({ urls: ['https://example.com/1', 'https://example.com/2'] }) as CrawlerOptions;
+        assert.deepStrictEqual(opts.urls, ['https://example.com/1', 'https://example.com/2']);
+    });
+
+    it('coerces url array into urls', () => {
+        const opts = CrawlerOptions.from({ url: ['https://example.com/1', 'https://example.com/2'] }) as CrawlerOptions;
+        assert.deepStrictEqual(opts.urls, ['https://example.com/1', 'https://example.com/2']);
+        assert.strictEqual(opts.url, undefined);
+    });
+
+    it('parses comma-separated urls string into array', () => {
+        const opts = CrawlerOptions.from({ urls: 'https://example.com/1, https://example.com/2' }) as CrawlerOptions;
+        assert.deepStrictEqual(opts.urls, ['https://example.com/1', 'https://example.com/2']);
+    });
+});
+

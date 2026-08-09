@@ -209,29 +209,240 @@ export class CrawlerHost extends RPCHost {
         this.emit('ready');
     }
 
-    async getIndex(auth?: BaseAuthDTO) {
+    getPublicDomain(ctx?: Context): string {
+        const envDomain = process.env.PUBLIC_DOMAIN || process.env.BASE_URL || process.env.SERVER_DOMAIN || process.env.HOST_DOMAIN || process.env.JINA_READER_DOMAIN;
+        if (envDomain) {
+            let domain = envDomain.trim();
+            if (!domain.startsWith('http://') && !domain.startsWith('https://')) {
+                domain = `https://${domain}`;
+            }
+            return domain.replace(/\/+$/, '');
+        }
+
+        if (ctx) {
+            const proto = ctx.headers['x-forwarded-proto'] || ctx.protocol || 'https';
+            const host = ctx.headers['x-forwarded-host'] || ctx.host || ctx.hostname;
+            if (host) {
+                return `${proto}://${host}`;
+            }
+        }
+
+        return 'https://create360.ai';
+    }
+
+    generateSkillMd(baseDomain: string): string {
+        return `# Web Reader & Batch Web Reader Agent Skill
+
+---
+name: web-reader-batch
+description: Convert any web page or multiple URLs into LLM-friendly clean Markdown or structured JSON. Supports single URL and multi-URL batch crawling.
+---
+
+## Overview
+This service converts web pages into clean Markdown or JSON for LLM consumption.
+Server Base URL: ${baseDomain}
+
+## Agent Installation & Setup Instructions
+If you are an LLM or AI Agent accessing this service for the first time:
+1. Use **Single URL mode** to read individual web pages.
+2. Use **Multi-URL Batch mode** to fetch and extract multiple pages in a single request.
+3. Include \`Accept: application/json\` header for JSON responses or \`Accept: text/plain\` for clean Markdown text.
+
+---
+
+## API Endpoints & Usage
+
+### 1. Single URL Reading
+- **GET Request**: \`${baseDomain}/<URL>\`
+  *Example*: \`${baseDomain}/https://example.com\`
+- **POST Request**: \`${baseDomain}/\`
+  *JSON Body*:
+  \`\`\`json
+  {
+    "url": "https://example.com"
+  }
+  \`\`\`
+
+### 2. Multi-URL Batch Reading (Batch Crawl)
+- **POST Request**: \`${baseDomain}/v1/batch\` or \`${baseDomain}/batch\` or \`${baseDomain}/\`
+  *JSON Body*:
+  \`\`\`json
+  {
+    "urls": [
+      "https://example.com/page1",
+      "https://example.com/page2"
+    ]
+  }
+  \`\`\`
+
+### 3. Response Formats
+- **Markdown / Plain Text (Default / \`Accept: text/plain\`)**:
+  Returns clean Markdown content. Batch requests separate pages with \`---\`.
+- **JSON (\`Accept: application/json\`)**:
+  Returns structured JSON object with data array:
+  \`\`\`json
+  {
+    "code": 200,
+    "status": 20000,
+    "data": [
+      { "url": "https://example.com/page1", "title": "...", "content": "..." },
+      { "url": "https://example.com/page2", "title": "...", "content": "..." }
+    ]
+  }
+  \`\`\`
+
+### 4. Optional Headers
+- \`X-Respond-With\`: \`markdown\` | \`html\` | \`text\` | \`frontmatter\`
+- \`X-Preset\`: \`reader\` | \`index\` | \`research\` | \`agent\` | \`spider\`
+- \`X-Target-Selector\`: Extract specific CSS selector.
+- \`X-Remove-Selector\`: Remove specific CSS selector.
+- \`X-No-Cache: true\`: Bypass internal page cache.
+
+---
+
+## Tool Specification (Schema)
+\`\`\`json
+{
+  "name": "web_reader_batch",
+  "description": "Fetch and convert single or multiple web pages into clean Markdown.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "urls": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "List of web page URLs to scrape in batch."
+      },
+      "url": {
+        "type": "string",
+        "description": "Single web page URL to scrape."
+      }
+    }
+  }
+}
+\`\`\`
+`;
+    }
+
+    async getIndex(auth?: BaseAuthDTO, baseDomain: string = 'https://create360.ai') {
+        const skillMd = this.generateSkillMd(baseDomain);
         const indexObject: Record<string, string | number | undefined> = Object.create(indexProto);
         Object.assign(indexObject, {
-            usage1: 'https://r.jina.ai/YOUR_URL',
-            usage2: 'https://s.jina.ai/YOUR_SEARCH_QUERY',
-            homepage: 'https://jina.ai/reader',
+            usage1: `${baseDomain}/YOUR_URL`,
+            usage2_batch: `POST ${baseDomain}/v1/batch with {"urls": ["URL1", "URL2"]}`,
+            skillDoc: `${baseDomain}/skill.md`,
+            skillContent: skillMd,
         });
-
-        // if (auth instanceof JinaEmbeddingsAuthDTO) {
-        //     await auth?.solveUID();
-        //     if (auth && auth.user) {
-        //         indexObject[''] = undefined;
-        //         indexObject.authenticatedAs = `${auth.user.user_id} (${auth.user.full_name})`;
-        //         indexObject.balanceLeft = auth.user.wallet.total_balance;
-        //     }
-        // }
 
         return indexObject;
     }
 
+    generateLlmstxt(baseDomain: string): string {
+        return `# Web Reader & Batch Web Reader API
+
+> High-performance Web Reader and Multi-URL Batch Crawling API service for LLMs and AI Agents. Converts web pages into clean Markdown or structured JSON.
+
+## Capabilities
+
+- **Single URL Reading**: Convert any web page to clean Markdown by calling \`GET ${baseDomain}/<URL>\` or \`POST ${baseDomain}/\` with \`{"url": "..."}\`.
+- **Multi-URL Batch Reading**: Fetch and extract multiple URLs concurrently in a single request by calling \`POST ${baseDomain}/v1/batch\` or \`POST ${baseDomain}/\` with \`{"urls": ["...", "..."]}\`.
+- **Content Formats**: Supports clean Markdown (\`Accept: text/plain\`), structured JSON (\`Accept: application/json\`), or SSE event streaming (\`Accept: text/event-stream\`).
+
+## Endpoints & Documentation
+
+- [Single Page Crawl](${baseDomain}/): \`GET ${baseDomain}/<URL>\` or \`POST ${baseDomain}/\`
+- [Batch Crawl](${baseDomain}/v1/batch): \`POST ${baseDomain}/v1/batch\` with \`{"urls": ["URL1", "URL2"]}\`
+- [Skill Documentation](${baseDomain}/skill.md): Complete LLM skill specification and tool schema
+
+## Optional Headers
+
+- \`X-Respond-With\`: \`markdown\` | \`html\` | \`text\` | \`frontmatter\`
+- \`X-Preset\`: \`reader\` | \`index\` | \`research\` | \`agent\` | \`spider\`
+- \`X-Target-Selector\`: CSS selector for targeted extraction
+- \`X-Remove-Selector\`: CSS selector to omit unwanted DOM nodes
+- \`X-No-Cache\`: Set to \`true\` to force fresh fetching
+`;
+    }
+
+    @Method({
+        name: 'getLlmstxt',
+        description: 'Standard /llms.txt document for LLM discovery',
+        proto: {
+            http: {
+                action: 'get',
+                path: '/llms.txt',
+            }
+        },
+        tags: ['misc', 'crawl'],
+        returnType: [String],
+    })
+    async getLlmstxtCtrl(
+        @Ctx() ctx: Context,
+    ) {
+        const baseDomain = this.getPublicDomain(ctx);
+        const text = this.generateLlmstxt(baseDomain);
+        return assignTransferProtocolMeta(text,
+            { contentType: 'text/plain; charset=utf-8', envelope: null }
+        );
+    }
+
+    @Method({
+        name: 'getLlmsFulltxt',
+        description: 'Standard /llms-full.txt full documentation for LLMs',
+        proto: {
+            http: {
+                action: 'get',
+                path: '/llms-full.txt',
+            }
+        },
+        tags: ['misc', 'crawl'],
+        returnType: [String],
+    })
+    async getLlmsFulltxtCtrl(
+        @Ctx() ctx: Context,
+    ) {
+        const baseDomain = this.getPublicDomain(ctx);
+        const text = `${this.generateLlmstxt(baseDomain)}\n\n---\n\n${this.generateSkillMd(baseDomain)}`;
+        return assignTransferProtocolMeta(text,
+            { contentType: 'text/plain; charset=utf-8', envelope: null }
+        );
+    }
+
+    @Method({
+        name: 'getSkillMd',
+        description: 'Get Skill MD instruction document for LLMs/Agents',
+        proto: {
+            http: {
+                action: 'get',
+                path: '/skill.md',
+            }
+        },
+        tags: ['misc', 'crawl'],
+        returnType: [String],
+    })
+    @Method({
+        proto: {
+            http: {
+                action: 'get',
+                path: '/SKILL.md',
+            }
+        },
+        tags: ['misc', 'crawl'],
+        returnType: [String],
+    })
+    async getSkillMdCtrl(
+        @Ctx() ctx: Context,
+    ) {
+        const baseDomain = this.getPublicDomain(ctx);
+        const skillMd = this.generateSkillMd(baseDomain);
+        return assignTransferProtocolMeta(skillMd,
+            { contentType: 'text/markdown; charset=utf-8', envelope: null }
+        );
+    }
+
     @Method({
         name: 'getIndex',
-        description: 'Index of the service',
+        description: 'Index of the service and Skill MD instructions',
         proto: {
             http: {
                 action: 'get',
@@ -247,21 +458,202 @@ export class CrawlerHost extends RPCHost {
         @Param({ type: AUTH_DTO_CLS }) auth: BaseAuthDTO,
         crawlerOptionsParamsAllowed: CrawlerOptions,
     ) {
-        if (crawlerOptionsParamsAllowed.url || (crawlerOptionsParamsAllowed.file || crawlerOptionsParamsAllowed.pdf || crawlerOptionsParamsAllowed.html)) {
+        if (crawlerOptionsParamsAllowed.url || (crawlerOptionsParamsAllowed.urls && crawlerOptionsParamsAllowed.urls.length > 0) || (crawlerOptionsParamsAllowed.file || crawlerOptionsParamsAllowed.pdf || crawlerOptionsParamsAllowed.html)) {
             return this.crawl(rpcReflect, ctx, auth, crawlerOptionsParamsAllowed, crawlerOptionsParamsAllowed);
         }
 
-        const indexObject = await this.getIndex(auth);
+        const baseDomain = this.getPublicDomain(ctx);
+        const indexObject = await this.getIndex(auth, baseDomain);
 
         if (!ctx.accepts('text/plain') && (ctx.accepts('text/json') || ctx.accepts('application/json'))) {
             return indexObject;
         }
 
-        return assignTransferProtocolMeta(`${indexObject}`,
-            { contentType: 'text/plain; charset=utf-8', envelope: null }
+        const skillMd = this.generateSkillMd(baseDomain);
+        return assignTransferProtocolMeta(skillMd,
+            { contentType: 'text/markdown; charset=utf-8', envelope: null }
         );
     }
 
+    @Method({
+        name: 'crawlBatch',
+        description: 'Batch crawl multiple URLs into markdown or JSON',
+        proto: {
+            http: {
+                action: 'POST',
+                path: '/v1/batch',
+            }
+        },
+        tags: ['crawl'],
+        returnType: [RawString, Object, OutputServerEventStream],
+    })
+    @Method({
+        description: 'Batch crawl multiple URLs into markdown or JSON',
+        proto: {
+            http: {
+                action: 'POST',
+                path: '/batch',
+            }
+        },
+        tags: ['crawl'],
+        returnType: [RawString, Object, OutputServerEventStream],
+    })
+    async crawlBatch(
+        @RPCReflect() rpcReflect: RPCReflection,
+        @Ctx() ctx: Context,
+        @Param({ type: AUTH_DTO_CLS }) auth: BaseAuthDTO,
+        crawlerOptionsParamsAllowed: CrawlerOptions,
+    ) {
+        const rawUrls: string[] = crawlerOptionsParamsAllowed.urls ||
+            (crawlerOptionsParamsAllowed.url ? [crawlerOptionsParamsAllowed.url] : []);
+
+        if (!rawUrls || rawUrls.length === 0) {
+            throw new ParamValidationError({
+                message: 'No URLs provided for batch crawling',
+                path: 'urls'
+            });
+        }
+
+        const crawlerOptions = crawlerOptionsParamsAllowed;
+        const tierPolicy = await this.saasAssertTierPolicy(crawlerOptions, auth);
+        const futureRateLimit = this.storageLayer.rateLimit(ctx, rpcReflect, auth as any);
+
+        let totalChargeAmount = 0;
+        const { reportOptions, reportUsage } = await futureRateLimit;
+
+        rpcReflect.finally(() => {
+            reportOptions?.(crawlerOptions.customizedProps());
+            reportUsage?.(totalChargeAmount, 'reader-crawl-batch');
+        });
+
+        // Normalize and resolve URLs
+        const urlEntries: { raw: string; url?: URL; error?: string }[] = [];
+        for (const raw of rawUrls) {
+            try {
+                const fixedUrlStr = this._attemptURLFix(raw.trim(), ctx.URL.host);
+                if (fixedUrlStr && URL.canParse(fixedUrlStr)) {
+                    const normalizedHref = new URL(fixedUrlStr).href;
+                    const { url: safeURL } = await this.miscService.assertNormalizedUrl(normalizedHref);
+                    urlEntries.push({ raw, url: safeURL });
+                } else {
+                    urlEntries.push({ raw, error: 'Invalid URL' });
+                }
+            } catch (err: any) {
+                urlEntries.push({ raw, error: err.readableMessage || err.message || `${err}` });
+            }
+        }
+
+        // Circuit breaker
+        this.puppeteerControl.circuitBreakerHosts.add(ctx.hostname.toLowerCase());
+
+        // Process all URLs in parallel
+        const results = await Promise.all(
+            urlEntries.map(async (entry) => {
+                if (entry.error || !entry.url) {
+                    return {
+                        url: entry.raw,
+                        error: entry.error || 'Invalid URL',
+                        code: 400,
+                        status: 40000,
+                    };
+                }
+
+                const singleOpts = CrawlerOptions.from({
+                    ...crawlerOptions,
+                    url: entry.url.toString(),
+                    urls: undefined,
+                });
+
+                try {
+                    const crawlOpts = await this.configure(singleOpts);
+                    if (auth.isInternal) {
+                        crawlOpts.eligibleForPageIndex = true;
+                    }
+
+                    if (singleOpts.robotsTxt) {
+                        await this.robotsTxtService.assertAccessAllowed(entry.url, singleOpts.robotsTxt);
+                    }
+
+                    let lastScrapped: PageSnapshot | undefined;
+                    for await (const scrapped of this.iterSnapshots(entry.url, crawlOpts, singleOpts)) {
+                        if (rpcReflect.signal.aborted) break;
+                        if (!scrapped) continue;
+                        lastScrapped = scrapped;
+                        if (!singleOpts.isSnapshotAcceptableForEarlyResponse(scrapped)) continue;
+                        if (!scrapped.title && !scrapped.blobs?.length) continue;
+
+                        const formatted = await this.formatSnapshot(singleOpts, scrapped, entry.url, this.urlValidMs);
+                        const charge = this.assignChargeAmount(formatted, tierPolicy);
+                        totalChargeAmount += charge;
+                        return formatted;
+                    }
+
+                    if (!lastScrapped) {
+                        return {
+                            url: entry.url.toString(),
+                            error: `No content available for URL ${entry.url}`,
+                            code: 404,
+                            status: 40400,
+                        };
+                    }
+
+                    const formatted = await this.formatSnapshot(singleOpts, lastScrapped, entry.url, this.urlValidMs);
+                    const charge = this.assignChargeAmount(formatted, tierPolicy);
+                    totalChargeAmount += charge;
+                    return formatted;
+                } catch (err: any) {
+                    this.logger.warn(`Batch crawl failed for ${entry.url}`, { err: marshalErrorLike(err) });
+                    return {
+                        url: entry.url.toString(),
+                        error: err.readableMessage || err.message || `${err}`,
+                        code: err.status || 500,
+                        status: (err.status || 500) * 100,
+                    };
+                }
+            })
+        );
+
+        // SSE Response
+        if (!ctx.accepts('text/plain') && ctx.accepts('text/event-stream')) {
+            const sseStream = new OutputServerEventStream();
+            rpcReflect.return(sseStream);
+            for (const item of results) {
+                sseStream.write({
+                    event: 'data',
+                    data: item,
+                });
+            }
+            sseStream.end();
+            return sseStream;
+        }
+
+        // JSON Response
+        if (!ctx.accepts('text/plain') && (ctx.accepts('text/json') || ctx.accepts('application/json'))) {
+            return {
+                code: 200,
+                status: 20000,
+                data: results,
+            };
+        }
+
+        // Plain Text / Markdown Response
+        const textParts = results.map((item: any, idx: number) => {
+            if (item.error) {
+                return `### URL (${idx + 1}): ${item.url}\n\n> Error: ${item.error}\n`;
+            }
+            const formattedText = item.frontmatterRepresentation || item.textRepresentation || item.content || `${item}`;
+            return `<!-- Page ${idx + 1}: ${item.url || rawUrls[idx]} -->\n${formattedText}`;
+        });
+
+        const combinedText = textParts.join('\n\n---\n\n');
+        const headerMixin = { 'X-Usage-Tokens': totalChargeAmount.toString() };
+
+        return assignTransferProtocolMeta(combinedText, {
+            contentType: 'text/plain; charset=utf-8',
+            envelope: null,
+            headers: { ...headerMixin },
+        });
+    }
 
     @Method({
         name: 'crawlByPostingToIndex',
@@ -293,6 +685,10 @@ export class CrawlerHost extends RPCHost {
         crawlerOptionsHeaderOnly: CrawlerOptionsHeaderOnly,
         crawlerOptionsParamsAllowed: CrawlerOptions,
     ) {
+        if (crawlerOptionsParamsAllowed.urls && crawlerOptionsParamsAllowed.urls.length > 0) {
+            return this.crawlBatch(rpcReflect, ctx, auth, crawlerOptionsParamsAllowed);
+        }
+
         let chargeAmount = 0;
         let finalSnapshot: PageSnapshot | undefined;
         const crawlerOptions = ctx.method === 'GET' ? crawlerOptionsHeaderOnly : crawlerOptionsParamsAllowed;

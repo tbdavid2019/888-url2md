@@ -426,6 +426,11 @@ export class CrawlerOptions extends Coercible {
     @Prop()
     url?: string;
 
+    @Prop({
+        arrayOf: String
+    })
+    urls?: string[];
+
     @Prop()
     html?: string;
 
@@ -623,6 +628,13 @@ export class CrawlerOptions extends Coercible {
     _hintCountry?: string;
 
     static override from(input: any) {
+        if (input && typeof input === 'object') {
+            if (Array.isArray(input.url) && (!input.urls || !input.urls.length)) {
+                input = { ...input, urls: input.url, url: undefined };
+            } else if (typeof input.urls === 'string' && input.urls.trim()) {
+                input = { ...input, urls: input.urls.split(',').map((s: string) => s.trim()).filter(Boolean) };
+            }
+        }
         const ctx = Reflect.get(input, RPC_CALL_ENVIRONMENT) as Context | undefined;
         let instance = super.from(input) as CrawlerOptions;
         const presetHeader = ctx?.get('x-preset');

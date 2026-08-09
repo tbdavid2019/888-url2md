@@ -1,0 +1,23 @@
+# Web Reader & Batch Web Reader API
+
+> High-performance Web Reader and Multi-URL Batch Crawling API service for LLMs and AI Agents. Converts web pages into clean Markdown or structured JSON.
+
+## Capabilities
+
+- **Single URL Reading**: Convert any web page to clean Markdown by calling `GET /<URL>` or `POST /` with `{"url": "..."}`.
+- **Multi-URL Batch Reading**: Fetch and extract multiple URLs concurrently in a single request by calling `POST /v1/batch` or `POST /` with `{"urls": ["...", "..."]}`.
+- **Content Formats**: Supports clean Markdown (`Accept: text/plain`), structured JSON (`Accept: application/json`), or SSE event streaming (`Accept: text/event-stream`).
+
+## Endpoints & Documentation
+
+- [Single Page Crawl](/): `GET /<URL>` or `POST /`
+- [Batch Crawl](/v1/batch): `POST /v1/batch` with `{"urls": ["URL1", "URL2"]}`
+- [Skill Documentation](/skill.md): Complete LLM skill specification and tool schema
+
+## Optional Headers
+
+- `X-Respond-With`: `markdown` | `html` | `text` | `frontmatter`
+- `X-Preset`: `reader` | `index` | `research` | `agent` | `spider`
+- `X-Target-Selector`: CSS selector for targeted extraction
+- `X-Remove-Selector`: CSS selector to omit unwanted DOM nodes
+- `X-No-Cache`: Set to `true` to force fresh fetching
