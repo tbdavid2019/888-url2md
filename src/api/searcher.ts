@@ -528,16 +528,23 @@ export class SearcherHost extends RPCHost {
     }
 
     pageQualified(formattedPage: FormattedPage) {
-        return formattedPage.title &&
-            formattedPage.content ||
-            formattedPage.screenshotUrl ||
-            formattedPage.pageshotUrl ||
-            formattedPage.text ||
-            formattedPage.html;
+        const fp = formattedPage as any;
+        return Boolean(
+            fp && (
+                fp.content ||
+                fp.snippet ||
+                fp.text ||
+                fp.html ||
+                fp.description ||
+                fp.title ||
+                fp.url ||
+                fp.link
+            )
+        );
     }
 
-    searchResultsQualified(results: FormattedPage[], targetResultCount = this.targetResultCount) {
-        return _.every(results, (x) => this.pageQualified(x)) && results.length >= targetResultCount;
+    searchResultsQualified(results: FormattedPage[], targetResultCount = 1) {
+        return Array.isArray(results) && results.length > 0 && _.some(results, (x) => this.pageQualified(x));
     }
 
     async getFavicon(domain: string) {
