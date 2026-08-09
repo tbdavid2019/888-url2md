@@ -4,8 +4,8 @@ import { readFile } from 'fs/promises';
 import { container, singleton } from 'tsyringe';
 
 import type { Browser, BrowserContext, CookieParam, GoToOptions, Page, Viewport } from 'puppeteer';
+import { TimeoutError } from 'puppeteer';
 import type { Cookie } from 'set-cookie-parser';
-import puppeteer, { TimeoutError } from 'puppeteer';
 
 import { Defer } from 'civkit/defer';
 import { AssertionFailureError, ParamValidationError } from 'civkit/civ-rpc';
@@ -19,6 +19,7 @@ import { AsyncLocalContext } from '../async-context';
 import { GlobalLogger } from '../logger';
 import { minimalStealth } from '../minimal-stealth';
 import { BlackHoleDetector } from '../blackhole-detector';
+import { PuppeteerControl } from '../puppeteer';
 
 
 export interface ScrappingOptions {
@@ -244,21 +245,10 @@ export class SERPSpecializedPuppeteerControl extends AsyncService {
         protected asyncLocalContext: AsyncLocalContext,
         protected curlControl: CurlControl,
         protected blackHoleDetector: BlackHoleDetector,
+        protected mainPuppeteerControl: PuppeteerControl,
     ) {
-        super(...arguments);
+        super(10 as any);
         this.setMaxListeners(Infinity);
-
-        let crippledTimes = 0;
-        this.on('crippled', () => {
-            crippledTimes += 1;
-            this.livePages.clear();
-            if (crippledTimes > 5) {
-                process.nextTick(() => {
-                    this.emit('error', new Error('Browser crashed too many times, quitting...'));
-                    // process.exit(1);
-                });
-            }
-        });
     }
 
     override async init() {
@@ -267,26 +257,12 @@ export class SERPSpecializedPuppeteerControl extends AsyncService {
     }
 
     async ensureBrowser() {
-        if (this.browser?.connected) {
+        await this.mainPuppeteerControl.serviceReady();
+        if (this.mainPuppeteerControl.browser?.connected) {
+            this.browser = this.mainPuppeteerControl.browser;
+            this.ua = this.mainPuppeteerControl.ua;
+            this.effectiveUA = this.mainPuppeteerControl.effectiveUA;
             return;
-        }
-        this.browser = (await puppeteer.launch({
-            timeout: 30_000,
-            headless: !Boolean(process.env.DEBUG_BROWSER),
-            executablePath: process.env.OVERRIDE_CHROME_EXECUTABLE_PATH,
-            args: [
-                '--disable-dev-shm-usage', '--disable-blink-features=AutomationControlled', '--no-sandbox', '--disable-setuid-sandbox', '--no-zygote', '--disable-gpu'
-            ]
-        }).catch((err: any) => {
-            this.logger.error(`Failed to launch SERP browser`, { err });
-            return undefined;
-        })) as any;
-        if (this.browser) {
-            this.ua = await this.browser.userAgent().catch(() => '');
-            this.effectiveUA = (this.ua || '').replace(/Headless/i, '').replace('Mozilla/5.0 (X11; Linux x86_64)', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)');
-            if (this.effectiveUA) {
-                this.curlControl.impersonateChrome(this.effectiveUA);
-            }
         }
     }
 
