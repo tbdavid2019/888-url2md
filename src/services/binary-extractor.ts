@@ -70,12 +70,21 @@ export class BinaryExtractorService extends AsyncService {
                     throw new AssertionFailureError(`Failed to access ${url}: file too large`);
                 }
                 snapshot.html = await readBlob(blob, encoding);
-                let innerCharset;
-                const peek = snapshot.html.slice(0, 1024);
-                innerCharset ??= peek.match(/<meta[^>]+text\/html;\s*?charset=([^>"]+)/i)?.[1]?.toLowerCase();
-                innerCharset ??= peek.match(/<meta[^>]+charset="([^>"]+)\"/i)?.[1]?.toLowerCase();
-                if (innerCharset && innerCharset !== encoding && WEB_SUPPORTED_ENCODINGS.has(innerCharset)) {
-                    snapshot.html = await readBlob(blob, innerCharset);
+                if (encoding !== 'utf-8' || snapshot.html.includes('\uFFFD')) {
+                    let innerCharset;
+                    const peek = snapshot.html.slice(0, 1024);
+                    innerCharset ??= peek.match(/<meta[^>]+text\/html;\s*?charset=([^>"\s;/]+)/i)?.[1]?.toLowerCase();
+                    innerCharset ??= peek.match(/<meta[^>]+charset="([^>"\s;/]+)"/i)?.[1]?.toLowerCase();
+                    if (innerCharset && innerCharset !== encoding && WEB_SUPPORTED_ENCODINGS.has(innerCharset)) {
+                        try {
+                            const reDecoded = await readBlob(blob, innerCharset);
+                            if (!reDecoded.includes('\uFFFD')) {
+                                snapshot.html = reDecoded;
+                            }
+                        } catch {
+                            // ignore decoding failure
+                        }
+                    }
                 }
                 snapshot.traits = [];
 
