@@ -24,11 +24,10 @@ RUN groupadd -r jina
 RUN useradd -g jina  -G audio,video -m jina
 USER jina
 WORKDIR /app
-COPY package.json package-lock.json ./
+COPY --chown=jina:jina . ./
 RUN npm ci
-COPY build ./build
-COPY public ./public
-COPY licensed ./licensed
+RUN bash ./download-external-assets.sh || true
+RUN npm run build
 RUN rm -rf ~/.config/chromium && mkdir -p ~/.config/chromium
 RUN NODE_COMPILE_CACHE=node_modules npm run dry-run
 ENV NODE_COMPILE_CACHE=node_modules
