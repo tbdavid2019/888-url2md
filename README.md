@@ -32,31 +32,52 @@ Currently deployed at: **[create360.ai](https://create360.ai)** (or easily self-
 
 ## 🐳 Docker 安裝與部署 (Docker Deployment)
 
-本專案已發布至 Docker Hub：[**tbdavid2019/888-url2md**](https://hub.docker.com/repository/docker/tbdavid2019/888-url2md/)
+本專案提供多種 Docker 安裝與部署方式，可直接使用 GHCR (GitHub Container Registry) 預建映像檔或自原始碼構建：
 
-### 1. 快速啟動 (Quickstart)
+### 1. 使用 GHCR 預建映像檔 (Quickstart via GHCR)
 
 ```bash
-# 從 Docker Hub 拉取最新映像檔
-docker pull tbdavid2019/888-url2md:latest
+# 1. 從 GitHub Container Registry 拉取最新 v0.6.0 映像檔
+docker pull ghcr.io/tbdavid2019/888-url2md:v0.6.0
 
-# 啟動容器 (預設對外 Port 8081)
+# 2. 啟動容器 (對外 Port 8081，設定公開域名)
 docker run -d \
   --name 888-url2md \
   -p 8081:8081 \
   --security-opt seccomp=unconfined \
   --restart always \
   -e PUBLIC_DOMAIN='https://create360.ai' \
-  tbdavid2019/888-url2md:latest
+  ghcr.io/tbdavid2019/888-url2md:v0.6.0
 ```
 
-### 2. Docker Compose 部署範例
+### 2. 從原始碼本地構建與運行 (Build from Source)
+
+```bash
+# 1. 複製儲存庫
+git clone https://github.com/tbdavid2019/888-url2md.git
+cd 888-url2md
+
+# 2. 構建 Docker 映像檔
+docker build -t 888-url2md:v0.6.0 .
+
+# 3. 啟動容器
+docker run -d \
+  --name 888-url2md \
+  -p 8081:8081 \
+  --security-opt seccomp=unconfined \
+  --restart always \
+  -e PUBLIC_DOMAIN='https://create360.ai' \
+  888-url2md:v0.6.0
+```
+
+### 3. Docker Compose 部署指南
 
 ```yaml
 version: '3.8'
+
 services:
   888-url2md:
-    image: tbdavid2019/888-url2md:latest
+    image: ghcr.io/tbdavid2019/888-url2md:v0.6.0
     container_name: 888-url2md
     ports:
       - "8081:8081"
@@ -65,7 +86,16 @@ services:
     restart: always
     environment:
       - PUBLIC_DOMAIN=https://create360.ai
+      - PORT=8081
 ```
+
+### 4. 主要環境變數說明 (Environment Variables)
+
+| 環境變數 | 說明 | 預設值 / 範例 |
+| :--- | :--- | :--- |
+| `PUBLIC_DOMAIN` | 服務對外公開主機域名（用於產出連結與 SKILL.md 自動代入） | `https://create360.ai` |
+| `PORT` | 服務內部監聽 Port | `8081` (或 `8080`) |
+| `SERPER_SEARCH_API_KEY` | (可選) Serper.dev API 搜尋金鑰；若未設定則自動啟用免費 DuckDuckGo / Bing SERP 引擎 | 無 (預設免 Key) |
 
 ---
 
