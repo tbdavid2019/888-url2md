@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="將一個或多個網頁網址轉換為乾淨的 Markdown。">
+    <title>網址轉 Markdown</title>
+    <style>
+      :root { color-scheme: light; font-family: ui-sans-serif, system-ui, -apple-system, "PingFang TC", "Noto Sans TC", sans-serif; color: #172033; background: #f5f7fb; }
+      * { box-sizing: border-box; }
+      body { margin: 0; min-width: 320px; }
+      main { width: min(960px, calc(100% - 32px)); margin: 0 auto; padding: 56px 0 40px; }
+      header { margin-bottom: 28px; }
+      h1 { margin: 0 0 10px; font-size: clamp(2rem, 5vw, 3rem); letter-spacing: -.04em; }
+      p { color: #5b667a; line-height: 1.65; }
+      .card { background: #fff; border: 1px solid #e4e8f0; border-radius: 16px; padding: clamp(20px, 4vw, 32px); box-shadow: 0 12px 28px rgba(32, 47, 80, .06); }
+      label { display: block; margin-bottom: 9px; font-weight: 700; }
+      textarea, pre { width: 100%; border: 1px solid #cbd3e1; border-radius: 10px; font: 14px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+      textarea { display: block; min-height: 178px; padding: 14px; resize: vertical; color: #172033; }
+      textarea:focus { outline: 3px solid #d9e8ff; border-color: #3675d3; }
+      .help { margin: 9px 0 20px; font-size: .9rem; }
+      .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+      button { appearance: none; border: 0; cursor: pointer; border-radius: 9px; padding: 11px 17px; font-size: 1rem; font-weight: 700; background: #1e63c6; color: #fff; }
+      button:hover { background: #174f9f; }
+      button:disabled { cursor: wait; opacity: .65; }
+      button.secondary { background: #eaf0fa; color: #1e4b89; }
+      button.secondary:hover { background: #dae5f5; }
+      #status { min-height: 1.4em; margin: 16px 0 0; font-weight: 600; }
+      #status.error { color: #b42318; }
+      #result-area { margin-top: 24px; }
+      .result-head { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 9px; }
+      h2 { margin: 0; font-size: 1.1rem; }
+      pre { min-height: 180px; max-height: 55vh; overflow: auto; margin: 0; padding: 16px; white-space: pre-wrap; background: #101827; border: 0; color: #e5eefc; }
+      .footer { margin-top: 22px; font-size: .9rem; }
+      a { color: #1d5ebd; }
+      [hidden] { display: none !important; }
+      @media (max-width: 560px) { main { width: min(100% - 24px, 960px); padding-top: 32px; } .card { padding: 18px; } .result-head { align-items: flex-start; flex-direction: column; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>網址轉 Markdown</h1>
+        <p>貼上一個或多個網頁網址，即可擷取主要內容並轉成可複製、下載的 Markdown。</p>
+      </header>
+      <section class="card" aria-labelledby="urls-label">
+        <form id="converter-form">
+          <label id="urls-label" for="urls">網址</label>
+          <textarea id="urls" name="urls" required spellcheck="false" placeholder="https://example.com/article\nhttps://example.com/another-article" aria-describedby="url-help"></textarea>
+          <p class="help" id="url-help">每行一個網址；也可以用空白或逗號分隔。多個網址會依序合併為同一份 Markdown。</p>
+          <div class="actions">
+            <button id="convert" type="submit">轉換成 Markdown</button>
+          </div>
+        </form>
+        <p id="status" role="status" aria-live="polite"></p>
+      </section>
+      <section class="card" aria-labelledby="search-label" style="margin-top: 20px">
+        <form id="search-form">
+          <label id="search-label" for="query">網頁搜尋</label>
+          <textarea id="query" name="query" required rows="2" spellcheck="true" placeholder="例如：台灣人工智慧最新新聞" aria-describedby="search-help"></textarea>
+          <p class="help" id="search-help">輸入關鍵字後搜尋網頁，結果會轉換成 Markdown。</p>
+          <div class="actions">
+            <button id="search" type="submit">搜尋並轉成 Markdown</button>
+          </div>
+        </form>
+      </section>
+      <section id="result-area" hidden aria-labelledby="result-title">
+        <div class="result-head">
+          <h2 id="result-title">轉換結果</h2>
+          <div class="actions">
+            <button class="secondary" id="copy" type="button">複製</button>
+            <button class="secondary" id="download" type="button">下載 .md</button>
+          </div>
+        </div>
+        <pre id="result"></pre>
+      </section>
+      <p class="footer">給 AI Agent / LLM 使用的說明請見 <a href="/skill.md">SKILL.md</a>。</p>
+    </main>
+    <script>
+      (() => {
+        const form = document.querySelector('#converter-form');
+        const urlsInput = document.querySelector('#urls');
+        const convertButton = document.querySelector('#convert');
+        const searchForm = document.querySelector('#search-form');
+        const queryInput = document.querySelector('#query');
+        const searchButton = document.querySelector('#search');
+        const status = document.querySelector('#status');
+        const resultArea = document.querySelector('#result-area');
+        const result = document.querySelector('#result');
+        const copyButton = document.querySelector('#copy');
+        const downloadButton = document.querySelector('#download');
+
+        const getUrls = () => urlsInput.value.split(/[\s,]+/).map(value => value.trim()).filter(Boolean);
+        const setStatus = (message, isError = false) => {
+          status.textContent = message;
+          status.classList.toggle('error', isError);
+        };
+        const showResult = markdown => {
+          result.textContent = markdown;
+          resultArea.hidden = false;
+        };
+
+        form.addEventListener('submit', async event => {
+          event.preventDefault();
+          const urls = getUrls();
+          if (!urls.length) {
+            setStatus('請至少輸入一個網址。', true);
+            urlsInput.focus();
+            return;
+          }
+
+          convertButton.disabled = true;
+          setStatus(`正在轉換 ${urls.length} 個網址…`);
+          resultArea.hidden = true;
+          try {
+            const response = await fetch('/v1/batch', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Accept': 'text/plain' },
+              body: JSON.stringify({ urls })
+            });
+            const markdown = await response.text();
+            if (!response.ok) throw new Error(markdown || `伺服器回應 ${response.status}`);
+            showResult(markdown);
+            setStatus(`已完成 ${urls.length} 個網址的轉換。`);
+          } catch (error) {
+            setStatus(`轉換失敗：${error.message || '請稍後再試。'}`, true);
+          } finally {
+            convertButton.disabled = false;
+          }
+        });
+
+        searchForm.addEventListener('submit', async event => {
+          event.preventDefault();
+          const query = queryInput.value.trim();
+          if (!query) {
+            setStatus('請輸入搜尋關鍵字。', true);
+            queryInput.focus();
+            return;
+          }
+
+          searchButton.disabled = true;
+          setStatus(`正在搜尋「${query}」…`);
+          resultArea.hidden = true;
+          try {
+            const response = await fetch(`/search?q=${encodeURIComponent(query)}`, {
+              headers: { 'Accept': 'text/plain' }
+            });
+            const markdown = await response.text();
+            if (!response.ok) throw new Error(markdown || `伺服器回應 ${response.status}`);
+            showResult(markdown);
+            setStatus(`已完成「${query}」的搜尋。`);
+          } catch (error) {
+            setStatus(`搜尋失敗：${error.message || '請稍後再試。'}`, true);
+          } finally {
+            searchButton.disabled = false;
+          }
+        });
+
+        copyButton.addEventListener('click', async () => {
+          try {
+            await navigator.clipboard.writeText(result.textContent);
+            setStatus('已複製 Markdown 到剪貼簿。');
+          } catch {
+            setStatus('無法自動複製，請手動選取結果。', true);
+          }
+        });
+
+        downloadButton.addEventListener('click', () => {
+          const blob = new Blob([result.textContent], { type: 'text/markdown;charset=utf-8' });
+          const link = document.createElement('a');
+          link.href = URL.createObjectURL(blob);
+          link.download = `url2md-${new Date().toISOString().slice(0, 10)}.md`;
+          link.click();
+          URL.revokeObjectURL(link.href);
+        });
+      })();
+    </script>
+  </body>
+</html>

@@ -82,7 +82,13 @@ export class CrawlStandAloneServer extends KoaServer {
     makeAssetsServingController() {
         return (ctx: Context, next: Next) => {
             const requestPath = ctx.path;
-            const file = requestPath.slice(1);
+            // `/` remains the API/LLM entrypoint for non-browser clients.  Browsers
+            // receive the human-facing converter instead, while `/skill.md` keeps
+            // serving the machine-readable instructions.
+            const isBrowserRequest = ctx.get('accept').includes('text/html');
+            const file = !requestPath.slice(1) && !ctx.querystring && isBrowserRequest
+                ? 'app.html'
+                : requestPath.slice(1);
             if (!file) {
                 return next();
             }
