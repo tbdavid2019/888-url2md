@@ -2,6 +2,16 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [v0.7.0] - Firecrawl AnyDoc Integration & High-Speed Document Parsing (2026-08-10)
+
+### 🚀 High-Speed Document Parsing & AnyDoc Integration
+- **@firecrawl/anydoc Service**: Integrated Firecrawl's open-source Rust document parsing engine (`@firecrawl/anydoc`) into `BinaryExtractorService`.
+- **Ultra-Fast Conversion (< 5ms)**: Accelerated PDF, Word (.docx/.doc), Excel (.xlsx/.xls), PowerPoint (.pptx/.ppt), EPUB, RTF, OpenDocument (ODT/ODS/ODP), and CSV parsing with sub-5ms median conversion times.
+- **Hybrid & Fallback Extraction**: Implemented a primary-fallback strategy to use AnyDoc for ultra-fast Markdown generation while preserving legacy PDFJS and LibreOffice extractors as reliable fallbacks.
+- **Unit Testing**: Added test coverage in `tests/unit/anydoc.test.ts`.
+
+---
+
 ## [v0.6.2] - SEO, Open Graph & PWA Asset Enhancements (2026-08-10)
 
 ### 🎨 SEO & Open Graph Meta Tags

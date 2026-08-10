@@ -1,6 +1,6 @@
 {
   "name": "reader",
-  "version": "0.6.2",
+  "version": "0.7.0",
   "license": "AGPL-3.0-or-later",
   "scripts": {
     "lint": "eslint --ext .js,.ts .",
@@ -32,6 +32,7 @@
   },
   "dependencies": {
     "@esm2cjs/normalize-url": "^8.0.0",
+    "@firecrawl/anydoc": "^0.1.7",
     "@koa/bodyparser": "^6.1.0",
     "@mozilla/readability": "^0.6.0",
     "@napi-rs/canvas": "^0.1.68",

@@ -17,6 +17,7 @@ import { CanvasService } from './canvas';
 import { AltTextService } from './alt-text';
 import { stat } from 'fs/promises';
 import { JSDomControl } from './jsdom';
+import { AnyDocService } from './anydoc';
 
 @singleton()
 export class BinaryExtractorService extends AsyncService {
@@ -31,6 +32,7 @@ export class BinaryExtractorService extends AsyncService {
         protected canvasService: CanvasService,
         protected altTextService: AltTextService,
         protected jsdomControl: JSDomControl,
+        protected anyDocService: AnyDocService,
     ) {
         super(...arguments);
     }
@@ -169,6 +171,18 @@ export class BinaryExtractorService extends AsyncService {
                 return 'image/svg+xml';
             case 'webp':
                 return 'image/webp';
+            case 'epub':
+                return 'application/epub+zip';
+            case 'rtf':
+                return 'application/rtf';
+            case 'odt':
+                return 'application/vnd.oasis.opendocument.text';
+            case 'ods':
+                return 'application/vnd.oasis.opendocument.spreadsheet';
+            case 'odp':
+                return 'application/vnd.oasis.opendocument.presentation';
+            case 'csv':
+                return 'text/csv';
             default:
                 return 'application/octet-stream';
         }
@@ -194,6 +208,57 @@ export class BinaryExtractorService extends AsyncService {
             text: '',
             traits: ['blob'],
         };
+
+        if (this.anyDocService.supports(contentType, fileName)) {
+            try {
+                const markdown = await this.anyDocService.convertFile(filePath);
+                if (markdown && markdown.trim()) {
+                    snapshot.title = fileName;
+                    snapshot.text = markdown;
+                    snapshot.parsed = {
+                        content: markdown,
+                        title: fileName,
+                    };
+                    snapshot.traits!.push('anydoc');
+
+                    if (contentType.startsWith('application/pdf')) {
+                        try {
+                            const pagesToRender = pageNumber ? [pageNumber, pageNumber + 1, pageNumber + 2] : [1, 2, 3];
+                            const extracted = await this.pdfExtractor.extractRendered(filePath, outPath, pagesToRender);
+                            if (extracted.meta?.title) {
+                                snapshot.title = extracted.meta.title;
+                            }
+                            snapshot.parsed.byline = extracted.meta?.Author;
+                            snapshot.parsed.lang = extracted.meta?.Language || undefined;
+                            snapshot.parsed.publishedTime = this.pdfExtractor.parsePdfDate(extracted.meta?.ModDate || extracted.meta?.CreationDate)?.toISOString();
+                            snapshot.metadata = extracted.meta;
+                            snapshot.childFrames = extracted.pages.map((page) => {
+                                const childUrl = new URL(urlCopy.href);
+                                childUrl.hash = `#${page.page}`;
+
+                                return {
+                                    title: `${snapshot.title}#${page.page}`,
+                                    href: childUrl.href,
+                                    html: '',
+                                    text: page.text,
+                                    parsed: {
+                                        content: page.content,
+                                    },
+                                    screenshotUrl: page.pngPath ? pathToFileURL(page.pngPath).href : undefined,
+                                } as PageSnapshot;
+                            });
+                            snapshot.traits!.push('pdf');
+                        } catch (pdfErr) {
+                            this.logger.debug(`PDF extra metadata extraction skipped`, { pdfErr });
+                        }
+                    }
+
+                    return snapshot;
+                }
+            } catch (err: any) {
+                this.logger.warn(`AnyDoc conversion failed, falling back to legacy extractor`, { err, contentType, fileName });
+            }
+        }
 
         if (contentType.startsWith('application/pdf')) {
             const pagesToRender = pageNumber ? [pageNumber, pageNumber + 1, pageNumber + 2] : [1, 2, 3];
