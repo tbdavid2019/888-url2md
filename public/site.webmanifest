@@ -1,0 +1,26 @@
+{
+  "name": "888 URL2MD - 網頁轉 Markdown 工具",
+  "short_name": "URL2MD",
+  "description": "將一個或多個網頁網址與搜尋結果轉換為乾淨的 Markdown 格式，專為 LLM 與 AI Agent 設計。",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f5f7fb",
+  "theme_color": "#1e63c6",
+  "icons": [
+    {
+      "src": "/favicon-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
