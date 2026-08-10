@@ -235,19 +235,20 @@ export class CrawlerHost extends RPCHost {
 
 ---
 name: 888-url2md
-description: Convert any web page, search query, or multiple URLs into LLM-friendly clean Markdown or structured JSON. Supports single URL, web search, and multi-URL batch crawling.
+description: Convert any web page, document file, search query, or multiple URLs into LLM-friendly clean Markdown or structured JSON. Supports single URL, document file upload, web search, and multi-URL batch crawling.
 ---
 
 ## Overview
-This service converts web pages and search queries into clean Markdown or JSON for LLM consumption.
+This service converts web pages, document files, and search queries into clean Markdown or JSON for LLM consumption.
 Server Base URL: ${baseDomain}
 
 ## Agent Installation & Setup Instructions
 If you are an LLM or AI Agent accessing this service for the first time:
 1. Use **Single URL mode** to read individual web pages.
-2. Use **Web Search mode** to execute live web search queries.
-3. Use **Multi-URL Batch mode** to fetch and extract multiple pages concurrently in a single request.
-4. Include \`Accept: application/json\` header for JSON responses or \`Accept: text/plain\` for clean Markdown text.
+2. Use **Document File Upload mode** to parse PDF, Word, Excel, PPT, EPUB, CSV files via multipart form-data.
+3. Use **Web Search mode** to execute live web search queries.
+4. Use **Multi-URL Batch mode** to fetch and extract multiple pages concurrently in a single request.
+5. Include \`Accept: application/json\` header for JSON responses or \`Accept: text/plain\` for clean Markdown text.
 
 ---
 
@@ -284,7 +285,14 @@ If you are an LLM or AI Agent accessing this service for the first time:
   }
   \`\`\`
 
-### 4. Response Formats
+### 4. Document File Upload & Parsing (AnyDoc Engine)
+- **POST Request**: \`${baseDomain}/\`
+  *Multipart Form-Data*: Attach file in form-data parameter \`file\` or \`pdf\`:
+  \`curl -X POST '${baseDomain}/' -H 'Accept: text/plain' -F "file=@report.pdf"\`
+  *Supported Formats*: PDF, Word (.docx/.doc), Excel (.xlsx/.xls), PowerPoint (.pptx/.ppt), EPUB, RTF, OpenDocument (.odt/.ods/.odp), CSV.
+  *Latency*: Sub-5ms conversion via Firecrawl AnyDoc engine.
+
+### 5. Response Formats
 - **Markdown / Plain Text (Default / \`Accept: text/plain\`)**:
   Returns clean Markdown content. Batch requests separate pages with \`---\`.
 - **JSON (\`Accept: application/json\`)**:
@@ -302,7 +310,7 @@ If you are an LLM or AI Agent accessing this service for the first time:
   }
   \`\`\`
 
-### 5. Optional Headers
+### 6. Optional Headers
 - \`X-Respond-With\`: \`markdown\` | \`html\` | \`text\` | \`frontmatter\`
 - \`X-Preset\`: \`reader\` | \`index\` | \`research\` | \`agent\` | \`spider\`
 - \`X-Target-Selector\`: Extract specific CSS selector.
@@ -315,7 +323,7 @@ If you are an LLM or AI Agent accessing this service for the first time:
 \`\`\`json
 {
   "name": "888_url2md",
-  "description": "Fetch and convert web pages, search results, or multiple URLs into clean Markdown.",
+  "description": "Fetch and convert web pages, document files (PDF/Word/Excel/PPT/EPUB/CSV), search results, or multiple URLs into clean Markdown.",
   "parameters": {
     "type": "object",
     "properties": {
@@ -343,6 +351,7 @@ If you are an LLM or AI Agent accessing this service for the first time:
             usage1_single: `${baseDomain}/YOUR_URL`,
             usage2_search: `${baseDomain}/s/YOUR_SEARCH_QUERY`,
             usage3_batch: `POST ${baseDomain}/v1/batch with {"urls": ["URL1", "URL2"]}`,
+            usage4_upload: `POST ${baseDomain}/ with multipart/form-data "file" parameter (PDF, DOCX, XLSX, PPTX, EPUB, CSV)`,
             skillDoc: `${baseDomain}/skill.md`,
             skillContent: skillMd,
         });
@@ -353,11 +362,12 @@ If you are an LLM or AI Agent accessing this service for the first time:
     generateLlmstxt(baseDomain: string): string {
         return `# 888 URL to Markdown (888-url2md) API
 
-> High-performance Web Reader, Live Search, and Multi-URL Batch Crawling API service for LLMs and AI Agents. Converts web pages and search queries into clean Markdown or structured JSON.
+> High-performance Web Reader, Live Search, Document File Parsing (AnyDoc), and Multi-URL Batch Crawling API service for LLMs and AI Agents. Converts web pages, document files (PDF, Word, Excel, PPT, EPUB, CSV), and search queries into clean Markdown or structured JSON.
 
 ## Capabilities
 
 - **Single URL Reading**: Convert any web page to clean Markdown by calling \`GET ${baseDomain}/<URL>\` or \`POST ${baseDomain}/\` with \`{"url": "..."}\`.
+- **Document File Upload & Parsing**: Convert PDF, DOCX, XLSX, PPTX, EPUB, RTF, CSV files into Markdown by POSTing form-data with \`file=@document.pdf\` to \`${baseDomain}/\`.
 - **Live Web Search**: Search web queries by calling \`GET ${baseDomain}/s/<QUERY>\` or \`GET ${baseDomain}/search?q=<QUERY>\`.
 - **Multi-URL Batch Reading**: Fetch and extract multiple URLs concurrently in a single request by calling \`POST ${baseDomain}/v1/batch\` or \`POST ${baseDomain}/\` with \`{"urls": ["...", "..."]}\`.
 - **Content Formats**: Supports clean Markdown (\`Accept: text/plain\`), structured JSON (\`Accept: application/json\`), or SSE event streaming (\`Accept: text/event-stream\`).
@@ -718,6 +728,9 @@ If you are an LLM or AI Agent accessing this service for the first time:
         @Param({ type: AUTH_DTO_CLS }) auth: BaseAuthDTO,
         crawlerOptionsParamsAllowed: CrawlerOptions,
     ): Promise<any> {
+        if (crawlerOptionsParamsAllowed.file || crawlerOptionsParamsAllowed.pdf || crawlerOptionsParamsAllowed.html || (crawlerOptionsParamsAllowed.urls && crawlerOptionsParamsAllowed.urls.length > 0) || (crawlerOptionsParamsAllowed.url && crawlerOptionsParamsAllowed.url.match(/^https?:\/\//i))) {
+            return this.crawl(rpcReflect, ctx, auth, crawlerOptionsParamsAllowed, crawlerOptionsParamsAllowed);
+        }
         const { SearcherHost } = require('./searcher');
         const { GoogleSearchExplicitOperatorsDto } = require('../services/serper-search');
         const searcher = container.resolve<any>(SearcherHost);

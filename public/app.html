@@ -5,29 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     
     <!-- Primary Meta Tags -->
-    <title>888 URL2MD - 將一個或多個網頁網址與搜尋結果轉換為乾淨 Markdown</title>
-    <meta name="title" content="888 URL2MD - 將一個或多個網頁網址與搜尋結果轉換為乾淨 Markdown">
-    <meta name="description" content="888 URL2MD 是一款高效能網頁擷取工具，能將單一或多個網頁網址、Google 搜尋結果快速轉換為結構化且乾淨的 Markdown 格式。專為 LLM、AI Agent 與內容創作者設計，支援批量爬取與 REST API 整合。">
+    <title>888 URL2MD - 將網頁網址、文檔檔案與搜尋結果轉換為乾淨 Markdown</title>
+    <meta name="title" content="888 URL2MD - 將網頁網址、文檔檔案與搜尋結果轉換為乾淨 Markdown">
+    <meta name="description" content="888 URL2MD 是一款高效能網頁與文檔擷取工具，支援將網址、PDF、Word、Excel、PPT、EPUB、CSV 及 Google 搜尋結果快速轉換為結構化且乾淨的 Markdown 格式。專為 LLM、AI Agent 設計。">
     <link rel="canonical" href="https://2md.aiurl.tw">
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://2md.aiurl.tw">
-    <meta property="og:title" content="888 URL2MD - 網頁轉 Markdown 與 AI Agent 文章擷取工具">
-    <meta property="og:description" content="888 URL2MD 是一款高效能網頁擷取工具，能將單一或多個網頁網址、Google 搜尋結果快速轉換為結構化且乾淨的 Markdown 格式。專為 LLM、AI Agent 與內容創作者設計。">
+    <meta property="og:title" content="888 URL2MD - 網頁與文檔轉 Markdown 工具">
+    <meta property="og:description" content="888 URL2MD 是一款高效能網頁與文檔擷取工具，支援將網址、PDF、Word、Excel、PPT、EPUB、CSV 快速轉換為結構化 Markdown 格式。">
     <meta property="og:image" content="https://2md.aiurl.tw/og-image.png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:image:type" content="image/png">
-    <meta property="og:image:alt" content="888 URL2MD - 網頁轉 Markdown 與 AI Agent 文章擷取工具">
+    <meta property="og:image:alt" content="888 URL2MD - 網頁與文檔轉 Markdown 工具">
     <meta property="og:site_name" content="888 URL2MD">
     <meta property="og:locale" content="zh_TW">
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:url" content="https://2md.aiurl.tw">
-    <meta name="twitter:title" content="888 URL2MD - 網頁轉 Markdown 與 AI Agent 文章擷取工具">
-    <meta name="twitter:description" content="888 URL2MD 是一款高效能網頁擷取工具，能將單一或多個網頁網址、Google 搜尋結果快速轉換為結構化且乾淨的 Markdown 格式。專為 LLM、AI Agent 與內容創作者設計。">
+    <meta name="twitter:title" content="888 URL2MD - 網頁與文檔轉 Markdown 工具">
+    <meta name="twitter:description" content="888 URL2MD 支援將網址、PDF、Word、Excel、PPT、EPUB、CSV 快速轉換為結構化 Markdown 格式。">
     <meta name="twitter:image" content="https://2md.aiurl.tw/og-image.png">
     <meta name="twitter:site" content="@2md_aiurl">
 
@@ -47,7 +47,7 @@
       "@type": "WebApplication",
       "name": "888 URL2MD",
       "url": "https://2md.aiurl.tw",
-      "description": "888 URL2MD 是一款高效能網頁擷取工具，能將單一或多個網頁網址、Google 搜尋結果快速轉換為結構化且乾淨的 Markdown 格式。專為 LLM、AI Agent 與內容創作者設計。",
+      "description": "888 URL2MD 是一款高效能網頁與文檔擷取工具，支援將網址、PDF、Word、Excel、PPT、EPUB、CSV 快速轉換為結構化且乾淨的 Markdown 格式。",
       "applicationCategory": "DeveloperApplication",
       "operatingSystem": "All",
       "browserRequirements": "Requires JavaScript. Requires HTML5.",
@@ -72,6 +72,10 @@
       textarea, pre { width: 100%; border: 1px solid #cbd3e1; border-radius: 10px; font: 14px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
       textarea { display: block; min-height: 178px; padding: 14px; resize: vertical; color: #172033; }
       textarea:focus { outline: 3px solid #d9e8ff; border-color: #3675d3; }
+      .dropzone { border: 2px dashed #cbd3e1; border-radius: 12px; padding: 28px 16px; text-align: center; background: #f8fafc; cursor: pointer; transition: background .15s, border-color .15s; }
+      .dropzone:hover, .dropzone.dragover { background: #edf4ff; border-color: #1e63c6; }
+      .dropzone-text { color: #334155; font-size: 0.95rem; font-weight: 600; }
+      .file-types-hint { color: #64748b; font-size: 0.82rem; margin-top: 6px; font-weight: 400; }
       .help { margin: 9px 0 20px; font-size: .9rem; }
       .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
       button { appearance: none; border: 0; cursor: pointer; border-radius: 9px; padding: 11px 17px; font-size: 1rem; font-weight: 700; background: #1e63c6; color: #fff; }
@@ -98,12 +102,12 @@
           <h1>888 URL2MD</h1>
           <button class="secondary" id="language-toggle" type="button" aria-label="Switch language">English</button>
         </div>
-        <p data-i18n="intro">貼上一個或多個網頁網址，即可擷取主要內容並轉成可複製、下載的 Markdown。</p>
+        <p data-i18n="intro">貼上網址、搜尋關鍵字或上傳文件檔案 (PDF, Word, Excel, PPT, EPUB 等)，即可轉成乾淨 Markdown。</p>
       </header>
       <section class="card" aria-labelledby="urls-label">
         <form id="converter-form">
-          <label id="urls-label" for="urls" data-i18n="urlsLabel">網址</label>
-          <textarea id="urls" name="urls" required spellcheck="false" placeholder="https://example.com/article\nhttps://example.com/another-article" aria-describedby="url-help"></textarea>
+          <label id="urls-label" for="urls" data-i18n="urlsLabel">網址轉換</label>
+          <textarea id="urls" name="urls" required spellcheck="false" placeholder="https://example.com/article&#10;https://example.com/another-article" aria-describedby="url-help"></textarea>
           <p class="help" id="url-help" data-i18n="urlsHelp">每行一個網址；也可以用空白或逗號分隔。多個網址會依序合併為同一份 Markdown。</p>
           <div class="actions">
             <button id="convert" type="submit" data-i18n="convert">轉換成 Markdown</button>
@@ -111,6 +115,23 @@
         </form>
         <p id="status" role="status" aria-live="polite"></p>
       </section>
+
+      <section class="card" aria-labelledby="upload-label" style="margin-top: 20px">
+        <form id="upload-form" enctype="multipart/form-data">
+          <label id="upload-label" for="file-input" data-i18n="uploadLabel">文件檔案上傳 (AnyDoc 超極速解析)</label>
+          <div id="dropzone" class="dropzone" tabindex="0">
+            <input type="file" id="file-input" name="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.epub,.rtf,.odt,.ods,.odp,.csv,.txt" style="display: none">
+            <div class="dropzone-text">
+              <span id="file-name-display" data-i18n="dropzonePrompt">拖曳檔案至此，或點擊選擇檔案上傳</span>
+              <div class="file-types-hint" data-i18n="dropzoneHint">支援 PDF, Word (.docx/.doc), Excel (.xlsx/.xls), PowerPoint (.pptx/.ppt), EPUB, RTF, CSV, ODT...</div>
+            </div>
+          </div>
+          <div class="actions" style="margin-top: 14px">
+            <button id="upload" type="submit" data-i18n="upload">上傳檔案並轉成 Markdown</button>
+          </div>
+        </form>
+      </section>
+
       <section class="card" aria-labelledby="search-label" style="margin-top: 20px">
         <form id="search-form">
           <label id="search-label" for="query" data-i18n="searchLabel">網頁搜尋</label>
@@ -121,6 +142,7 @@
           </div>
         </form>
       </section>
+
       <section id="result-area" hidden aria-labelledby="result-title">
         <div class="result-head">
           <h2 id="result-title" data-i18n="result">轉換結果</h2>
@@ -141,6 +163,13 @@
         const searchForm = document.querySelector('#search-form');
         const queryInput = document.querySelector('#query');
         const searchButton = document.querySelector('#search');
+        
+        const uploadForm = document.querySelector('#upload-form');
+        const fileInput = document.querySelector('#file-input');
+        const dropzone = document.querySelector('#dropzone');
+        const fileNameDisplay = document.querySelector('#file-name-display');
+        const uploadButton = document.querySelector('#upload');
+
         const status = document.querySelector('#status');
         const resultArea = document.querySelector('#result-area');
         const result = document.querySelector('#result');
@@ -150,10 +179,14 @@
 
         const translations = {
           'zh-Hant': {
-            intro: '貼上一個或多個網頁網址，即可擷取主要內容並轉成可複製、下載的 Markdown。',
-            urlsLabel: '網址',
+            intro: '貼上網址、搜尋關鍵字或上傳文件檔案 (PDF, Word, Excel, PPT, EPUB 等)，即可轉成乾淨 Markdown。',
+            urlsLabel: '網址轉換',
             urlsHelp: '每行一個網址；也可以用空白或逗號分隔。多個網址會依序合併為同一份 Markdown。',
             convert: '轉換成 Markdown',
+            uploadLabel: '文件檔案上傳 (AnyDoc 超極速解析)',
+            dropzonePrompt: '拖曳檔案至此，或點擊選擇檔案上傳',
+            dropzoneHint: '支援 PDF, Word (.docx/.doc), Excel (.xlsx/.xls), PowerPoint (.pptx/.ppt), EPUB, RTF, CSV, ODT...',
+            upload: '上傳檔案並轉成 Markdown',
             searchLabel: '網頁搜尋',
             searchPlaceholder: '例如：台灣人工智慧最新新聞',
             searchHelp: '輸入關鍵字後搜尋網頁，結果會轉換成 Markdown。',
@@ -165,6 +198,10 @@
             converting: count => `正在轉換 ${count} 個網址…`,
             converted: count => `已完成 ${count} 個網址的轉換。`,
             conversionFailed: error => `轉換失敗：${error}`,
+            fileRequired: '請選擇要上傳的文檔檔案。',
+            uploading: fileName => `正在解析檔案「${fileName}」…`,
+            uploaded: fileName => `已完成「${fileName}」的文檔解析與轉譯。`,
+            uploadFailed: error => `檔案解析失敗：${error}`,
             queryRequired: '請輸入搜尋關鍵字。',
             searching: query => `正在搜尋「${query}」…`,
             searched: query => `已完成「${query}」的搜尋。`,
@@ -173,10 +210,14 @@
             copyFailed: '無法自動複製，請手動選取結果。'
           },
           en: {
-            intro: 'Paste one or more web addresses to extract the main content as clean Markdown you can copy or download.',
-            urlsLabel: 'URLs',
+            intro: 'Paste URLs, search keywords, or upload document files (PDF, Word, Excel, PPT, EPUB, etc.) to convert into clean Markdown.',
+            urlsLabel: 'URL Conversion',
             urlsHelp: 'Enter one URL per line. Spaces and commas also work as separators; multiple pages are combined into one Markdown file.',
             convert: 'Convert to Markdown',
+            uploadLabel: 'Document File Upload (AnyDoc Parser)',
+            dropzonePrompt: 'Drag and drop file here, or click to choose file',
+            dropzoneHint: 'Supports PDF, Word (.docx/.doc), Excel (.xlsx/.xls), PowerPoint (.pptx/.ppt), EPUB, RTF, CSV, ODT...',
+            upload: 'Upload Document as Markdown',
             searchLabel: 'Web search',
             searchPlaceholder: 'For example: latest AI news in Taiwan',
             searchHelp: 'Search the web by keyword and receive the results as Markdown.',
@@ -188,6 +229,10 @@
             converting: count => `Converting ${count} URL${count === 1 ? '' : 's'}…`,
             converted: count => `Converted ${count} URL${count === 1 ? '' : 's'}.`,
             conversionFailed: error => `Conversion failed: ${error}`,
+            fileRequired: 'Please select a document file to upload.',
+            uploading: fileName => `Parsing file “${fileName}”…`,
+            uploaded: fileName => `File parsing complete for “${fileName}”.`,
+            uploadFailed: error => `File upload failed: ${error}`,
             queryRequired: 'Enter a search query.',
             searching: query => `Searching for “${query}”…`,
             searched: query => `Search complete for “${query}”.`,
@@ -206,13 +251,8 @@
           document.querySelectorAll('[data-i18n-placeholder]').forEach(element => { element.placeholder = text(element.dataset.i18nPlaceholder); });
           languageToggle.textContent = locale === 'zh-Hant' ? 'English' : '中文';
           languageToggle.setAttribute('aria-label', text('switchLanguage'));
+          updateFileNameDisplay();
         };
-        applyLocale();
-        languageToggle.addEventListener('click', () => {
-          locale = locale === 'zh-Hant' ? 'en' : 'zh-Hant';
-          try { localStorage.setItem('888-url2md-locale', locale); } catch {}
-          applyLocale();
-        });
 
         const normalizeUrl = value => {
           const url = value.trim();
@@ -229,6 +269,35 @@
           resultArea.hidden = false;
         };
 
+        // Dropzone handlers
+        dropzone.addEventListener('click', () => fileInput.click());
+        dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+        dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+        dropzone.addEventListener('drop', (e) => {
+          e.preventDefault();
+          dropzone.classList.remove('dragover');
+          if (e.dataTransfer.files && e.dataTransfer.files.length) {
+            fileInput.files = e.dataTransfer.files;
+            updateFileNameDisplay();
+          }
+        });
+        fileInput.addEventListener('change', updateFileNameDisplay);
+
+        function updateFileNameDisplay() {
+          if (fileInput.files && fileInput.files[0]) {
+            fileNameDisplay.textContent = `已選擇檔案 / Selected file: ${fileInput.files[0].name} (${(fileInput.files[0].size / 1024).toFixed(1)} KB)`;
+          } else {
+            fileNameDisplay.textContent = text('dropzonePrompt');
+          }
+        }
+
+        applyLocale();
+        languageToggle.addEventListener('click', () => {
+          locale = locale === 'zh-Hant' ? 'en' : 'zh-Hant';
+          try { localStorage.setItem('888-url2md-locale', locale); } catch {}
+          applyLocale();
+        });
+
         form.addEventListener('submit', async event => {
           event.preventDefault();
           const urls = getUrls();
@@ -238,9 +307,7 @@
             return;
           }
 
-          // Reflect the normalized URLs back to the user before sending them.
           urlsInput.value = urls.join('\n');
-
           convertButton.disabled = true;
           setStatus(text('converting')(urls.length));
           resultArea.hidden = true;
@@ -258,6 +325,36 @@
             setStatus(text('conversionFailed')(error.message || 'Please try again.'), true);
           } finally {
             convertButton.disabled = false;
+          }
+        });
+
+        uploadForm.addEventListener('submit', async event => {
+          event.preventDefault();
+          if (!fileInput.files || !fileInput.files[0]) {
+            setStatus(text('fileRequired'), true);
+            fileInput.click();
+            return;
+          }
+          const file = fileInput.files[0];
+          uploadButton.disabled = true;
+          setStatus(text('uploading')(file.name));
+          resultArea.hidden = true;
+          try {
+            const formData = new FormData();
+            formData.append('file', file);
+            const response = await fetch('/', {
+              method: 'POST',
+              headers: { 'Accept': 'text/plain' },
+              body: formData
+            });
+            const markdown = await response.text();
+            if (!response.ok) throw new Error(markdown || `伺服器回應 ${response.status}`);
+            showResult(markdown);
+            setStatus(text('uploaded')(file.name));
+          } catch (error) {
+            setStatus(text('uploadFailed')(error.message || 'Please try again.'), true);
+          } finally {
+            uploadButton.disabled = false;
           }
         });
 
