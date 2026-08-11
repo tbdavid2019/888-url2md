@@ -2,7 +2,7 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
-## [v0.7.1] - UI Overhaul & Search Enter-Key Submit Fix (2026-08-11)
+## [v0.7.1] - UI Overhaul & Search Relevance Filter (2026-08-11)
 
 ### 🎨 Web Landing Page UI Overhaul (`public/app.html`)
 - **Instant Enter-Key Search Submit**: Replaced `<textarea>` search query box with `<input type="text">` and added a `keydown` listener to immediately submit web search queries when pressing `Enter`.
@@ -10,7 +10,9 @@ All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888
 - **Tabbed Navigation Architecture**: Reorganized landing page into a clean, modern Tabbed UI separating `[ 🔍 網頁搜尋 (Live SERP) ]`, `[ 🌐 網址轉換 (URL) ]`, and `[ 📄 文檔解析 (AnyDoc) ]`.
 - **Glassmorphism & Modern Aesthetics**: Applied a dark glassmorphism design with Google Fonts (`Outfit`, `Inter`, `Fira Code`), smooth hover glows, animated loading spinners, word/character count badges, and copy/download buttons.
 
-### 🐛 Bug Fixes
+### 🐛 Search Engine Fixes & Relevance Filtering
+- **Strict Search Result Relevance Validation (`isResultRelevant`)**: Added strict keyword and CJK matching to eliminate default search engine fallback pages (e.g. Bing RSS returning Japanese weather news or generic Microsoft support links when a search query has no direct Bing RSS hits).
+- **Baidu SERP Fallback**: Added Baidu search API integration as an automatic fallback when Bing / DuckDuckGo return 0 relevant search matches.
 - **Query Newline Normalization**: Added query normalization (`replace(/[\r\n\t]+/g, ' ').replace(/\s+/g, ' ').trim()`) across frontend and backend to eliminate stray newlines or carriage returns when pasting queries or submitting forms.
 
 ---

@@ -3,6 +3,35 @@ import { AsyncService } from 'civkit/async-service';
 import { GlobalLogger } from '../logger';
 import { WebSearchEntry } from './compat';
 
+function isResultRelevant(q: string, title: string, snippet: string, link: string): boolean {
+    const qLower = q.toLowerCase().trim();
+    if (!qLower) return true;
+    const text = `${title} ${snippet} ${link}`.toLowerCase();
+    
+    // Check exact full query string match
+    if (text.includes(qLower)) return true;
+    
+    // Split into individual terms (words or numbers)
+    const terms = qLower.split(/[\s,._-]+/).filter(t => t.length >= 2);
+    if (terms.length > 0 && terms.some(term => text.includes(term))) {
+        return true;
+    }
+    
+    // For CJK characters (Chinese, Japanese, Korean)
+    const cjkChars = qLower.match(/[\u4e00-\u9fa5\u3040-\u30ff\uac00-\ud7af]+/g);
+    if (cjkChars) {
+        for (const chunk of cjkChars) {
+            if (chunk.length === 1 && text.includes(chunk)) return true;
+            for (let i = 0; i < chunk.length - 1; i++) {
+                const sub = chunk.substring(i, i + 2);
+                if (text.includes(sub)) return true;
+            }
+        }
+    }
+    
+    return false;
+}
+
 @singleton()
 export class DuckDuckGoSERP extends AsyncService {
     logger = this.globalLogger.child({ service: this.constructor.name });
@@ -43,7 +72,7 @@ export class DuckDuckGoSERP extends AsyncService {
                     const title = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, '').replace(/&#x27;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&').trim() : '';
                     const link = linkMatch ? linkMatch[1].replace(/&amp;/g, '&').trim() : '';
                     const snippet = descMatch ? descMatch[1].replace(/<[^>]+>/g, '').replace(/&#x27;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&').trim() : title;
-                    if (title && link.startsWith('http') && !results.some(r => r.link === link)) {
+                    if (title && link.startsWith('http') && isResultRelevant(q, title, snippet, link) && !results.some(r => r.link === link)) {
                         results.push({
                             title,
                             link,
@@ -93,7 +122,7 @@ export class DuckDuckGoSERP extends AsyncService {
                         }
                     }
 
-                    if (title && link.startsWith('http') && !link.includes('duckduckgo.com/y.js') && !results.some(r => r.link === link)) {
+                    if (title && link.startsWith('http') && !link.includes('duckduckgo.com/y.js') && isResultRelevant(q, title, snippet, link) && !results.some(r => r.link === link)) {
                         results.push({
                             title,
                             link,
@@ -149,7 +178,7 @@ export class DuckDuckGoSERP extends AsyncService {
                         }
                         let snipMatch = item.match(/<p[^>]*>(.*?)<\/p>/s);
                         let snippet = snipMatch ? snipMatch[1].replace(/<[^>]+>/g, '').replace(/&#x27;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&').trim() : title;
-                        if (title && link.startsWith('http') && !results.some(r => r.link === link)) {
+                        if (title && link.startsWith('http') && isResultRelevant(q, title, snippet, link) && !results.some(r => r.link === link)) {
                             results.push({
                                 title,
                                 link,
@@ -178,7 +207,7 @@ export class DuckDuckGoSERP extends AsyncService {
                 const json = await wikiRes.json();
                 const wikiItems = json?.query?.search || [];
                 for (const item of wikiItems) {
-                    if (item.title && !results.some(r => r.title === item.title)) {
+                    if (item.title && isResultRelevant(q, item.title, item.snippet || '', `https://${wikiDomain}/wiki/${item.title}`) && !results.some(r => r.title === item.title)) {
                         results.push({
                             title: item.title,
                             link: `https://${wikiDomain}/wiki/${encodeURIComponent(item.title)}`,
@@ -191,6 +220,36 @@ export class DuckDuckGoSERP extends AsyncService {
                 }
             } catch (err) {
                 this.logger.warn('Wikipedia SERP fallback fetch error', { err });
+            }
+        }
+
+        if (results.length === 0) {
+            try {
+                const baiduRes = await fetch(`https://www.baidu.com/s?wd=${encodeURIComponent(q)}`, {
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+                        'Accept-Language': 'zh-TW,zh-CN,zh;q=0.9,en;q=0.8',
+                    }
+                });
+                const html = await baiduRes.text();
+                const h3s = [...html.matchAll(/<h3[^>]*>(.*?)<\/h3>/gs)];
+                for (const h of h3s) {
+                    const title = h[1].replace(/<[^>]+>/g, '').replace(/&#x27;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&').trim();
+                    const linkMatch = h[1].match(/href="([^"]+)"/);
+                    const link = linkMatch ? linkMatch[1] : '';
+                    if (title && link && isResultRelevant(q, title, title, link) && !results.some(r => r.title === title)) {
+                        results.push({
+                            title,
+                            link,
+                            snippet: title,
+                        });
+                    }
+                    if (results.length >= num) {
+                        break;
+                    }
+                }
+            } catch (err) {
+                this.logger.warn('Baidu SERP fallback fetch error', { err });
             }
         }
 
