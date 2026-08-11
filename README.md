@@ -2,36 +2,37 @@
 
 > **感謝原作者 (Acknowledgement)**: 本專案基於著名的 [Jina AI Reader (`jina-ai/reader`)](https://github.com/jina-ai/reader) 開源專案進行二次開發與增強。特別感謝 Jina AI 團隊打造優秀且強大的網頁轉 Markdown 引擎！
 
+![](orca-paste-1786412619636-3f8c16d7-d443-4bf2-a8a6-a590eb770344.png)
+
+![](orca-paste-1786412602143-e0add715-4984-4eb9-a636-d3f1ef26ecb0.png)
+
+
+
 A high-performance Web Reader, Multi-URL Batch Crawling, and Web Search API service designed specifically for LLMs, RAG pipelines, and AI Agents. Converts web pages and search queries into clean Markdown or structured JSON.
 
-Currently deployed at: **[create360.ai](https://create360.ai)** (or easily self-hosted).
+Currently deployed at: [**create360.ai**](https://create360.ai) (or easily self-hosted).
 
 ---
 
 ## 🚀 核心特性 (Features)
 
 1. **單頁 / 多網址併發批次抓取 (Multi-URL Batch Crawling)**
-   - 支援 `GET /<URL>`、`POST /v1/batch`、`POST /batch` 以及 `POST /`（傳送 `urls` 陣列）。
-   - **高併發處理**：同時併行抓取多個網址，顯著降低 LLM 工具調用的往返時間 (RTT)。
-   - **獨立容錯 (Fault Isolation)**：單一網址失敗（如 404 或 DNS 錯誤）不會中斷整批請求，成功頁面依舊正常返回。
-
-2. **即時 Web 搜尋 (Real-time Web Search & SERP)**
-   - 支援 `GET /s/<query>` 與 `GET /search?q=<query>`。
-   - 內建開箱即用的 DuckDuckGo HTML SERP，完全免金鑰即可搜尋全球網頁與繁體中文內容並即時轉為 Markdown。
-
-3. **Agent Skill & 首頁自動教學 (Interactive `SKILL.md`)**
-   - 訪問首頁 `GET /`（使用 Markdown/Text）或 `GET /skill.md` 時，自動提供標準的 **`SKILL.md` 說明文件**，教導首次訪問的 LLM 如何安裝與呼叫 `888-url2md` 工具。
-
+  - 支援 `GET /<URL>`、`POST /v1/batch`、`POST /batch` 以及 `POST /`（傳送 `urls` 陣列）。
+  - **高併發處理**：同時併行抓取多個網址，顯著降低 LLM 工具調用的往返時間 (RTT)。
+  - **獨立容錯 (Fault Isolation)**：單一網址失敗（如 404 或 DNS 錯誤）不會中斷整批請求，成功頁面依舊正常返回。
+2. **即時 Web 搜尋 (Real-time Web Search &amp; SERP)**
+  - 支援 `GET /s/<query>` 與 `GET /search?q=<query>`。
+  - 內建開箱即用的 DuckDuckGo HTML SERP，完全免金鑰即可搜尋全球網頁與繁體中文內容並即時轉為 Markdown。
+3. **Agent Skill &amp; 首頁自動教學 (Interactive `SKILL.md`)**
+  - 訪問首頁 `GET /`（使用 Markdown/Text）或 `GET /skill.md` 時，自動提供標準的 `**SKILL.md` 說明文件**，教導首次訪問的 LLM 如何安裝與呼叫 `888-url2md` 工具。
 4. **符合 `/llms.txt` 與 `/llms-full.txt` 最新標準 (llmstxt.org)**
-   - 內建 `/llms.txt` 與 `/llms-full.txt` 端點，方便 AI Agent（如 Cursor, Windsurf, LangChain, LlamaIndex, OpenAI GPTs, Claude 等）在 Inference 階段自動識別與導覽網站能力。
-
+  - 內建 `/llms.txt` 與 `/llms-full.txt` 端點，方便 AI Agent（如 Cursor, Windsurf, LangChain, LlamaIndex, OpenAI GPTs, Claude 等）在 Inference 階段自動識別與導覽網站能力。
 5. **動態 Domain 參數化 (Dynamic Domain Detection)**
-   - 自動偵測環境變數 (`PUBLIC_DOMAIN`, `BASE_URL`) 或 HTTP 請求 Header (`x-forwarded-host`, `Host`)，自動將說明文件與 JSON 內的網址替換為目前部署的域名（如 `https://create360.ai` 或 `http://localhost:3000`）。
-
+  - 自動偵測環境變數 (`PUBLIC_DOMAIN`, `BASE_URL`) 或 HTTP 請求 Header (`x-forwarded-host`, `Host`)，自動將說明文件與 JSON 內的網址替換為目前部署的域名（如 `https://create360.ai` 或 `http://localhost:3000`）。
 6. **Firecrawl AnyDoc 超極速多格式文檔轉譯 (High-Performance AnyDoc Parser)**
-   - 整合 Firecrawl 最新開源的 Rust 文檔解析引擎 `@firecrawl/anydoc`。
-   - 支援 PDF, Word (.docx/.doc), Excel (.xlsx/.xls), PowerPoint (.pptx/.ppt), EPUB, RTF, OpenDocument (ODT/ODS/ODP), CSV 等 14+ 種文檔格式。
-   - 提供 **< 5ms 毫秒級解析超高速度**與統一高品質 GitHub-Flavored Markdown 輸出，大幅超越傳統 LibreOffice 轉換速度。
+  - 整合 Firecrawl 最新開源的 Rust 文檔解析引擎 `@firecrawl/anydoc`。
+  - 支援 PDF, Word (.docx/.doc), Excel (.xlsx/.xls), PowerPoint (.pptx/.ppt), EPUB, RTF, OpenDocument (ODT/ODS/ODP), CSV 等 14+ 種文檔格式。
+  - 提供 **&lt; 5ms 毫秒級解析超高速度**與統一高品質 GitHub-Flavored Markdown 輸出，大幅超越傳統 LibreOffice 轉換速度。
 
 ---
 
@@ -96,11 +97,13 @@ services:
 
 ### 4. 主要環境變數說明 (Environment Variables)
 
-| 環境變數 | 說明 | 預設值 / 範例 |
-| :--- | :--- | :--- |
-| `PUBLIC_DOMAIN` | 服務對外公開主機域名（用於產出連結與 SKILL.md 自動代入） | `https://create360.ai` |
-| `PORT` | 服務內部監聽 Port | `8081` (或 `8080`) |
-| `SERPER_SEARCH_API_KEY` | (可選) Serper.dev API 搜尋金鑰；若未設定則自動啟用免費 DuckDuckGo / Bing SERP 引擎 | 無 (預設免 Key) |
+
+| 環境變數                    | 說明                                                             | 預設值 / 範例               |
+| :----------------------- | :-------------------------------------------------------------- | :---------------------- |
+| `PUBLIC_DOMAIN`         | 服務對外公開主機域名（用於產出連結與 SKILL.md 自動代入）                              | `https://create360.ai` |
+| `PORT`                  | 服務內部監聽 Port                                                    | `8081` (或 `8080`)      |
+| `SERPER_SEARCH_API_KEY` | (可選) Serper.dev API 搜尋金鑰；若未設定則自動啟用免費 DuckDuckGo / Bing SERP 引擎 | 無 (預設免 Key)            |
+
 
 ---
 
@@ -109,11 +112,13 @@ services:
 ### 1. 單網址抓取 (Single URL Reading)
 
 **GET 方式**：在網址前加上服務域名（支援隨日期變化的動態網址，如 `/post/YYYY-MM-DD`）
+
 ```bash
 curl 'https://create360.ai/https://podcast.david888.com/post/2026-08-09'
 ```
 
 **POST 方式**：傳送 JSON Payload
+
 ```bash
 curl -X POST 'https://create360.ai/' \
   -H 'Content-Type: application/json' \
@@ -127,7 +132,9 @@ curl -X POST 'https://create360.ai/' \
 本服務提供兩種靈活的 Web 搜尋呼叫方式，皆會自動進行 Web 搜尋並將最相關結果轉譯為乾淨的 Markdown：
 
 #### **A. 路徑式搜尋 (Path-based Search)**
+
 直接將關鍵字放在 `/s/` 路徑後方（支援 URL 編碼）：
+
 ```bash
 curl 'https://create360.ai/s/%E5%8F%B0%E7%A9%8D%E9%9B%BB'
 # 或搜尋英文
@@ -135,7 +142,9 @@ curl 'https://create360.ai/s/NVIDIA'
 ```
 
 #### **B. Query 參數式搜尋 (Query-based Search)**
+
 使用標準 `?q=` 查詢參數：
+
 ```bash
 curl 'https://create360.ai/search?q=%E8%98%8B%E6%9E%9C%E5%85%AC%E5%8F%B8'
 # 或
@@ -149,6 +158,7 @@ curl 'https://create360.ai/search?q=TSMC'
 傳送包含 `urls` 陣列的 JSON 至 `/v1/batch` 或 `/` 端點：
 
 #### **Markdown 格式回傳 (`Accept: text/plain`)**
+
 ```bash
 curl -X POST 'https://create360.ai/v1/batch' \
   -H 'Content-Type: application/json' \
@@ -162,9 +172,11 @@ curl -X POST 'https://create360.ai/v1/batch' \
     ]
   }'
 ```
+
 *回傳範例*：多個頁面以 `---` 標籤清晰分隔。
 
 #### **JSON 格式回傳 (`Accept: application/json`)**
+
 ```bash
 curl -X POST 'https://create360.ai/v1/batch' \
   -H 'Content-Type: application/json' \
@@ -178,7 +190,9 @@ curl -X POST 'https://create360.ai/v1/batch' \
     ]
   }'
 ```
+
 *JSON 回傳範例*：
+
 ```json
 {
   "code": 200,
@@ -194,14 +208,15 @@ curl -X POST 'https://create360.ai/v1/batch' \
 
 ---
 
-### 4. LLM / Agent 開發者工具標準 (Skill & LLMs.txt)
+### 4. LLM / Agent 開發者工具標準 (Skill &amp; LLMs.txt)
 
-- **`GET https://create360.ai/`** (Plain/Markdown): LLM 首頁 Skill 說明
-- **`GET https://create360.ai/skill.md`**: Agent Skill 規格文檔
-- **`GET https://create360.ai/llms.txt`**: 符合 [llmstxt.org](https://llmstxt.org/) 的推理指引
-- **`GET https://create360.ai/llms-full.txt`**: 完整 API 與 Skill 規格
+- `**GET https://create360.ai/**` (Plain/Markdown): LLM 首頁 Skill 說明
+- `**GET https://create360.ai/skill.md**`: Agent Skill 規格文檔
+- `**GET https://create360.ai/llms.txt**`: 符合 [llmstxt.org](https://llmstxt.org/) 的推理指引
+- `**GET https://create360.ai/llms-full.txt**`: 完整 API 與 Skill 規格
 
 #### **JSON Schema (適用於 Tool Call 宣告)**:
+
 ```json
 {
   "name": "888_url2md",
@@ -237,36 +252,231 @@ curl -X POST 'https://create360.ai/v1/batch' \
 
 ---
 
-## 🛠️ 本地開發與部署 (Local Development & Deployment)
+## 🛠️ 本地開發與部署 (Local Development &amp; Deployment)
 
 ### 需求條件
-- Node.js >= 22.15
+
+- Node.js &gt;= 22.15
 
 ### 步驟
+
 1. **安裝依賴套件**：
-   ```bash
+  ```bash
    npm install
-   ```
+  ```
 2. **下載必備外部資產** (GeoIP 與字型檔)：
-   ```bash
+  ```bash
    npm run assets:download
-   ```
+  ```
 3. **專案編譯**：
-   ```bash
+  ```bash
    npm run build
-   ```
+  ```
 4. **啟動服務**：
-   ```bash
+  ```bash
    npm start
-   ```
+  ```
 
 ### 環境變數設定 (Environment Variables)
+
 - `PUBLIC_DOMAIN`: 設定服務公開域名（如 `https://create360.ai`）。若未設定將自動從 HTTP 請求標頭動態推導。
 - `PORT`: 指定伺服器監聽埠號（預設 3000）。
 
 ---
 
-## 📄 開源協議與致謝 (License & Attribution)
+## 📄 開源協議與致謝 (License &amp; Attribution)
 
 - **開源協議**: 本專案基於 **GNU Affero General Public License v3.0 ([AGPL-3.0](LICENSE))** 開源。
 - **原創致謝**: 原創核心模組衍生自 [Jina AI](https://jina.ai) 的開源專案 (`jina-ai/reader`)。特別感謝 Jina AI 團隊與原創社群之貢獻！
+
+---
+
+<br/>
+
+# 🌐 English Documentation
+
+> **Acknowledgement**: This project is built upon and enhanced from the renowned [Jina AI Reader (`jina-ai/reader`)](https://github.com/jina-ai/reader) open-source project. Special thanks to the Jina AI team for creating such a powerful web-to-markdown engine!
+
+A high-performance Web Reader, Multi-URL Batch Crawling, Document Parsing, and Web Search API service designed specifically for LLMs, RAG pipelines, and AI Agents. Converts web pages, office documents, and search queries into clean Markdown or structured JSON.
+
+Currently deployed at: [**create360.ai**](https://create360.ai) (or easily self-hosted).
+
+---
+
+## 🚀 Key Features
+
+1. **Single Page & Multi-URL Concurrent Batch Crawling**
+   - Supports `GET /<URL>`, `POST /v1/batch`, `POST /batch`, and `POST /` (with `urls` array).
+   - **High Concurrency**: Concurrently crawls multiple web pages to significantly reduce round-trip time (RTT) during LLM tool calls.
+   - **Fault Isolation**: Failures on single URLs (e.g. 404 or DNS errors) will not disrupt the batch request; successful pages are returned intact.
+
+2. **Real-time Web Search & Live SERP**
+   - Supports `GET /s/<query>` and `GET /search?q=<query>`.
+   - Built-in keyless DuckDuckGo, Bing, Baidu, GitHub Search API, and Subdomain fallback search engines out-of-the-box.
+   - Native support for GCP Google Custom Search API & Serper.dev API for 100% full Google SERP precision.
+
+3. **Agent Skill & Interactive `SKILL.md` Guidance**
+   - Visiting `GET /` (via Markdown/Text headers) or `GET /skill.md` automatically provides standard `SKILL.md` specifications to guide LLMs on how to invoke the tool.
+
+4. **Compliant with `/llms.txt` and `/llms-full.txt` Standards (llmstxt.org)**
+   - Built-in `/llms.txt` and `/llms-full.txt` endpoints for AI Agents (Cursor, Windsurf, LangChain, LlamaIndex, OpenAI GPTs, Claude, etc.) to discover and navigate site capabilities during inference.
+
+5. **Dynamic Domain Parameterization**
+   - Automatically detects environment variables (`PUBLIC_DOMAIN`, `BASE_URL`) or HTTP request headers (`x-forwarded-host`, `Host`) to substitute the deployment domain seamlessly.
+
+6. **Firecrawl AnyDoc Ultra-Fast Document Parser**
+   - Integrated with Firecrawl's open-source Rust document parsing engine `@firecrawl/anydoc`.
+   - Supports 14+ document formats including PDF, Word (.docx/.doc), Excel (.xlsx/.xls), PowerPoint (.pptx/.ppt), EPUB, RTF, OpenDocument (ODT/ODS/ODP), CSV, and TXT.
+   - Ultra-fast **< 5ms parsing speed** with unified, clean GitHub-Flavored Markdown output.
+
+---
+
+## 🐳 Docker Installation & Deployment
+
+### 1. Quickstart via GHCR
+
+```bash
+# Pull the latest image from GitHub Container Registry
+docker pull ghcr.io/tbdavid2019/888-url2md:latest
+
+# Run container (External port 8081)
+docker run -d \
+  --name 888-url2md \
+  -p 8081:8081 \
+  --security-opt seccomp=unconfined \
+  --restart always \
+  -e PUBLIC_DOMAIN='https://create360.ai' \
+  ghcr.io/tbdavid2019/888-url2md:latest
+```
+
+### 2. Build from Source
+
+```bash
+git clone https://github.com/tbdavid2019/888-url2md.git
+cd 888-url2md
+
+docker build -t 888-url2md:latest .
+
+docker run -d \
+  --name 888-url2md \
+  -p 8081:8081 \
+  --security-opt seccomp=unconfined \
+  --restart always \
+  -e PUBLIC_DOMAIN='https://create360.ai' \
+  888-url2md:latest
+```
+
+### 3. Docker Compose
+
+```yaml
+version: '3.8'
+
+services:
+  888-url2md:
+    image: ghcr.io/tbdavid2019/888-url2md:latest
+    container_name: 888-url2md
+    ports:
+      - "8081:8081"
+    security_opt:
+      - seccomp:unconfined
+    restart: always
+    environment:
+      - PUBLIC_DOMAIN=https://create360.ai
+      - PORT=8081
+```
+
+### 4. Key Environment Variables
+
+| Environment Variable | Description | Default / Example |
+| :--- | :--- | :--- |
+| `PUBLIC_DOMAIN` | Public host domain for auto-generating links and `SKILL.md` instructions | `https://create360.ai` |
+| `PORT` | Internal server listening port | `8081` (or `3000`) |
+| `GOOGLE_SEARCH_API_KEY` | (Optional) GCP Custom Search API Key for native Google Search | Default: keyless multi-engine |
+| `GOOGLE_SEARCH_CX` | (Optional) GCP Programmable Search Engine CX ID | Optional |
+| `SERPER_SEARCH_API_KEY` | (Optional) Serper.dev API Search Key | Optional |
+
+---
+
+## 📖 API Usage Guide
+
+### 1. Single URL Scraping
+
+**GET Method**: Prepend the service domain to your target URL:
+
+```bash
+curl 'https://create360.ai/https://podcast.david888.com/post/2026-08-09'
+```
+
+**POST Method**: Send JSON payload:
+
+```bash
+curl -X POST 'https://create360.ai/' \
+  -H 'Content-Type: application/json' \
+  -d '{"url": "https://podcast.david888.com/post/2026-08-09"}'
+```
+
+---
+
+### 2. Real-time Web Search
+
+#### **A. Path-based Search**
+```bash
+curl 'https://create360.ai/s/NVIDIA'
+```
+
+#### **B. Query Parameter Search**
+```bash
+curl 'https://create360.ai/search?q=TSMC'
+```
+
+---
+
+### 3. Multi-URL Batch Crawling
+
+**Markdown Response (`Accept: text/plain`)**:
+```bash
+curl -X POST 'https://create360.ai/v1/batch' \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: text/plain' \
+  -d '{
+    "urls": [
+      "https://podcast.david888.com/",
+      "https://podcast.david888.com/post/2026-08-08",
+      "https://podcast.david888.com/post/2026-08-09"
+    ]
+  }'
+```
+
+**JSON Response (`Accept: application/json`)**:
+```bash
+curl -X POST 'https://create360.ai/v1/batch' \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json' \
+  -d '{
+    "urls": [
+      "https://podcast.david888.com/",
+      "https://podcast.david888.com/post/2026-08-08",
+      "https://podcast.david888.com/post/2026-08-09"
+    ]
+  }'
+```
+
+---
+
+### 4. Document File Parsing (AnyDoc Engine)
+
+Upload documents via `multipart/form-data` to `/v1/upload` or `/upload`:
+
+```bash
+curl -X POST 'https://create360.ai/upload' \
+  -F 'file=@/path/to/document.pdf'
+```
+
+---
+
+## 📄 License & Attribution
+
+- **License**: Released under the **GNU Affero General Public License v3.0 ([AGPL-3.0](LICENSE))**.
+- **Attribution**: Core module derived from [Jina AI](https://jina.ai) (`jina-ai/reader`). Special thanks to the Jina AI team and open-source community!
+
+
