@@ -131,8 +131,13 @@ export class SearcherHost extends RPCHost {
         crawlerOptions.respondTiming ??= RESPOND_TIMING.VISIBLE_CONTENT;
 
         let chargeAmount = 0;
-        const noSlashPath = decodeURIComponent(ctx.path).replace(/^\/+/, '').replace(/^s\//i, '');
-        if (!noSlashPath && !q) {
+        let rawPathQuery = decodeURIComponent(ctx.path || '').replace(/^\/+/, '').replace(/^s\//i, '').split('?')[0].trim();
+        if (rawPathQuery.toLowerCase() === 'search' || rawPathQuery.toLowerCase().startsWith('search/')) {
+            rawPathQuery = '';
+        }
+        const effectiveQuery = q || ctx.URL?.searchParams?.get('q') || ctx.URL?.searchParams?.get('query') || (ctx.query as any)?.q || (ctx.query as any)?.query || (ctx.request?.body as any)?.q || (ctx.request?.body as any)?.query || rawPathQuery || undefined;
+
+        if (!effectiveQuery) {
             const index = await this.crawler.getIndex(auth);
             if (!auth.isInternal && !auth.bearerToken) {
                 index.note = 'Authentication is required to use this endpoint. Please provide a valid API key via Authorization header.';
@@ -164,7 +169,7 @@ export class SearcherHost extends RPCHost {
 
         const crawlOpts = await this.crawler.configure(crawlerOptions);
         crawlOpts.eligibleForPageIndex = true;
-        const searchQuery = searchExplicitOperators.addTo(q || noSlashPath);
+        const searchQuery = searchExplicitOperators.addTo(effectiveQuery);
 
         this.logger.info(`Accepting request from ${uid || ctx.ip}`, { opts: crawlerOptions, searchQuery });
 
