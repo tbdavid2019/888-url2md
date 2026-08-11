@@ -37,6 +37,7 @@ import { BaseAuthDTO } from '../dto/base-auth';
 import { SERPResult } from '../db/models';
 import { StorageLayer } from '../db/noop-storage';
 import { AUTH_DTO_CLS } from '../config';
+import { filterRelevantSearchResults, normalizeSearchQuery } from '../services/serp/relevance';
 
 const WORLD_COUNTRY_CODES = Object.keys(WORLD_COUNTRIES).map((x) => x.toLowerCase());
 
@@ -136,7 +137,7 @@ export class SearcherHost extends RPCHost {
             rawPathQuery = '';
         }
         const rawQuery = q || ctx.URL?.searchParams?.get('q') || ctx.URL?.searchParams?.get('query') || (ctx.query as any)?.q || (ctx.query as any)?.query || (ctx.request?.body as any)?.q || (ctx.request?.body as any)?.query || rawPathQuery || undefined;
-        const effectiveQuery = rawQuery ? rawQuery.replace(/[\r\n\t]+/g, ' ').replace(/\s+/g, ' ').trim() : undefined;
+        const effectiveQuery = rawQuery ? normalizeSearchQuery(rawQuery) : undefined;
 
         if (!effectiveQuery) {
             const index = await this.crawler.getIndex(auth);
@@ -600,6 +601,7 @@ export class SearcherHost extends RPCHost {
     }
 
     async *cachedSearch(query: Record<string, any> & { variant: 'web' | 'news' | 'images'; }, scrappingOptions: ExtraScrappingOptions, crawlerOptions: CrawlerOptions) {
+        const relevanceQuery = query.q || '';
         const queryDigest = objHashMd5B64Of(query);
         const variant = query.variant || 'web';
         const provider = query.provider;
@@ -617,7 +619,15 @@ export class SearcherHost extends RPCHost {
                 });
 
                 if (!stale && Array.isArray(cache.response) && cache.response.length > 0) {
-                    results = cache.response.filter((x) => x.link).map((x) => this.mapSearchEntryToPartialFormattedPage(x));
+                    const relevantCache = filterRelevantSearchResults(relevanceQuery, cache.response.filter((x) => x.link));
+                    if (relevantCache.length === 0) {
+                        this.logger.warn(`Ignoring cached search results with no query match`, { query: relevanceQuery, queryDigest });
+                        cache = undefined;
+                    } else {
+                        results = relevantCache.map((x) => this.mapSearchEntryToPartialFormattedPage(x));
+                    }
+                }
+                if (results) {
                     results.toString = function (this: FormattedPage[]) {
                         return this.map((x, i) => x ? Reflect.apply(x.toString, x, [i]) : '').join('\n\n').trimEnd() + '\n';
                     };
@@ -654,7 +664,7 @@ export class SearcherHost extends RPCHost {
                         continue;
                     }
                     try {
-                        r = await Reflect.apply(func, client, [query]);
+                        r = filterRelevantSearchResults(relevanceQuery, await Reflect.apply(func, client, [query]));
                         const dt = Date.now() - t0;
                         this.logger.info(`Search took ${dt}ms, ${client.constructor.name}(${variant})`, { searchDt: dt, variant, client: client.constructor.name });
                         if (r && r.length > 0) {
@@ -703,10 +713,19 @@ export class SearcherHost extends RPCHost {
                 yield results;
             } catch (err: any) {
                 if (cache) {
-                    this.logger.warn(`Failed to fetch search result, but a stale cache is available. falling back to stale cache`, { err: marshalErrorLike(err) });
+                    const staleResults = filterRelevantSearchResults(relevanceQuery, cache.response?.filter((x: WebSearchEntry) => x.link));
+                    if (staleResults.length > 0) {
+                        this.logger.warn(`Failed to fetch search result, falling back to relevant stale cache`, { err: marshalErrorLike(err) });
 
-                    cacheUsed = true;
-                    yield cache.response as any;
+                        results = staleResults.map((x) => this.mapSearchEntryToPartialFormattedPage(x));
+                        results.toString = function (this: FormattedPage[]) {
+                            return this.map((x, i) => x ? Reflect.apply(x.toString, x, [i]) : '').join('\n\n').trimEnd() + '\n';
+                        };
+                        cacheUsed = true;
+                        yield results;
+                    } else {
+                        throw err;
+                    }
                 } else {
                     throw err;
                 }

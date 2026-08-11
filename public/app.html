@@ -47,13 +47,13 @@
         --primary-hover: #4338ca;
         --primary-light: #eef2ff;
         --accent: #06b6d4;
-        --bg: #0f172a;
-        --card-bg: rgba(30, 41, 59, 0.7);
-        --card-border: rgba(255, 255, 255, 0.1);
-        --text: #f8fafc;
-        --text-muted: #94a3b8;
-        --input-bg: #1e293b;
-        --input-border: #334155;
+        --bg: #f8fafc;
+        --card-bg: rgba(255, 255, 255, 0.92);
+        --card-border: #e2e8f0;
+        --text: #172033;
+        --text-muted: #64748b;
+        --input-bg: #ffffff;
+        --input-border: #cbd5e1;
         --radius: 16px;
       }
 
@@ -63,7 +63,7 @@
         min-height: 100vh;
         font-family: 'Inter', system-ui, -apple-system, sans-serif;
         color: var(--text);
-        background: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #0f172a 70%);
+        background: radial-gradient(circle at 50% 0%, #eef2ff 0%, #f8fafc 70%);
         background-attachment: fixed;
       }
 
@@ -105,8 +105,8 @@
       }
 
       .lang-btn {
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.15);
+        background: #ffffff;
+        border: 1px solid #dbe3f0;
         color: var(--text);
         padding: 8px 16px;
         border-radius: 20px;
@@ -117,15 +117,15 @@
         backdrop-filter: blur(8px);
       }
       .lang-btn:hover {
-        background: rgba(255, 255, 255, 0.18);
-        border-color: rgba(255, 255, 255, 0.3);
+        background: #eef2ff;
+        border-color: #a5b4fc;
       }
 
       /* Navigation Tabs */
       .tabs-nav {
         display: flex;
         gap: 8px;
-        background: rgba(15, 23, 42, 0.6);
+        background: rgba(255, 255, 255, 0.82);
         padding: 6px;
         border-radius: 16px;
         border: 1px solid var(--card-border);
@@ -152,7 +152,7 @@
 
       .tab-btn:hover {
         color: var(--text);
-        background: rgba(255, 255, 255, 0.05);
+        background: #f1f5f9;
       }
 
       .tab-btn.active {
@@ -167,7 +167,7 @@
         border: 1px solid var(--card-border);
         border-radius: var(--radius);
         padding: clamp(24px, 4vw, 36px);
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 20px 40px rgba(71, 85, 105, 0.12);
         backdrop-filter: blur(16px);
       }
 
@@ -179,7 +179,7 @@
         margin-bottom: 10px;
         font-weight: 700;
         font-size: 1.1rem;
-        color: #f1f5f9;
+        color: #1e293b;
       }
 
       textarea, input[type="text"] {
@@ -188,7 +188,7 @@
         border: 1px solid var(--input-border);
         border-radius: 12px;
         padding: 16px;
-        color: #f8fafc;
+        color: #172033;
         font-family: 'Fira Code', monospace;
         font-size: 0.92rem;
         line-height: 1.6;
@@ -205,11 +205,11 @@
 
       /* Dropzone */
       .dropzone {
-        border: 2px dashed #475569;
+        border: 2px dashed #cbd5e1;
         border-radius: 14px;
         padding: 36px 20px;
         text-align: center;
-        background: rgba(15, 23, 42, 0.4);
+        background: #f8fafc;
         cursor: pointer;
         transition: all 0.2s ease;
       }
@@ -225,13 +225,13 @@
       }
 
       .dropzone-text {
-        color: #e2e8f0;
+        color: #334155;
         font-size: 1rem;
         font-weight: 600;
       }
 
       .file-types-hint {
-        color: #94a3b8;
+        color: var(--text-muted);
         font-size: 0.85rem;
         margin-top: 8px;
       }
@@ -239,19 +239,19 @@
       .help-text {
         margin: 10px 0 20px;
         font-size: 0.88rem;
-        color: #94a3b8;
+        color: var(--text-muted);
         display: flex;
         justify-content: space-between;
         align-items: center;
       }
 
       .key-badge {
-        background: rgba(255, 255, 255, 0.1);
+        background: #eef2ff;
         padding: 2px 8px;
         border-radius: 6px;
         font-size: 0.78rem;
         font-family: monospace;
-        color: #cbd5e1;
+        color: #475569;
       }
 
       /* Buttons & Actions */
@@ -289,9 +289,9 @@
       }
 
       button.secondary-btn {
-        background: rgba(255, 255, 255, 0.08);
-        border: 1px solid rgba(255, 255, 255, 0.12);
-        color: #f1f5f9;
+        background: #ffffff;
+        border: 1px solid #dbe3f0;
+        color: #334155;
         padding: 10px 18px;
         font-size: 0.9rem;
         font-weight: 600;
@@ -301,7 +301,7 @@
       }
 
       button.secondary-btn:hover {
-        background: rgba(255, 255, 255, 0.16);
+        background: #f1f5f9;
       }
 
       /* Status Display */
@@ -338,15 +338,15 @@
 
       .stats-badge {
         font-size: 0.8rem;
-        color: #94a3b8;
-        background: rgba(255, 255, 255, 0.06);
+        color: var(--text-muted);
+        background: #f1f5f9;
         padding: 4px 10px;
         border-radius: 8px;
       }
 
       pre#result {
-        background: #090d16;
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
         border-radius: 14px;
         padding: 20px;
         max-height: 60vh;
@@ -354,7 +354,7 @@
         font-family: 'Fira Code', monospace;
         font-size: 0.9rem;
         line-height: 1.6;
-        color: #e2e8f0;
+        color: #334155;
         white-space: pre-wrap;
         word-break: break-word;
       }
@@ -377,9 +377,9 @@
       .spinner {
         width: 16px;
         height: 16px;
-        border: 2px solid rgba(255, 255, 255, 0.3);
+        border: 2px solid #cbd5e1;
         border-radius: 50%;
-        border-top-color: #fff;
+        border-top-color: var(--primary);
         animation: spin 0.8s linear infinite;
         display: inline-block;
       }
@@ -405,10 +405,10 @@
 
       <!-- Navigation Tabs -->
       <nav class="tabs-nav" role="tablist">
-        <button class="tab-btn active" id="tab-search-btn" data-tab="tab-search" role="tab">
+        <button class="tab-btn" id="tab-search-btn" data-tab="tab-search" role="tab">
           <span>🔍</span> <span data-i18n="searchTab">網頁搜尋 (Live SERP)</span>
         </button>
-        <button class="tab-btn" id="tab-urls-btn" data-tab="tab-urls" role="tab">
+        <button class="tab-btn active" id="tab-urls-btn" data-tab="tab-urls" role="tab">
           <span>🌐</span> <span data-i18n="urlsTab">網址轉換 (URL)</span>
         </button>
         <button class="tab-btn" id="tab-upload-btn" data-tab="tab-upload" role="tab">
@@ -418,7 +418,7 @@
 
       <section class="card">
         <!-- 1. Live Web Search Tab -->
-        <div id="tab-search" class="tab-content active" role="tabpanel">
+        <div id="tab-search" class="tab-content" role="tabpanel">
           <form id="search-form">
             <label for="query" data-i18n="searchLabel">網頁搜尋 (Live Web Search)</label>
             <input type="text" id="query" name="query" required spellcheck="false" placeholder="例如：台積電 2330 最新財報" data-i18n-placeholder="searchPlaceholder" autocomplete="off">
@@ -435,10 +435,10 @@
         </div>
 
         <!-- 2. Single/Multiple URLs Tab -->
-        <div id="tab-urls" class="tab-content" role="tabpanel">
+        <div id="tab-urls" class="tab-content active" role="tabpanel">
           <form id="urls-form">
             <label for="urls" data-i18n="urlsLabel">網址批量轉換 (URL Batch)</label>
-            <textarea id="urls" name="urls" spellcheck="false" placeholder="https://example.com/article1&#10;https://example.com/article2"></textarea>
+            <textarea id="urls" name="urls" spellcheck="false" autofocus placeholder="https://example.com/article1&#10;https://example.com/article2"></textarea>
             <div class="help-text">
               <span data-i18n="urlsHelp">每行一個網址；支援空白或逗號分隔，多頁面將自動串接併入同一份 Markdown。</span>
               <span class="key-badge">Ctrl + Enter / Cmd + Enter 鍵提交</span>
@@ -671,7 +671,7 @@
 
           try {
             const response = await fetch(`/search?q=${encodeURIComponent(query)}&noCache=true`, {
-              headers: { 'Accept': 'text/plain' }
+              headers: { 'Accept': 'text/plain', 'X-No-Cache': 'true' }
             });
             const markdown = await response.text();
             if (!response.ok) throw new Error(markdown || `Server error ${response.status}`);

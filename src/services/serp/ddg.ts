@@ -2,35 +2,7 @@ import { singleton } from 'tsyringe';
 import { AsyncService } from 'civkit/async-service';
 import { GlobalLogger } from '../logger';
 import { WebSearchEntry } from './compat';
-
-function isResultRelevant(q: string, title: string, snippet: string, link: string): boolean {
-    const qLower = q.toLowerCase().trim();
-    if (!qLower) return true;
-    const text = `${title} ${snippet} ${link}`.toLowerCase();
-    
-    // Check exact full query string match
-    if (text.includes(qLower)) return true;
-    
-    // Split into individual terms (words or numbers)
-    const terms = qLower.split(/[\s,._-]+/).filter(t => t.length >= 2);
-    if (terms.length > 0 && terms.some(term => text.includes(term))) {
-        return true;
-    }
-    
-    // For CJK characters (Chinese, Japanese, Korean)
-    const cjkChars = qLower.match(/[\u4e00-\u9fa5\u3040-\u30ff\uac00-\ud7af]+/g);
-    if (cjkChars) {
-        for (const chunk of cjkChars) {
-            if (chunk.length === 1 && text.includes(chunk)) return true;
-            for (let i = 0; i < chunk.length - 1; i++) {
-                const sub = chunk.substring(i, i + 2);
-                if (text.includes(sub)) return true;
-            }
-        }
-    }
-    
-    return false;
-}
+import { isSearchResultRelevant, normalizeSearchQuery } from './relevance';
 
 @singleton()
 export class DuckDuckGoSERP extends AsyncService {
@@ -48,7 +20,7 @@ export class DuckDuckGoSERP extends AsyncService {
     }
 
     async webSearch(query: { q: string; num?: number }): Promise<WebSearchEntry[]> {
-        const q = (query.q || '').replace(/[\r\n\t]+/g, ' ').replace(/\s+/g, ' ').trim();
+        const q = normalizeSearchQuery(query.q);
         const num = query.num || 10;
         const results: WebSearchEntry[] = [];
 
@@ -72,7 +44,7 @@ export class DuckDuckGoSERP extends AsyncService {
                     const title = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, '').replace(/&#x27;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&').trim() : '';
                     const link = linkMatch ? linkMatch[1].replace(/&amp;/g, '&').trim() : '';
                     const snippet = descMatch ? descMatch[1].replace(/<[^>]+>/g, '').replace(/&#x27;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&').trim() : title;
-                    if (title && link.startsWith('http') && isResultRelevant(q, title, snippet, link) && !results.some(r => r.link === link)) {
+                    if (title && link.startsWith('http') && isSearchResultRelevant(q, { title, snippet, link }) && !results.some(r => r.link === link)) {
                         results.push({
                             title,
                             link,
@@ -122,7 +94,7 @@ export class DuckDuckGoSERP extends AsyncService {
                         }
                     }
 
-                    if (title && link.startsWith('http') && !link.includes('duckduckgo.com/y.js') && isResultRelevant(q, title, snippet, link) && !results.some(r => r.link === link)) {
+                    if (title && link.startsWith('http') && !link.includes('duckduckgo.com/y.js') && isSearchResultRelevant(q, { title, snippet, link }) && !results.some(r => r.link === link)) {
                         results.push({
                             title,
                             link,
@@ -178,7 +150,7 @@ export class DuckDuckGoSERP extends AsyncService {
                         }
                         let snipMatch = item.match(/<p[^>]*>(.*?)<\/p>/s);
                         let snippet = snipMatch ? snipMatch[1].replace(/<[^>]+>/g, '').replace(/&#x27;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&').trim() : title;
-                        if (title && link.startsWith('http') && isResultRelevant(q, title, snippet, link) && !results.some(r => r.link === link)) {
+                        if (title && link.startsWith('http') && isSearchResultRelevant(q, { title, snippet, link }) && !results.some(r => r.link === link)) {
                             results.push({
                                 title,
                                 link,
@@ -207,7 +179,7 @@ export class DuckDuckGoSERP extends AsyncService {
                 const json = await wikiRes.json();
                 const wikiItems = json?.query?.search || [];
                 for (const item of wikiItems) {
-                    if (item.title && isResultRelevant(q, item.title, item.snippet || '', `https://${wikiDomain}/wiki/${item.title}`) && !results.some(r => r.title === item.title)) {
+                    if (item.title && isSearchResultRelevant(q, { title: item.title, snippet: item.snippet || '', link: `https://${wikiDomain}/wiki/${item.title}` }) && !results.some(r => r.title === item.title)) {
                         results.push({
                             title: item.title,
                             link: `https://${wikiDomain}/wiki/${encodeURIComponent(item.title)}`,
@@ -237,7 +209,7 @@ export class DuckDuckGoSERP extends AsyncService {
                     const title = h[1].replace(/<[^>]+>/g, '').replace(/&#x27;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&').trim();
                     const linkMatch = h[1].match(/href="([^"]+)"/);
                     const link = linkMatch ? linkMatch[1] : '';
-                    if (title && link && isResultRelevant(q, title, title, link) && !results.some(r => r.title === title)) {
+                    if (title && link && isSearchResultRelevant(q, { title, snippet: title, link }) && !results.some(r => r.title === title)) {
                         results.push({
                             title,
                             link,
