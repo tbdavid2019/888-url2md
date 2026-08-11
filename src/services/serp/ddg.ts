@@ -253,7 +253,48 @@ export class DuckDuckGoSERP extends AsyncService {
             }
         }
 
-        if (results.length === 0 && !q.includes(' ')) {
+        if (results.length < num && !q.includes(' ')) {
+            try {
+                const repoRes = await fetch(`https://api.github.com/search/repositories?q=${encodeURIComponent(q)}`, {
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+                    }
+                });
+                if (repoRes.ok) {
+                    const repoData = await repoRes.json();
+                    for (const r of (repoData.items || []).slice(0, 3)) {
+                        if (!results.some(item => item.link === r.html_url)) {
+                            results.push({
+                                title: `${r.full_name} - GitHub`,
+                                link: r.html_url,
+                                snippet: r.description || r.full_name,
+                            });
+                        }
+                    }
+                }
+                const userRes = await fetch(`https://api.github.com/search/users?q=${encodeURIComponent(q)}`, {
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+                    }
+                });
+                if (userRes.ok) {
+                    const userData = await userRes.json();
+                    for (const u of (userData.items || []).slice(0, 2)) {
+                        if (!results.some(item => item.link === u.html_url)) {
+                            results.push({
+                                title: `${u.login} - GitHub Profile`,
+                                link: u.html_url,
+                                snippet: `GitHub profile for ${u.login}`,
+                            });
+                        }
+                    }
+                }
+            } catch (err) {
+                this.logger.warn('GitHub SERP fallback fetch error', { err });
+            }
+        }
+
+        if (results.length < num && !q.includes(' ')) {
             const cleanQ = q.trim().toLowerCase();
             const candidates: string[] = [];
             if (cleanQ.startsWith('http://') || cleanQ.startsWith('https://')) {
@@ -262,6 +303,7 @@ export class DuckDuckGoSERP extends AsyncService {
                 candidates.push(`https://${cleanQ}/`);
             } else {
                 candidates.push(`https://${cleanQ}.com/`);
+                candidates.push(`https://wiki.${cleanQ}.com/`);
                 candidates.push(`https://${cleanQ}.org/`);
                 candidates.push(`https://${cleanQ}.tw/`);
                 candidates.push(`https://${cleanQ}.ai/`);
@@ -270,7 +312,7 @@ export class DuckDuckGoSERP extends AsyncService {
             for (const candidateUrl of candidates) {
                 try {
                     const probeRes = await fetch(candidateUrl, {
-                        signal: AbortSignal.timeout(4000),
+                        signal: AbortSignal.timeout(3000),
                         headers: {
                             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
                         }
@@ -287,7 +329,6 @@ export class DuckDuckGoSERP extends AsyncService {
                                 snippet: title || finalUrl,
                             });
                         }
-                        break;
                     }
                 } catch {
                     // probe timeout or failed connection
