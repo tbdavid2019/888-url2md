@@ -2,6 +2,19 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [v0.7.1] - UI Overhaul & Search Enter-Key Submit Fix (2026-08-11)
+
+### 🎨 Web Landing Page UI Overhaul (`public/app.html`)
+- **Instant Enter-Key Search Submit**: Replaced `<textarea>` search query box with `<input type="text">` and added a `keydown` listener to immediately submit web search queries when pressing `Enter`.
+- **Keyboard Shortcuts**: Supported `Enter` key for instant web search and `Ctrl+Enter` / `Cmd+Enter` for batch URL conversion.
+- **Tabbed Navigation Architecture**: Reorganized landing page into a clean, modern Tabbed UI separating `[ 🔍 網頁搜尋 (Live SERP) ]`, `[ 🌐 網址轉換 (URL) ]`, and `[ 📄 文檔解析 (AnyDoc) ]`.
+- **Glassmorphism & Modern Aesthetics**: Applied a dark glassmorphism design with Google Fonts (`Outfit`, `Inter`, `Fira Code`), smooth hover glows, animated loading spinners, word/character count badges, and copy/download buttons.
+
+### 🐛 Bug Fixes
+- **Query Newline Normalization**: Added query normalization (`replace(/[\r\n\t]+/g, ' ').replace(/\s+/g, ' ').trim()`) across frontend and backend to eliminate stray newlines or carriage returns when pasting queries or submitting forms.
+
+---
+
 ## [v0.7.0] - Firecrawl AnyDoc Integration & High-Speed Document Parsing (2026-08-11)
 
 ### 🚀 High-Reliability SERP Engine & Bing RSS Integration
