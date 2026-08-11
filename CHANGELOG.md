@@ -8,6 +8,7 @@ All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888
 - **Bing RSS Endpoint Integration**: Added `https://www.bing.com/search?format=rss&q=...` as a primary search provider in `DuckDuckGoSERP`. This provides 100% reliable, structured XML search results that bypass cloud IP anti-bot blocks and deliver clean, un-redirected URLs for Chinese, English, CJK names, and all search queries.
 
 ### 🐛 Bug Fixes
+- **Search Query Newline & Whitespace Normalization**: Added query normalization (`replace(/[\r\n\t]+/g, ' ').replace(/\s+/g, ' ').trim()`) across `SearcherHost`, `handleSearchRoute`, `DuckDuckGoSERP`, and `app.html`. Resolves an issue where submitting search queries with trailing newlines (e.g., pressing Enter in input fields or passing `%0A`) sent raw newline escape codes to Bing/SERP APIs, altering Bing's multiline query parser and returning inconsistent search results.
 - **Chinese/CJK Search & Bing Redirection Decoding Fix**: Fixed Bing URL decoding in `DuckDuckGoSERP` (upgraded `base64` to `base64url` decoding for Bing redirection URLs `&u=a1...`) and added `setmkt=zh-TW&setlang=zh-tw` query headers for CJK searches. Resolves an issue where searching Chinese names (e.g. `江佳澄`) failed and fell back to random non-Chinese Wikipedia articles.
 - **Search Query Extraction Fix**: Fixed a critical bug in `SearcherHost` and `handleSearchRoute` where searches to `/search?q=...` incorrectly fell back to the path string `"search"` when parsing query parameters.
 

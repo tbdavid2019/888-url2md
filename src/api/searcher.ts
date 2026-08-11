@@ -135,7 +135,8 @@ export class SearcherHost extends RPCHost {
         if (rawPathQuery.toLowerCase() === 'search' || rawPathQuery.toLowerCase().startsWith('search/')) {
             rawPathQuery = '';
         }
-        const effectiveQuery = q || ctx.URL?.searchParams?.get('q') || ctx.URL?.searchParams?.get('query') || (ctx.query as any)?.q || (ctx.query as any)?.query || (ctx.request?.body as any)?.q || (ctx.request?.body as any)?.query || rawPathQuery || undefined;
+        const rawQuery = q || ctx.URL?.searchParams?.get('q') || ctx.URL?.searchParams?.get('query') || (ctx.query as any)?.q || (ctx.query as any)?.query || (ctx.request?.body as any)?.q || (ctx.request?.body as any)?.query || rawPathQuery || undefined;
+        const effectiveQuery = rawQuery ? rawQuery.replace(/[\r\n\t]+/g, ' ').replace(/\s+/g, ' ').trim() : undefined;
 
         if (!effectiveQuery) {
             const index = await this.crawler.getIndex(auth);

@@ -360,7 +360,7 @@
 
         searchForm.addEventListener('submit', async event => {
           event.preventDefault();
-          const query = queryInput.value.trim();
+          const query = queryInput.value.replace(/[\r\n\t]+/g, ' ').replace(/\s+/g, ' ').trim();
           if (!query) {
             setStatus(text('queryRequired'), true);
             queryInput.focus();

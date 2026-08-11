@@ -19,7 +19,7 @@ export class DuckDuckGoSERP extends AsyncService {
     }
 
     async webSearch(query: { q: string; num?: number }): Promise<WebSearchEntry[]> {
-        const q = query.q;
+        const q = (query.q || '').replace(/[\r\n\t]+/g, ' ').replace(/\s+/g, ' ').trim();
         const num = query.num || 10;
         const results: WebSearchEntry[] = [];
 
