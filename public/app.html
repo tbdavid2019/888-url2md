@@ -5,40 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     
     <!-- Primary Meta Tags -->
-    <title>888 URL2MD - 將網頁網址、文檔檔案與搜尋結果轉換為乾淨 Markdown</title>
-    <meta name="title" content="888 URL2MD - 將網頁網址、文檔檔案與搜尋結果轉換為乾淨 Markdown">
-    <meta name="description" content="888 URL2MD 是一款高效能網頁與文檔擷取工具，支援將網址、PDF、Word、Excel、PPT、EPUB、CSV 及 Google 搜尋結果快速轉換為結構化且乾淨的 Markdown 格式。專為 LLM、AI Agent 設計。">
+    <title>888 URL2MD - 網頁網址、文檔檔案與搜尋結果轉 Markdown</title>
+    <meta name="title" content="888 URL2MD - 網頁網址、文檔檔案與搜尋結果轉 Markdown">
+    <meta name="description" content="888 URL2MD 是一款高效能網頁與文檔擷取工具，支援將網址、PDF、Word、Excel、PPT、EPUB、CSV 及搜尋結果快速轉換為結構化 Markdown 格式。專為 LLM、AI Agent 設計。">
     <link rel="canonical" href="https://2md.aiurl.tw">
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://2md.aiurl.tw">
     <meta property="og:title" content="888 URL2MD - 網頁與文檔轉 Markdown 工具">
-    <meta property="og:description" content="888 URL2MD 是一款高效能網頁與文檔擷取工具，支援將網址、PDF、Word、Excel、PPT、EPUB、CSV 快速轉換為結構化 Markdown 格式。">
+    <meta property="og:description" content="888 URL2MD 支援將網址、PDF、Word、Excel、PPT、EPUB、CSV 及搜尋結果快速轉換為結構化 Markdown 格式。">
     <meta property="og:image" content="https://2md.aiurl.tw/og-image.png">
-    <meta property="og:image:width" content="1200">
-    <meta property="og:image:height" content="630">
-    <meta property="og:image:type" content="image/png">
-    <meta property="og:image:alt" content="888 URL2MD - 網頁與文檔轉 Markdown 工具">
     <meta property="og:site_name" content="888 URL2MD">
     <meta property="og:locale" content="zh_TW">
 
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:url" content="https://2md.aiurl.tw">
-    <meta name="twitter:title" content="888 URL2MD - 網頁與文檔轉 Markdown 工具">
-    <meta name="twitter:description" content="888 URL2MD 支援將網址、PDF、Word、Excel、PPT、EPUB、CSV 快速轉換為結構化 Markdown 格式。">
-    <meta name="twitter:image" content="https://2md.aiurl.tw/og-image.png">
-    <meta name="twitter:site" content="@2md_aiurl">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
 
     <!-- Favicon & PWA App Icons -->
-    <meta name="theme-color" content="#1e63c6">
-    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#101827">
+    <meta name="theme-color" content="#4f46e5">
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-    <link rel="manifest" href="/site.webmanifest">
 
     <!-- Structured Data (JSON-LD) -->
     <script type="application/ld+json">
@@ -47,314 +35,624 @@
       "@type": "WebApplication",
       "name": "888 URL2MD",
       "url": "https://2md.aiurl.tw",
-      "description": "888 URL2MD 是一款高效能網頁與文檔擷取工具，支援將網址、PDF、Word、Excel、PPT、EPUB、CSV 快速轉換為結構化且乾淨的 Markdown 格式。",
+      "description": "888 URL2MD 是一款高效能網頁與文檔擷取工具，支援將網址、PDF、Word、Excel、PPT、EPUB、CSV 快速轉換為結構化 Markdown 格式。",
       "applicationCategory": "DeveloperApplication",
       "operatingSystem": "All",
-      "browserRequirements": "Requires JavaScript. Requires HTML5.",
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "USD"
-      }
+      "browserRequirements": "Requires JavaScript. Requires HTML5."
     }
     </script>
     <style>
-      :root { color-scheme: light; font-family: ui-sans-serif, system-ui, -apple-system, "PingFang TC", "Noto Sans TC", sans-serif; color: #172033; background: #f5f7fb; }
+      :root {
+        --primary: #4f46e5;
+        --primary-hover: #4338ca;
+        --primary-light: #eef2ff;
+        --accent: #06b6d4;
+        --bg: #0f172a;
+        --card-bg: rgba(30, 41, 59, 0.7);
+        --card-border: rgba(255, 255, 255, 0.1);
+        --text: #f8fafc;
+        --text-muted: #94a3b8;
+        --input-bg: #1e293b;
+        --input-border: #334155;
+        --radius: 16px;
+      }
+
       * { box-sizing: border-box; }
-      body { margin: 0; min-width: 320px; }
-      main { width: min(960px, calc(100% - 32px)); margin: 0 auto; padding: 56px 0 40px; }
-      header { margin-bottom: 28px; }
-      .brand-row { display: flex; justify-content: space-between; gap: 16px; align-items: center; }
-      h1 { margin: 0 0 10px; font-size: clamp(2rem, 5vw, 3rem); letter-spacing: -.04em; }
-      p { color: #5b667a; line-height: 1.65; }
-      .card { background: #fff; border: 1px solid #e4e8f0; border-radius: 16px; padding: clamp(20px, 4vw, 32px); box-shadow: 0 12px 28px rgba(32, 47, 80, .06); }
-      label { display: block; margin-bottom: 9px; font-weight: 700; }
-      textarea, pre { width: 100%; border: 1px solid #cbd3e1; border-radius: 10px; font: 14px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-      textarea { display: block; min-height: 178px; padding: 14px; resize: vertical; color: #172033; }
-      textarea:focus { outline: 3px solid #d9e8ff; border-color: #3675d3; }
-      .dropzone { border: 2px dashed #cbd3e1; border-radius: 12px; padding: 28px 16px; text-align: center; background: #f8fafc; cursor: pointer; transition: background .15s, border-color .15s; }
-      .dropzone:hover, .dropzone.dragover { background: #edf4ff; border-color: #1e63c6; }
-      .dropzone-text { color: #334155; font-size: 0.95rem; font-weight: 600; }
-      .file-types-hint { color: #64748b; font-size: 0.82rem; margin-top: 6px; font-weight: 400; }
-      .help { margin: 9px 0 20px; font-size: .9rem; }
-      .actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-      button { appearance: none; border: 0; cursor: pointer; border-radius: 9px; padding: 11px 17px; font-size: 1rem; font-weight: 700; background: #1e63c6; color: #fff; }
-      button:hover { background: #174f9f; }
-      button:disabled { cursor: wait; opacity: .65; }
-      button.secondary { background: #eaf0fa; color: #1e4b89; }
-      button.secondary:hover { background: #dae5f5; }
-      #status { min-height: 1.4em; margin: 16px 0 0; font-weight: 600; }
-      #status.error { color: #b42318; }
-      #result-area { margin-top: 24px; }
-      .result-head { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 9px; }
-      h2 { margin: 0; font-size: 1.1rem; }
-      pre { min-height: 180px; max-height: 55vh; overflow: auto; margin: 0; padding: 16px; white-space: pre-wrap; background: #101827; border: 0; color: #e5eefc; }
-      .footer { margin-top: 22px; font-size: .9rem; }
-      a { color: #1d5ebd; }
-      [hidden] { display: none !important; }
-      @media (max-width: 560px) { main { width: min(100% - 24px, 960px); padding-top: 32px; } .card { padding: 18px; } .result-head { align-items: flex-start; flex-direction: column; } }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        color: var(--text);
+        background: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #0f172a 70%);
+        background-attachment: fixed;
+      }
+
+      main {
+        width: min(1000px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 48px 0 60px;
+      }
+
+      header {
+        text-align: center;
+        margin-bottom: 36px;
+      }
+
+      .brand-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+      }
+
+      .logo {
+        font-family: 'Outfit', sans-serif;
+        font-size: 2rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #818cf8 0%, #c084fc 50%, #38bdf8 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        letter-spacing: -0.03em;
+        margin: 0;
+      }
+
+      .subtitle {
+        color: var(--text-muted);
+        font-size: 1.05rem;
+        line-height: 1.6;
+        max-width: 680px;
+        margin: 0 auto;
+      }
+
+      .lang-btn {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: var(--text);
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 0.88rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        backdrop-filter: blur(8px);
+      }
+      .lang-btn:hover {
+        background: rgba(255, 255, 255, 0.18);
+        border-color: rgba(255, 255, 255, 0.3);
+      }
+
+      /* Navigation Tabs */
+      .tabs-nav {
+        display: flex;
+        gap: 8px;
+        background: rgba(15, 23, 42, 0.6);
+        padding: 6px;
+        border-radius: 16px;
+        border: 1px solid var(--card-border);
+        margin-bottom: 24px;
+        backdrop-filter: blur(12px);
+      }
+
+      .tab-btn {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 12px 16px;
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        font-size: 0.95rem;
+        font-weight: 600;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .tab-btn:hover {
+        color: var(--text);
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      .tab-btn.active {
+        background: var(--primary);
+        color: #ffffff;
+        box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4);
+      }
+
+      /* Card Container */
+      .card {
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: var(--radius);
+        padding: clamp(24px, 4vw, 36px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        backdrop-filter: blur(16px);
+      }
+
+      .tab-content { display: none; }
+      .tab-content.active { display: block; }
+
+      label {
+        display: block;
+        margin-bottom: 10px;
+        font-weight: 700;
+        font-size: 1.1rem;
+        color: #f1f5f9;
+      }
+
+      textarea, input[type="text"] {
+        width: 100%;
+        background: var(--input-bg);
+        border: 1px solid var(--input-border);
+        border-radius: 12px;
+        padding: 16px;
+        color: #f8fafc;
+        font-family: 'Fira Code', monospace;
+        font-size: 0.92rem;
+        line-height: 1.6;
+        transition: all 0.2s ease;
+      }
+
+      textarea:focus, input[type="text"]:focus {
+        outline: none;
+        border-color: #818cf8;
+        box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.25);
+      }
+
+      textarea { min-height: 160px; resize: vertical; }
+
+      /* Dropzone */
+      .dropzone {
+        border: 2px dashed #475569;
+        border-radius: 14px;
+        padding: 36px 20px;
+        text-align: center;
+        background: rgba(15, 23, 42, 0.4);
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .dropzone:hover, .dropzone.dragover {
+        border-color: #818cf8;
+        background: rgba(99, 102, 241, 0.1);
+      }
+
+      .dropzone-icon {
+        font-size: 2.5rem;
+        margin-bottom: 12px;
+      }
+
+      .dropzone-text {
+        color: #e2e8f0;
+        font-size: 1rem;
+        font-weight: 600;
+      }
+
+      .file-types-hint {
+        color: #94a3b8;
+        font-size: 0.85rem;
+        margin-top: 8px;
+      }
+
+      .help-text {
+        margin: 10px 0 20px;
+        font-size: 0.88rem;
+        color: #94a3b8;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .key-badge {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 2px 8px;
+        border-radius: 6px;
+        font-size: 0.78rem;
+        font-family: monospace;
+        color: #cbd5e1;
+      }
+
+      /* Buttons & Actions */
+      .actions {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+      }
+
+      button.primary-btn {
+        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+        border: none;
+        color: white;
+        padding: 14px 28px;
+        font-size: 1rem;
+        font-weight: 700;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 16px rgba(79, 70, 229, 0.35);
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      button.primary-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(79, 70, 229, 0.5);
+      }
+
+      button.primary-btn:disabled {
+        opacity: 0.6;
+        cursor: wait;
+        transform: none;
+      }
+
+      button.secondary-btn {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        color: #f1f5f9;
+        padding: 10px 18px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      button.secondary-btn:hover {
+        background: rgba(255, 255, 255, 0.16);
+      }
+
+      /* Status Display */
+      #status {
+        margin-top: 18px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: #38bdf8;
+        min-height: 24px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      #status.error { color: #f87171; }
+
+      /* Result Section */
+      #result-area {
+        margin-top: 32px;
+      }
+
+      .result-head {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 14px;
+      }
+
+      .result-meta {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .stats-badge {
+        font-size: 0.8rem;
+        color: #94a3b8;
+        background: rgba(255, 255, 255, 0.06);
+        padding: 4px 10px;
+        border-radius: 8px;
+      }
+
+      pre#result {
+        background: #090d16;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 14px;
+        padding: 20px;
+        max-height: 60vh;
+        overflow: auto;
+        font-family: 'Fira Code', monospace;
+        font-size: 0.9rem;
+        line-height: 1.6;
+        color: #e2e8f0;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+
+      footer {
+        margin-top: 36px;
+        text-align: center;
+        font-size: 0.9rem;
+        color: var(--text-muted);
+      }
+
+      footer a {
+        color: #818cf8;
+        text-decoration: none;
+      }
+
+      footer a:hover { text-decoration: underline; }
+
+      /* Micro-spinner */
+      .spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top-color: #fff;
+        animation: spin 0.8s linear infinite;
+        display: inline-block;
+      }
+
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      @media (max-width: 640px) {
+        main { padding-top: 24px; }
+        .tabs-nav { flex-direction: column; gap: 4px; }
+        .result-head { flex-direction: column; align-items: flex-start; gap: 12px; }
+      }
     </style>
   </head>
   <body>
     <main>
       <header>
         <div class="brand-row">
-          <h1>888 URL2MD</h1>
-          <button class="secondary" id="language-toggle" type="button" aria-label="Switch language">English</button>
+          <h1 class="logo">888 URL2MD</h1>
+          <button class="lang-btn" id="language-toggle" type="button" aria-label="Switch language">English</button>
         </div>
-        <p data-i18n="intro">貼上網址、搜尋關鍵字或上傳文件檔案 (PDF, Word, Excel, PPT, EPUB 等)，即可轉成乾淨 Markdown。</p>
+        <p class="subtitle" data-i18n="intro">網頁網址、PDF、Word、Excel、PPT、EPUB、CSV 文檔與 Live Web 搜尋，全方位極速轉譯為乾淨 Markdown 格式。</p>
       </header>
-      <section class="card" aria-labelledby="urls-label">
-        <form id="converter-form">
-          <label id="urls-label" for="urls" data-i18n="urlsLabel">網址轉換</label>
-          <textarea id="urls" name="urls" required spellcheck="false" placeholder="https://example.com/article&#10;https://example.com/another-article" aria-describedby="url-help"></textarea>
-          <p class="help" id="url-help" data-i18n="urlsHelp">每行一個網址；也可以用空白或逗號分隔。多個網址會依序合併為同一份 Markdown。</p>
-          <div class="actions">
-            <button id="convert" type="submit" data-i18n="convert">轉換成 Markdown</button>
-          </div>
-        </form>
-        <p id="status" role="status" aria-live="polite"></p>
-      </section>
 
-      <section class="card" aria-labelledby="upload-label" style="margin-top: 20px">
-        <form id="upload-form" enctype="multipart/form-data">
-          <label id="upload-label" for="file-input" data-i18n="uploadLabel">文件檔案上傳 (AnyDoc 超極速解析)</label>
-          <div id="dropzone" class="dropzone" tabindex="0">
-            <input type="file" id="file-input" name="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.epub,.rtf,.odt,.ods,.odp,.csv,.txt" style="display: none">
-            <div class="dropzone-text">
-              <span id="file-name-display" data-i18n="dropzonePrompt">拖曳檔案至此，或點擊選擇檔案上傳</span>
+      <!-- Navigation Tabs -->
+      <nav class="tabs-nav" role="tablist">
+        <button class="tab-btn active" id="tab-search-btn" data-tab="tab-search" role="tab">
+          <span>🔍</span> <span data-i18n="searchTab">網頁搜尋 (Live SERP)</span>
+        </button>
+        <button class="tab-btn" id="tab-urls-btn" data-tab="tab-urls" role="tab">
+          <span>🌐</span> <span data-i18n="urlsTab">網址轉換 (URL)</span>
+        </button>
+        <button class="tab-btn" id="tab-upload-btn" data-tab="tab-upload" role="tab">
+          <span>📄</span> <span data-i18n="uploadTab">文檔解析 (AnyDoc)</span>
+        </button>
+      </nav>
+
+      <section class="card">
+        <!-- 1. Live Web Search Tab -->
+        <div id="tab-search" class="tab-content active" role="tabpanel">
+          <form id="search-form">
+            <label for="query" data-i18n="searchLabel">網頁搜尋 (Live Web Search)</label>
+            <input type="text" id="query" name="query" required spellcheck="false" placeholder="例如：台積電 2330 最新財報" data-i18n-placeholder="searchPlaceholder" autocomplete="off">
+            <div class="help-text">
+              <span data-i18n="searchHelp">輸入關鍵字進行即時網路搜尋，結果將自動轉譯為 Markdown 格式。</span>
+              <span class="key-badge">Enter 鍵即刻搜尋</span>
+            </div>
+            <div class="actions">
+              <button class="primary-btn" id="search-btn" type="submit">
+                <span>🔍</span> <span data-i18n="searchAction">搜尋並轉成 Markdown</span>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- 2. Single/Multiple URLs Tab -->
+        <div id="tab-urls" class="tab-content" role="tabpanel">
+          <form id="urls-form">
+            <label for="urls" data-i18n="urlsLabel">網址批量轉換 (URL Batch)</label>
+            <textarea id="urls" name="urls" spellcheck="false" placeholder="https://example.com/article1&#10;https://example.com/article2"></textarea>
+            <div class="help-text">
+              <span data-i18n="urlsHelp">每行一個網址；支援空白或逗號分隔，多頁面將自動串接併入同一份 Markdown。</span>
+              <span class="key-badge">Ctrl + Enter / Cmd + Enter 鍵提交</span>
+            </div>
+            <div class="actions">
+              <button class="primary-btn" id="convert-btn" type="submit">
+                <span>🌐</span> <span data-i18n="convertAction">轉換成 Markdown</span>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- 3. Document File Upload Tab -->
+        <div id="tab-upload" class="tab-content" role="tabpanel">
+          <form id="upload-form" enctype="multipart/form-data">
+            <label for="file-input" data-i18n="uploadLabel">文件檔案解析 (AnyDoc 超極速引擎)</label>
+            <div id="dropzone" class="dropzone" tabindex="0">
+              <input type="file" id="file-input" name="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.epub,.rtf,.odt,.ods,.odp,.csv,.txt" style="display: none">
+              <div class="dropzone-icon">📁</div>
+              <div class="dropzone-text" id="file-name-display" data-i18n="dropzonePrompt">拖曳檔案至此，或點擊選擇檔案上傳</div>
               <div class="file-types-hint" data-i18n="dropzoneHint">支援 PDF, Word (.docx/.doc), Excel (.xlsx/.xls), PowerPoint (.pptx/.ppt), EPUB, RTF, CSV, ODT...</div>
             </div>
-          </div>
-          <div class="actions" style="margin-top: 14px">
-            <button id="upload" type="submit" data-i18n="upload">上傳檔案並轉成 Markdown</button>
-          </div>
-        </form>
+            <div class="actions" style="margin-top: 18px">
+              <button class="primary-btn" id="upload-btn" type="submit">
+                <span>⚡</span> <span data-i18n="uploadAction">上傳文檔並轉成 Markdown</span>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Status Toast -->
+        <div id="status" role="status" aria-live="polite"></div>
       </section>
 
-      <section class="card" aria-labelledby="search-label" style="margin-top: 20px">
-        <form id="search-form">
-          <label id="search-label" for="query" data-i18n="searchLabel">網頁搜尋</label>
-          <textarea id="query" name="query" required rows="2" spellcheck="true" placeholder="例如：台灣人工智慧最新新聞" data-i18n-placeholder="searchPlaceholder" aria-describedby="search-help"></textarea>
-          <p class="help" id="search-help" data-i18n="searchHelp">輸入關鍵字後搜尋網頁，結果會轉換成 Markdown。</p>
-          <div class="actions">
-            <button id="search" type="submit" data-i18n="search">搜尋並轉成 Markdown</button>
-          </div>
-        </form>
-      </section>
-
-      <section id="result-area" hidden aria-labelledby="result-title">
+      <!-- Result Section -->
+      <section id="result-area" class="card" hidden aria-labelledby="result-title" style="margin-top: 24px">
         <div class="result-head">
-          <h2 id="result-title" data-i18n="result">轉換結果</h2>
+          <div class="result-meta">
+            <h2 id="result-title" data-i18n="resultTitle">轉換結果 (Markdown)</h2>
+            <span class="stats-badge" id="stats-badge">0 字</span>
+          </div>
           <div class="actions">
-            <button class="secondary" id="copy" type="button" data-i18n="copy">複製</button>
-            <button class="secondary" id="download" type="button" data-i18n="download">下載 .md</button>
+            <button class="secondary-btn" id="copy-btn" type="button" data-i18n="copyBtn">📋 複製內容</button>
+            <button class="secondary-btn" id="download-btn" type="button" data-i18n="downloadBtn">⬇️ 下載 .md</button>
           </div>
         </div>
         <pre id="result"></pre>
       </section>
-      <p class="footer"><span data-i18n="footerPrefix">給 AI Agent / LLM 使用的說明請見 </span><a href="/skill.md">SKILL.md</a><span data-i18n="footerSuffix">。</span></p>
+
+      <footer>
+        <span data-i18n="footerPrefix">給 AI Agent / LLM 使用的標準 API 說明請見 </span>
+        <a href="/skill.md">SKILL.md</a> | <a href="/llms.txt">llms.txt</a>
+      </footer>
     </main>
+
     <script>
       (() => {
-        const form = document.querySelector('#converter-form');
-        const urlsInput = document.querySelector('#urls');
-        const convertButton = document.querySelector('#convert');
+        // Elements
+        const tabs = document.querySelectorAll('.tab-btn');
+        const tabContents = document.querySelectorAll('.tab-content');
+
         const searchForm = document.querySelector('#search-form');
         const queryInput = document.querySelector('#query');
-        const searchButton = document.querySelector('#search');
-        
+        const searchBtn = document.querySelector('#search-btn');
+
+        const urlsForm = document.querySelector('#urls-form');
+        const urlsInput = document.querySelector('#urls');
+        const convertBtn = document.querySelector('#convert-btn');
+
         const uploadForm = document.querySelector('#upload-form');
         const fileInput = document.querySelector('#file-input');
         const dropzone = document.querySelector('#dropzone');
         const fileNameDisplay = document.querySelector('#file-name-display');
-        const uploadButton = document.querySelector('#upload');
+        const uploadBtn = document.querySelector('#upload-btn');
 
         const status = document.querySelector('#status');
         const resultArea = document.querySelector('#result-area');
         const result = document.querySelector('#result');
-        const copyButton = document.querySelector('#copy');
-        const downloadButton = document.querySelector('#download');
+        const statsBadge = document.querySelector('#stats-badge');
+        const copyBtn = document.querySelector('#copy-btn');
+        const downloadBtn = document.querySelector('#download-btn');
         const languageToggle = document.querySelector('#language-toggle');
 
+        // i18n Dictionary
         const translations = {
           'zh-Hant': {
-            intro: '貼上網址、搜尋關鍵字或上傳文件檔案 (PDF, Word, Excel, PPT, EPUB 等)，即可轉成乾淨 Markdown。',
-            urlsLabel: '網址轉換',
-            urlsHelp: '每行一個網址；也可以用空白或逗號分隔。多個網址會依序合併為同一份 Markdown。',
-            convert: '轉換成 Markdown',
-            uploadLabel: '文件檔案上傳 (AnyDoc 超極速解析)',
+            intro: '網頁網址、PDF、Word、Excel、PPT、EPUB、CSV 文檔與 Live Web 搜尋，全方位極速轉譯為乾淨 Markdown 格式。',
+            searchTab: '網頁搜尋 (Live SERP)',
+            urlsTab: '網址轉換 (URL)',
+            uploadTab: '文檔解析 (AnyDoc)',
+            searchLabel: '網頁搜尋 (Live Web Search)',
+            searchPlaceholder: '例如：台積電 2330 最新財報',
+            searchHelp: '輸入關鍵字進行即時網路搜尋，結果將自動轉譯為 Markdown 格式。',
+            searchAction: '搜尋並轉成 Markdown',
+            urlsLabel: '網址批量轉換 (URL Batch)',
+            urlsHelp: '每行一個網址；支援空白或逗號分隔，多頁面將自動串接併入同一份 Markdown。',
+            convertAction: '轉換成 Markdown',
+            uploadLabel: '文件檔案解析 (AnyDoc 超極速引擎)',
             dropzonePrompt: '拖曳檔案至此，或點擊選擇檔案上傳',
             dropzoneHint: '支援 PDF, Word (.docx/.doc), Excel (.xlsx/.xls), PowerPoint (.pptx/.ppt), EPUB, RTF, CSV, ODT...',
-            upload: '上傳檔案並轉成 Markdown',
-            searchLabel: '網頁搜尋',
-            searchPlaceholder: '例如：台灣人工智慧最新新聞',
-            searchHelp: '輸入關鍵字後搜尋網頁，結果會轉換成 Markdown。',
-            search: '搜尋並轉成 Markdown',
-            result: '轉換結果', copy: '複製', download: '下載 .md',
-            footerPrefix: '給 AI Agent / LLM 使用的說明請見 ', footerSuffix: '。',
-            switchLanguage: '切換為英文',
-            urlsRequired: '請至少輸入一個網址。',
-            converting: count => `正在轉換 ${count} 個網址…`,
-            converted: count => `已完成 ${count} 個網址的轉換。`,
-            conversionFailed: error => `轉換失敗：${error}`,
-            fileRequired: '請選擇要上傳的文檔檔案。',
-            uploading: fileName => `正在解析檔案「${fileName}」…`,
-            uploaded: fileName => `已完成「${fileName}」的文檔解析與轉譯。`,
-            uploadFailed: error => `檔案解析失敗：${error}`,
+            uploadAction: '上傳文檔並轉成 Markdown',
+            resultTitle: '轉換結果 (Markdown)',
+            copyBtn: '📋 複製內容',
+            downloadBtn: '⬇️ 下載 .md',
+            footerPrefix: '給 AI Agent / LLM 使用的標準 API 說明請見 ',
+            switchLanguage: 'English',
             queryRequired: '請輸入搜尋關鍵字。',
+            urlsRequired: '請至少輸入一個網址。',
+            fileRequired: '請選擇要上傳的文檔檔案。',
             searching: query => `正在搜尋「${query}」…`,
-            searched: query => `已完成「${query}」的搜尋。`,
-            searchFailed: error => `搜尋失敗：${error}`,
-            copied: '已複製 Markdown 到剪貼簿。',
-            copyFailed: '無法自動複製，請手動選取結果。'
+            searched: query => `已完成「${query}」的網頁搜尋。`,
+            converting: count => `正在轉換 ${count} 個網址…`,
+            converted: count => `已完成 ${count} 個網址的轉譯。`,
+            uploading: name => `正在解析文檔「${name}」…`,
+            uploaded: name => `已完成文檔「${name}」的極速轉譯。`,
+            copied: '已複製 Markdown 到剪貼簿！',
+            copyFailed: '無法自動複製，請手動選取內容。',
+            errorMsg: err => `發生錯誤：${err}`
           },
           en: {
-            intro: 'Paste URLs, search keywords, or upload document files (PDF, Word, Excel, PPT, EPUB, etc.) to convert into clean Markdown.',
-            urlsLabel: 'URL Conversion',
-            urlsHelp: 'Enter one URL per line. Spaces and commas also work as separators; multiple pages are combined into one Markdown file.',
-            convert: 'Convert to Markdown',
-            uploadLabel: 'Document File Upload (AnyDoc Parser)',
-            dropzonePrompt: 'Drag and drop file here, or click to choose file',
-            dropzoneHint: 'Supports PDF, Word (.docx/.doc), Excel (.xlsx/.xls), PowerPoint (.pptx/.ppt), EPUB, RTF, CSV, ODT...',
-            upload: 'Upload Document as Markdown',
-            searchLabel: 'Web search',
-            searchPlaceholder: 'For example: latest AI news in Taiwan',
-            searchHelp: 'Search the web by keyword and receive the results as Markdown.',
-            search: 'Search as Markdown',
-            result: 'Result', copy: 'Copy', download: 'Download .md',
-            footerPrefix: 'Instructions for AI agents and LLMs: ', footerSuffix: '.',
-            switchLanguage: '切換為中文',
-            urlsRequired: 'Enter at least one URL.',
-            converting: count => `Converting ${count} URL${count === 1 ? '' : 's'}…`,
-            converted: count => `Converted ${count} URL${count === 1 ? '' : 's'}.`,
-            conversionFailed: error => `Conversion failed: ${error}`,
+            intro: 'Convert URLs, PDF, Word, Excel, PPT, EPUB, CSV documents, and live web search queries into clean Markdown.',
+            searchTab: 'Web Search (SERP)',
+            urlsTab: 'URL Converter',
+            uploadTab: 'Document Parser (AnyDoc)',
+            searchLabel: 'Live Web Search',
+            searchPlaceholder: 'e.g. TSMC earnings report 2026',
+            searchHelp: 'Search the web by keyword and convert search results into structured Markdown.',
+            searchAction: 'Search & Convert',
+            urlsLabel: 'Batch URL Conversion',
+            urlsHelp: 'One URL per line. Spaces or commas also work as separators.',
+            convertAction: 'Convert to Markdown',
+            uploadLabel: 'Document File Parsing (AnyDoc)',
+            dropzonePrompt: 'Drag & drop file here, or click to choose file',
+            dropzoneHint: 'Supports PDF, Word (.docx/.doc), Excel (.xlsx/.xls), PowerPoint (.pptx/.ppt), EPUB, RTF, CSV...',
+            uploadAction: 'Upload & Parse',
+            resultTitle: 'Conversion Result (Markdown)',
+            copyBtn: '📋 Copy Markdown',
+            downloadBtn: '⬇️ Download .md',
+            footerPrefix: 'Instructions for AI Agents and LLMs: ',
+            switchLanguage: '中文',
+            queryRequired: 'Please enter a search query.',
+            urlsRequired: 'Please enter at least one URL.',
             fileRequired: 'Please select a document file to upload.',
-            uploading: fileName => `Parsing file “${fileName}”…`,
-            uploaded: fileName => `File parsing complete for “${fileName}”.`,
-            uploadFailed: error => `File upload failed: ${error}`,
-            queryRequired: 'Enter a search query.',
             searching: query => `Searching for “${query}”…`,
             searched: query => `Search complete for “${query}”.`,
-            searchFailed: error => `Search failed: ${error}`,
-            copied: 'Markdown copied to the clipboard.',
-            copyFailed: 'Could not copy automatically. Please select the result manually.'
+            converting: count => `Converting ${count} URL${count === 1 ? '' : 's'}…`,
+            converted: count => `Converted ${count} URL${count === 1 ? '' : 's'}.`,
+            uploading: name => `Parsing file “${name}”…`,
+            uploaded: name => `Successfully parsed file “${name}”.`,
+            copied: 'Copied Markdown to clipboard!',
+            copyFailed: 'Failed to copy automatically. Please select text manually.',
+            errorMsg: err => `Error: ${err}`
           }
         };
-        const detectedLocale = (navigator.languages || [navigator.language || '']).some(language => language.toLowerCase().startsWith('zh')) ? 'zh-Hant' : 'en';
+
+        const detectedLocale = (navigator.languages || [navigator.language || '']).some(lang => lang.toLowerCase().startsWith('zh')) ? 'zh-Hant' : 'en';
         let locale;
         try { locale = localStorage.getItem('888-url2md-locale') || detectedLocale; } catch { locale = detectedLocale; }
+
         const text = key => translations[locale][key];
+
         const applyLocale = () => {
           document.documentElement.lang = locale;
-          document.querySelectorAll('[data-i18n]').forEach(element => { element.textContent = text(element.dataset.i18n); });
-          document.querySelectorAll('[data-i18n-placeholder]').forEach(element => { element.placeholder = text(element.dataset.i18nPlaceholder); });
-          languageToggle.textContent = locale === 'zh-Hant' ? 'English' : '中文';
-          languageToggle.setAttribute('aria-label', text('switchLanguage'));
+          document.querySelectorAll('[data-i18n]').forEach(el => {
+            el.textContent = text(el.dataset.i18n);
+          });
+          document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+            el.placeholder = text(el.dataset.i18nPlaceholder);
+          });
+          languageToggle.textContent = text('switchLanguage');
           updateFileNameDisplay();
         };
 
-        const normalizeUrl = value => {
-          const url = value.trim();
-          if (/^[a-z][a-z\d+.-]*:/i.test(url)) return url;
-          return `https://${url.replace(/^\/\//, '')}`;
-        };
-        const getUrls = () => urlsInput.value.split(/[\s,]+/).map(value => value.trim()).filter(Boolean).map(normalizeUrl);
-        const setStatus = (message, isError = false) => {
-          status.textContent = message;
-          status.classList.toggle('error', isError);
-        };
-        const showResult = markdown => {
-          result.textContent = markdown;
-          resultArea.hidden = false;
-        };
-
-        // Dropzone handlers
-        dropzone.addEventListener('click', () => fileInput.click());
-        dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
-        dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
-        dropzone.addEventListener('drop', (e) => {
-          e.preventDefault();
-          dropzone.classList.remove('dragover');
-          if (e.dataTransfer.files && e.dataTransfer.files.length) {
-            fileInput.files = e.dataTransfer.files;
-            updateFileNameDisplay();
-          }
+        // Tab Switching
+        tabs.forEach(tab => {
+          tab.addEventListener('click', () => {
+            tabs.forEach(t => t.classList.remove('active'));
+            tabContents.forEach(c => c.classList.remove('active'));
+            tab.classList.add('active');
+            const contentId = tab.dataset.tab;
+            document.getElementById(contentId).classList.add('active');
+          });
         });
-        fileInput.addEventListener('change', updateFileNameDisplay);
 
-        function updateFileNameDisplay() {
-          if (fileInput.files && fileInput.files[0]) {
-            fileNameDisplay.textContent = `已選擇檔案 / Selected file: ${fileInput.files[0].name} (${(fileInput.files[0].size / 1024).toFixed(1)} KB)`;
-          } else {
-            fileNameDisplay.textContent = text('dropzonePrompt');
-          }
-        }
-
-        applyLocale();
+        // Language Switcher
         languageToggle.addEventListener('click', () => {
           locale = locale === 'zh-Hant' ? 'en' : 'zh-Hant';
           try { localStorage.setItem('888-url2md-locale', locale); } catch {}
           applyLocale();
         });
 
-        form.addEventListener('submit', async event => {
-          event.preventDefault();
-          const urls = getUrls();
-          if (!urls.length) {
-            setStatus(text('urlsRequired'), true);
-            urlsInput.focus();
-            return;
+        // Status Helper
+        const setStatus = (msg, isError = false, isLoading = false) => {
+          if (isLoading) {
+            status.innerHTML = `<span class="spinner"></span><span>${msg}</span>`;
+          } else {
+            status.textContent = msg;
           }
+          status.classList.toggle('error', isError);
+        };
 
-          urlsInput.value = urls.join('\n');
-          convertButton.disabled = true;
-          setStatus(text('converting')(urls.length));
-          resultArea.hidden = true;
-          try {
-            const response = await fetch('/v1/batch', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Accept': 'text/plain' },
-              body: JSON.stringify({ urls })
-            });
-            const markdown = await response.text();
-            if (!response.ok) throw new Error(markdown || `伺服器回應 ${response.status}`);
-            showResult(markdown);
-            setStatus(text('converted')(urls.length));
-          } catch (error) {
-            setStatus(text('conversionFailed')(error.message || 'Please try again.'), true);
-          } finally {
-            convertButton.disabled = false;
-          }
-        });
+        // Result Show Helper
+        const showResult = markdown => {
+          result.textContent = markdown;
+          statsBadge.textContent = `${markdown.length.toLocaleString()} 字 / ${markdown.split(/\s+/).filter(Boolean).length.toLocaleString()} words`;
+          resultArea.hidden = false;
+          resultArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        };
 
-        uploadForm.addEventListener('submit', async event => {
-          event.preventDefault();
-          if (!fileInput.files || !fileInput.files[0]) {
-            setStatus(text('fileRequired'), true);
-            fileInput.click();
-            return;
-          }
-          const file = fileInput.files[0];
-          uploadButton.disabled = true;
-          setStatus(text('uploading')(file.name));
-          resultArea.hidden = true;
-          try {
-            const formData = new FormData();
-            formData.append('file', file);
-            const response = await fetch('/', {
-              method: 'POST',
-              headers: { 'Accept': 'text/plain' },
-              body: formData
-            });
-            const markdown = await response.text();
-            if (!response.ok) throw new Error(markdown || `伺服器回應 ${response.status}`);
-            showResult(markdown);
-            setStatus(text('uploaded')(file.name));
-          } catch (error) {
-            setStatus(text('uploadFailed')(error.message || 'Please try again.'), true);
-          } finally {
-            uploadButton.disabled = false;
+        // 1. Search Keyboard & Form Listener (Enter key submits search!)
+        queryInput.addEventListener('keydown', e => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            searchForm.requestSubmit();
           }
         });
 
@@ -367,25 +665,127 @@
             return;
           }
 
-          searchButton.disabled = true;
-          setStatus(text('searching')(query));
+          searchBtn.disabled = true;
+          setStatus(text('searching')(query), false, true);
           resultArea.hidden = true;
+
           try {
-            const response = await fetch(`/search?q=${encodeURIComponent(query)}`, {
+            const response = await fetch(`/search?q=${encodeURIComponent(query)}&noCache=true`, {
               headers: { 'Accept': 'text/plain' }
             });
             const markdown = await response.text();
-            if (!response.ok) throw new Error(markdown || `伺服器回應 ${response.status}`);
+            if (!response.ok) throw new Error(markdown || `Server error ${response.status}`);
             showResult(markdown);
             setStatus(text('searched')(query));
-          } catch (error) {
-            setStatus(text('searchFailed')(error.message || 'Please try again.'), true);
+          } catch (err) {
+            setStatus(text('errorMsg')(err.message || 'Search failed'), true);
           } finally {
-            searchButton.disabled = false;
+            searchBtn.disabled = false;
           }
         });
 
-        copyButton.addEventListener('click', async () => {
+        // 2. URL Conversion Listener (Ctrl+Enter / Cmd+Enter submits URLs!)
+        const normalizeUrl = val => {
+          const url = val.trim();
+          if (/^[a-z][a-z\d+.-]*:/i.test(url)) return url;
+          return `https://${url.replace(/^\/\//, '')}`;
+        };
+        const getUrls = () => urlsInput.value.split(/[\s,]+/).map(v => v.trim()).filter(Boolean).map(normalizeUrl);
+
+        urlsInput.addEventListener('keydown', e => {
+          if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+            e.preventDefault();
+            urlsForm.requestSubmit();
+          }
+        });
+
+        urlsForm.addEventListener('submit', async event => {
+          event.preventDefault();
+          const urls = getUrls();
+          if (!urls.length) {
+            setStatus(text('urlsRequired'), true);
+            urlsInput.focus();
+            return;
+          }
+
+          urlsInput.value = urls.join('\n');
+          convertBtn.disabled = true;
+          setStatus(text('converting')(urls.length), false, true);
+          resultArea.hidden = true;
+
+          try {
+            const response = await fetch('/v1/batch', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Accept': 'text/plain' },
+              body: JSON.stringify({ urls })
+            });
+            const markdown = await response.text();
+            if (!response.ok) throw new Error(markdown || `Server error ${response.status}`);
+            showResult(markdown);
+            setStatus(text('converted')(urls.length));
+          } catch (err) {
+            setStatus(text('errorMsg')(err.message || 'Conversion failed'), true);
+          } finally {
+            convertBtn.disabled = false;
+          }
+        });
+
+        // 3. Document Dropzone & Upload Listener
+        dropzone.addEventListener('click', () => fileInput.click());
+        dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
+        dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+        dropzone.addEventListener('drop', e => {
+          e.preventDefault();
+          dropzone.classList.remove('dragover');
+          if (e.dataTransfer.files && e.dataTransfer.files.length) {
+            fileInput.files = e.dataTransfer.files;
+            updateFileNameDisplay();
+          }
+        });
+        fileInput.addEventListener('change', updateFileNameDisplay);
+
+        function updateFileNameDisplay() {
+          if (fileInput.files && fileInput.files[0]) {
+            const f = fileInput.files[0];
+            fileNameDisplay.textContent = `已選擇檔案 / Selected: ${f.name} (${(f.size / 1024).toFixed(1)} KB)`;
+          } else {
+            fileNameDisplay.textContent = text('dropzonePrompt');
+          }
+        }
+
+        uploadForm.addEventListener('submit', async event => {
+          event.preventDefault();
+          if (!fileInput.files || !fileInput.files[0]) {
+            setStatus(text('fileRequired'), true);
+            fileInput.click();
+            return;
+          }
+          const file = fileInput.files[0];
+          uploadBtn.disabled = true;
+          setStatus(text('uploading')(file.name), false, true);
+          resultArea.hidden = true;
+
+          try {
+            const formData = new FormData();
+            formData.append('file', file);
+            const response = await fetch('/', {
+              method: 'POST',
+              headers: { 'Accept': 'text/plain' },
+              body: formData
+            });
+            const markdown = await response.text();
+            if (!response.ok) throw new Error(markdown || `Server error ${response.status}`);
+            showResult(markdown);
+            setStatus(text('uploaded')(file.name));
+          } catch (err) {
+            setStatus(text('errorMsg')(err.message || 'Upload failed'), true);
+          } finally {
+            uploadBtn.disabled = false;
+          }
+        });
+
+        // Copy & Download
+        copyBtn.addEventListener('click', async () => {
           try {
             await navigator.clipboard.writeText(result.textContent);
             setStatus(text('copied'));
@@ -394,7 +794,7 @@
           }
         });
 
-        downloadButton.addEventListener('click', () => {
+        downloadBtn.addEventListener('click', () => {
           const blob = new Blob([result.textContent], { type: 'text/markdown;charset=utf-8' });
           const link = document.createElement('a');
           link.href = URL.createObjectURL(blob);
@@ -402,6 +802,8 @@
           link.click();
           URL.revokeObjectURL(link.href);
         });
+
+        applyLocale();
       })();
     </script>
   </body>
