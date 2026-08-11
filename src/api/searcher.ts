@@ -30,6 +30,7 @@ import { once } from 'events';
 import { Defer } from 'civkit/defer';
 import { BingSERP } from '../services/serp/bing';
 import { DuckDuckGoSERP } from '../services/serp/ddg';
+import { GcpGoogleSERP } from '../services/serp/gcp-google';
 import { bcp47ToIso639_3 } from '../utils/languages';
 import { parseSearchQuery } from '../utils/search-query';
 import { JSDomControl } from '../services/jsdom';
@@ -72,6 +73,7 @@ export class SearcherHost extends RPCHost {
         protected googleSERPOld: GoogleSERPOldFashion,
         protected bingSERP: BingSERP,
         protected ddgSERP: DuckDuckGoSERP,
+        protected gcpGoogleSERP: GcpGoogleSERP,
         protected storageLayer: StorageLayer,
     ) {
         super(...arguments);
@@ -573,6 +575,10 @@ export class SearcherHost extends RPCHost {
     }
 
     * iterProviders(preference?: string) {
+        if (this.gcpGoogleSERP.apiKey && this.gcpGoogleSERP.cx) {
+            yield this.gcpGoogleSERP;
+        }
+
         if (preference === 'bing') {
             if (this.envConfig.SERPER_SEARCH_API_KEY) {
                 yield this.serperBing;
