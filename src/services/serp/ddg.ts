@@ -25,10 +25,12 @@ export class DuckDuckGoSERP extends AsyncService {
 
         // 1. Try Bing RSS endpoint (extremely reliable, non-blocked, clean URLs)
         try {
-            const rssUrl = `https://www.bing.com/search?format=rss&q=${encodeURIComponent(q)}`;
+            const isChinese = /[\u4e00-\u9fa5]/.test(q);
+            const rssUrl = `https://www.bing.com/search?format=rss&q=${encodeURIComponent(q)}${isChinese ? '&setmkt=zh-TW&setlang=zh-tw' : ''}`;
             const res = await fetch(rssUrl, {
                 headers: {
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+                    'Accept-Language': isChinese ? 'zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7' : 'en-US,en;q=0.9,zh-TW;q=0.8',
                 }
             });
             if (res.ok) {
