@@ -23,53 +23,89 @@ export class DuckDuckGoSERP extends AsyncService {
         const num = query.num || 10;
         const results: WebSearchEntry[] = [];
 
+        // 1. Try Bing RSS endpoint (extremely reliable, non-blocked, clean URLs)
         try {
-            const response = await fetch('https://html.duckduckgo.com/html/', {
-                method: 'POST',
+            const rssUrl = `https://www.bing.com/search?format=rss&q=${encodeURIComponent(q)}`;
+            const res = await fetch(rssUrl, {
                 headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
-                    'Accept-Language': 'zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7',
-                },
-                body: 'q=' + encodeURIComponent(q),
+                }
             });
-
-            const html = await response.text();
-            const blocks = html.split('class="result__title"');
-
-            for (const block of blocks.slice(1)) {
-                const titleMatch = block.match(/<a[^>]+class="result__a"[^>]*>(.*?)<\/a>/s);
-                const snippetMatch = block.match(/class="result__snippet"[^>]*>(.*?)<\/a>/s) || block.match(/class="result__snippet"[^>]*>(.*?)<\/div>/s);
-                const hrefMatch = block.match(/href="([^"]+)"/);
-
-                let title = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, '').replace(/&#x27;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&').trim() : '';
-                let snippet = snippetMatch ? snippetMatch[1].replace(/<[^>]+>/g, '').replace(/&#x27;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&').trim() : '';
-                let rawHref = hrefMatch ? hrefMatch[1] : '';
-                let link = rawHref;
-
-                if (rawHref.includes('uddg=')) {
-                    const rawUrl = rawHref.split('uddg=')[1].split('&')[0];
-                    try {
-                        link = decodeURIComponent(rawUrl);
-                    } catch {
-                        // ignore malformed decode
+            if (res.ok) {
+                const xml = await res.text();
+                const items = xml.split('<item>');
+                for (const item of items.slice(1)) {
+                    const titleMatch = item.match(/<title>(.*?)<\/title>/s);
+                    const linkMatch = item.match(/<link>(.*?)<\/link>/s);
+                    const descMatch = item.match(/<description>(.*?)<\/description>/s);
+                    const title = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, '').replace(/&#x27;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&').trim() : '';
+                    const link = linkMatch ? linkMatch[1].replace(/&amp;/g, '&').trim() : '';
+                    const snippet = descMatch ? descMatch[1].replace(/<[^>]+>/g, '').replace(/&#x27;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&').trim() : title;
+                    if (title && link.startsWith('http') && !results.some(r => r.link === link)) {
+                        results.push({
+                            title,
+                            link,
+                            snippet: snippet || title,
+                        });
                     }
-                }
-
-                if (title && link.startsWith('http') && !link.includes('duckduckgo.com/y.js') && !results.some(r => r.link === link)) {
-                    results.push({
-                        title,
-                        link,
-                        snippet: snippet || title,
-                    });
-                }
-
-                if (results.length >= num) {
-                    break;
+                    if (results.length >= num) {
+                        break;
+                    }
                 }
             }
         } catch (err) {
-            this.logger.warn('DuckDuckGoSERP fetch error', { err });
+            this.logger.warn('Bing RSS SERP fetch error', { err });
+        }
+
+        if (results.length === 0) {
+            try {
+                const response = await fetch('https://html.duckduckgo.com/html/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+                        'Accept-Language': 'zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7',
+                    },
+                    body: 'q=' + encodeURIComponent(q),
+                });
+
+                const html = await response.text();
+                const blocks = html.split('class="result__title"');
+
+                for (const block of blocks.slice(1)) {
+                    const titleMatch = block.match(/<a[^>]+class="result__a"[^>]*>(.*?)<\/a>/s);
+                    const snippetMatch = block.match(/class="result__snippet"[^>]*>(.*?)<\/a>/s) || block.match(/class="result__snippet"[^>]*>(.*?)<\/div>/s);
+                    const hrefMatch = block.match(/href="([^"]+)"/);
+
+                    let title = titleMatch ? titleMatch[1].replace(/<[^>]+>/g, '').replace(/&#x27;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&').trim() : '';
+                    let snippet = snippetMatch ? snippetMatch[1].replace(/<[^>]+>/g, '').replace(/&#x27;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, '&').trim() : '';
+                    let rawHref = hrefMatch ? hrefMatch[1] : '';
+                    let link = rawHref;
+
+                    if (rawHref.includes('uddg=')) {
+                        const rawUrl = rawHref.split('uddg=')[1].split('&')[0];
+                        try {
+                            link = decodeURIComponent(rawUrl);
+                        } catch {
+                            // ignore malformed decode
+                        }
+                    }
+
+                    if (title && link.startsWith('http') && !link.includes('duckduckgo.com/y.js') && !results.some(r => r.link === link)) {
+                        results.push({
+                            title,
+                            link,
+                            snippet: snippet || title,
+                        });
+                    }
+
+                    if (results.length >= num) {
+                        break;
+                    }
+                }
+            } catch (err) {
+                this.logger.warn('DuckDuckGoSERP fetch error', { err });
+            }
         }
 
         if (results.length === 0) {
