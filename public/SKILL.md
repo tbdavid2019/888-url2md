@@ -68,6 +68,19 @@ If you are an LLM or AI Agent accessing this service for the first time:
 - `X-Remove-Selector`: Remove specific CSS selector.
 - `X-No-Cache: true`: Bypass internal page cache.
 
+### 5. WebMCP Browser Tools
+
+When this page is opened in a WebMCP-enabled Chrome browser, it registers the
+following read-only tools through `document.modelContext`:
+
+- `search_web`: Search the live web. Input: `{ "query": "..." }`.
+- `read_web_page`: Read one page. Input: `{ "url": "https://..." }`.
+- `read_web_pages`: Read multiple pages concurrently. Input: `{ "urls": ["https://..."] }`.
+
+The tools return clean Markdown and update the visible result panel. WebMCP is
+progressive enhancement; browsers without `document.modelContext` continue to
+use the regular forms.
+
 ---
 
 ## Tool Specification (Schema)

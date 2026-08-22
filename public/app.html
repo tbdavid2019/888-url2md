@@ -650,6 +650,28 @@
           resultArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         };
 
+        const readMarkdownResponse = async response => {
+          const markdown = await response.text();
+          if (!response.ok) throw new Error(markdown || `Server error ${response.status}`);
+          return markdown;
+        };
+
+        const requestSearch = query => fetch(`/search?q=${encodeURIComponent(query)}&noCache=true`, {
+          headers: { 'Accept': 'text/plain', 'X-No-Cache': 'true' }
+        }).then(readMarkdownResponse);
+
+        const requestSingleUrl = url => fetch('/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'text/plain' },
+          body: JSON.stringify({ url })
+        }).then(readMarkdownResponse);
+
+        const requestBatch = urls => fetch('/v1/batch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'text/plain' },
+          body: JSON.stringify({ urls })
+        }).then(readMarkdownResponse);
+
         // 1. Search Keyboard & Form Listener (Enter key submits search!)
         queryInput.addEventListener('keydown', e => {
           if (e.key === 'Enter') {
@@ -672,11 +694,7 @@
           resultArea.hidden = true;
 
           try {
-            const response = await fetch(`/search?q=${encodeURIComponent(query)}&noCache=true`, {
-              headers: { 'Accept': 'text/plain', 'X-No-Cache': 'true' }
-            });
-            const markdown = await response.text();
-            if (!response.ok) throw new Error(markdown || `Server error ${response.status}`);
+            const markdown = await requestSearch(query);
             showResult(markdown);
             setStatus(text('searched')(query));
           } catch (err) {
@@ -716,13 +734,7 @@
           resultArea.hidden = true;
 
           try {
-            const response = await fetch('/v1/batch', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Accept': 'text/plain' },
-              body: JSON.stringify({ urls })
-            });
-            const markdown = await response.text();
-            if (!response.ok) throw new Error(markdown || `Server error ${response.status}`);
+            const markdown = await requestBatch(urls);
             showResult(markdown);
             setStatus(text('converted')(urls.length));
           } catch (err) {
@@ -784,6 +796,95 @@
           } finally {
             uploadBtn.disabled = false;
           }
+        });
+
+        // WebMCP integration. Browsers without document.modelContext continue
+        // to use the regular UI unchanged.
+        const registerWebMcpTools = async () => {
+          const modelContext = document.modelContext;
+          if (!modelContext || typeof modelContext.registerTool !== 'function') return;
+
+          await modelContext.registerTool({
+            name: 'search_web',
+            description: 'Search the live web and return the results as clean Markdown.',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                query: { type: 'string', description: 'The web search query.' }
+              },
+              required: ['query']
+            },
+            annotations: { readOnlyHint: true, untrustedContentHint: true },
+            execute: async ({ query }) => {
+              const normalizedQuery = String(query || '').replace(/[\r\n\t]+/g, ' ').replace(/\s+/g, ' ').trim();
+              if (!normalizedQuery) throw new Error('query must not be empty');
+              const markdown = await requestSearch(normalizedQuery);
+              queryInput.value = normalizedQuery;
+              showResult(markdown);
+              setStatus(text('searched')(normalizedQuery));
+              return markdown;
+            }
+          });
+
+          await modelContext.registerTool({
+            name: 'read_web_page',
+            description: 'Fetch one web page and convert it to clean Markdown.',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                url: { type: 'string', description: 'The absolute URL of the web page to read.' }
+              },
+              required: ['url']
+            },
+            annotations: { readOnlyHint: true, untrustedContentHint: true },
+            execute: async ({ url }) => {
+              const rawUrl = String(url || '').trim();
+              if (!rawUrl) throw new Error('url must not be empty');
+              const normalizedUrl = normalizeUrl(rawUrl);
+              const markdown = await requestSingleUrl(normalizedUrl);
+              urlsInput.value = normalizedUrl;
+              showResult(markdown);
+              setStatus(text('converted')(1));
+              return markdown;
+            }
+          });
+
+          await modelContext.registerTool({
+            name: 'read_web_pages',
+            description: 'Fetch multiple web pages concurrently and return the combined clean Markdown.',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                urls: {
+                  type: 'array',
+                  minItems: 1,
+                  items: { type: 'string' },
+                  description: 'The absolute URLs of the web pages to read.'
+                }
+              },
+              required: ['urls']
+            },
+            annotations: { readOnlyHint: true, untrustedContentHint: true },
+            execute: async ({ urls }) => {
+              const normalizedUrls = (Array.isArray(urls) ? urls : [])
+                .map(url => String(url || '').trim())
+                .filter(Boolean)
+                .map(normalizeUrl)
+                .filter(Boolean);
+              if (!normalizedUrls.length) throw new Error('urls must contain at least one URL');
+              const markdown = await requestBatch(normalizedUrls);
+              urlsInput.value = normalizedUrls.join('\n');
+              showResult(markdown);
+              setStatus(text('converted')(normalizedUrls.length));
+              return markdown;
+            }
+          });
+        };
+
+        void registerWebMcpTools().catch(error => {
+          // WebMCP is experimental. A registration failure must not affect
+          // the regular converter UI.
+          console.warn('WebMCP tool registration failed:', error);
         });
 
         // Copy & Download

@@ -386,6 +386,18 @@ If you are an LLM or AI Agent accessing this service for the first time:
 - \`X-Target-Selector\`: CSS selector for targeted extraction
 - \`X-Remove-Selector\`: CSS selector to omit unwanted DOM nodes
 - \`X-No-Cache\`: Set to \`true\` to force fresh fetching
+
+## WebMCP Browser Tools
+
+When the homepage is opened in a WebMCP-enabled Chrome browser, it registers
+the following read-only tools through \`document.modelContext\`:
+
+- \`search_web\`: Search the live web. Input: \`{ "query": "..." }\`.
+- \`read_web_page\`: Read one page. Input: \`{ "url": "https://..." }\`.
+- \`read_web_pages\`: Read multiple pages concurrently. Input: \`{ "urls": ["https://..."] }\`.
+
+The tools return clean Markdown and update the visible result panel. Browsers
+without \`document.modelContext\` continue to use the regular API and forms.
 `;
     }
 

@@ -33,6 +33,9 @@ Currently deployed at: [**create360.ai**](https://create360.ai) (or easily self-
   - 整合 Firecrawl 最新開源的 Rust 文檔解析引擎 `@firecrawl/anydoc`。
   - 支援 PDF, Word (.docx/.doc), Excel (.xlsx/.xls), PowerPoint (.pptx/.ppt), EPUB, RTF, OpenDocument (ODT/ODS/ODP), CSV 等 14+ 種文檔格式。
   - 提供 **&lt; 5ms 毫秒級解析超高速度**與統一高品質 GitHub-Flavored Markdown 輸出，大幅超越傳統 LibreOffice 轉換速度。
+7. **WebMCP 瀏覽器工具 (WebMCP Browser Tools)**
+  - 在支援 WebMCP 的 Chrome 瀏覽器中，首頁會透過 `document.modelContext` 註冊 `search_web`、`read_web_page` 與 `read_web_pages` 唯讀工具。
+  - 工具會回傳乾淨 Markdown，並同步更新首頁結果區；不支援 WebMCP 的瀏覽器維持原本表單功能。
 
 ---
 
@@ -206,6 +209,16 @@ curl -X POST 'https://create360.ai/v1/batch' \
 }
 ```
 
+#### **WebMCP Browser Tools**:
+
+在支援 WebMCP 的 Chrome 瀏覽器開啟首頁後，AI Agent 可透過 `document.modelContext` 探索並呼叫：
+
+- `search_web`：`{ "query": "台積電最新消息" }`
+- `read_web_page`：`{ "url": "https://example.com/article" }`
+- `read_web_pages`：`{ "urls": ["https://example.com/a", "https://example.com/b"] }`
+
+工具回傳 Markdown，並會將結果顯示在首頁。WebMCP 為漸進式增強功能，未支援的瀏覽器仍可使用 REST API 與一般表單。
+
 ---
 
 ### 4. LLM / Agent 開發者工具標準 (Skill &amp; LLMs.txt)
@@ -328,6 +341,9 @@ Currently deployed at: [**create360.ai**](https://create360.ai) (or easily self-
    - Integrated with Firecrawl's open-source Rust document parsing engine `@firecrawl/anydoc`.
    - Supports 14+ document formats including PDF, Word (.docx/.doc), Excel (.xlsx/.xls), PowerPoint (.pptx/.ppt), EPUB, RTF, OpenDocument (ODT/ODS/ODP), CSV, and TXT.
    - Ultra-fast **< 5ms parsing speed** with unified, clean GitHub-Flavored Markdown output.
+7. **WebMCP Browser Tools**
+   - On WebMCP-enabled Chrome browsers, the homepage registers the read-only `search_web`, `read_web_page`, and `read_web_pages` tools through `document.modelContext`.
+   - Tool calls return clean Markdown and update the visible result panel. Browsers without WebMCP continue to use the existing forms and REST API.
 
 ---
 
@@ -478,5 +494,4 @@ curl -X POST 'https://create360.ai/upload' \
 
 - **License**: Released under the **GNU Affero General Public License v3.0 ([AGPL-3.0](LICENSE))**.
 - **Attribution**: Core module derived from [Jina AI](https://jina.ai) (`jina-ai/reader`). Special thanks to the Jina AI team and open-source community!
-
 

@@ -52,6 +52,12 @@ All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888
 
 ## [Unreleased]
 
+### 🤖 WebMCP Browser Tools
+- Added WebMCP imperative API integration to the browser landing page through `document.modelContext`.
+- Registered `search_web`, `read_web_page`, and `read_web_pages` read-only tools for WebMCP-enabled Chrome browsers.
+- WebMCP tool calls return clean Markdown and update the visible result panel; unsupported browsers continue to use the existing forms.
+- Documented the browser tools in `public/SKILL.md`, `/llms.txt`, the dynamic `/skill.md` and `/llms-full.txt` responses, and the README.
+
 ### ✨ Human-facing Web Interface
 - Added the **888 URL2MD** browser landing page at `GET /` for `create360.ai`. Users can paste one or more URLs to convert them into Markdown, preview the result, copy it, or download it as a `.md` file.
 - The interface detects the browser language and defaults to Traditional Chinese or English accordingly. Users can switch languages manually, and their preference is retained locally.

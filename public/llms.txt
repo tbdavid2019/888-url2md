@@ -13,6 +13,7 @@
 - [Single Page Crawl](/): `GET /<URL>` or `POST /`
 - [Batch Crawl](/v1/batch): `POST /v1/batch` with `{"urls": ["URL1", "URL2"]}`
 - [Skill Documentation](/skill.md): Complete LLM skill specification and tool schema
+- [WebMCP Browser Tools](/): When supported by Chrome, the homepage exposes `search_web`, `read_web_page`, and `read_web_pages` through `document.modelContext`.
 
 ## Optional Headers
 
