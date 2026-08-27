@@ -374,42 +374,76 @@ without \`document.modelContext\` continue to use the regular API and forms.
     generateLlmstxt(baseDomain: string): string {
         return `# 888 URL to Markdown (888-url2md) API
 
-> High-performance Web Reader, Live Search, Document File Parsing (AnyDoc), and Multi-URL Batch Crawling API service for LLMs and AI Agents. Converts web pages, document files (PDF, Word, Excel, PPT, EPUB, CSV), and search queries into clean Markdown or structured JSON.
+> High-performance Web Reader, Live Web Search (SERP), Document & PDF Parsing (Firecrawl AnyDoc), and Multi-URL Batch Crawling API service for LLMs and AI Agents. Converts web pages, document files (PDF, Word, Excel, PPT, EPUB, RTF, CSV), and live search queries into clean Markdown or structured JSON.
 
 ## Capabilities
 
-- **Single URL Reading**: Convert any web page to clean Markdown by calling \`GET ${baseDomain}/<URL>\` or \`POST ${baseDomain}/\` with \`{"url": "..."}\`.
-- **Document File Upload & Parsing**: Convert PDF, DOCX, XLSX, PPTX, EPUB, RTF, CSV files into Markdown by POSTing form-data with \`file=@document.pdf\` to \`${baseDomain}/\`.
-- **Live Web Search**: Search web queries by calling \`GET ${baseDomain}/s/<QUERY>\` or \`GET ${baseDomain}/search?q=<QUERY>\`.
-- **Multi-URL Batch Reading**: Fetch and extract multiple URLs concurrently in a single request by calling \`POST ${baseDomain}/v1/batch\` or \`POST ${baseDomain}/\` with \`{"urls": ["...", "..."]}\`.
-- **Content Formats**: Supports clean Markdown (\`Accept: text/plain\`), structured JSON (\`Accept: application/json\`), or SSE event streaming (\`Accept: text/event-stream\`).
+- **Single URL Web Reader & Scraper**: Convert any web page or online document URL into clean LLM-friendly Markdown by calling \`GET ${baseDomain}/<URL>\` or \`POST ${baseDomain}/\` with \`{"url": "..."}\`.
+- **High-Speed Document & PDF Parsing (AnyDoc Engine)**: Extract and convert local document files (PDF, DOCX, DOC, XLSX, XLS, PPTX, PPT, EPUB, RTF, ODT, ODS, ODP, CSV) into clean Markdown with sub-5ms latency via \`POST ${baseDomain}/\` using multipart form-data (\`file=@document.pdf\` or \`pdf=@document.pdf\`), or by providing direct remote PDF/document URLs.
+- **Real-Time Live Web Search (SERP)**: Execute zero-config live web searches and get structured Markdown snippets by calling \`GET ${baseDomain}/s/<QUERY>\` or \`GET ${baseDomain}/search?q=<QUERY>\`. Powered by DuckDuckGo with multi-engine fallback.
+- **Multi-URL Batch Crawling**: Fetch, scrape, and convert multiple web pages concurrently in a single HTTP request by calling \`POST ${baseDomain}/v1/batch\` (or \`POST ${baseDomain}/\`) with \`{"urls": ["...", "..."]}\`. Features isolated fault tolerance where individual failures do not disrupt the entire batch.
+- **Flexible Response Formats**: Supports clean GitHub-Flavored Markdown (\`Accept: text/plain\` or default), structured JSON (\`Accept: application/json\`), or SSE event streaming (\`Accept: text/event-stream\`).
+- **WebMCP Browser Tools**: For Chrome browsers supporting WebMCP (\`document.modelContext\`), the web UI automatically registers \`search_web\`, \`read_web_page\`, and \`read_web_pages\` client tools.
 
 ## Endpoints & Documentation
 
-- [Single Page Crawl](${baseDomain}/): \`GET ${baseDomain}/<URL>\` or \`POST ${baseDomain}/\`
-- [Live Web Search](${baseDomain}/s/): \`GET ${baseDomain}/s/<QUERY>\`
-- [Batch Crawl](${baseDomain}/v1/batch): \`POST ${baseDomain}/v1/batch\` with \`{"urls": ["URL1", "URL2"]}\`
-- [Skill Documentation](${baseDomain}/skill.md): Complete LLM skill specification and tool schema
+- [Single Page & Document Reader](${baseDomain}/): \`GET ${baseDomain}/<URL>\` or \`POST ${baseDomain}/\` with \`{"url": "https://..."}\`
+- [Live Web Search](${baseDomain}/s/): \`GET ${baseDomain}/s/<QUERY>\` or \`GET ${baseDomain}/search?q=<QUERY>\`
+- [Multi-URL Batch Crawl](${baseDomain}/v1/batch): \`POST ${baseDomain}/v1/batch\` with \`{"urls": ["URL1", "URL2"]}\`
+- [Document File & PDF Upload](${baseDomain}/): \`POST ${baseDomain}/\` with multipart form-data \`file=@document.pdf\`
+- [Agent Skill Specification](${baseDomain}/skill.md): Complete LLM skill specification and tool schema
+- [Full LLM Documentation](${baseDomain}/llms-full.txt): Complete full-text documentation and reference guide for LLMs
 
-## Optional Headers
+## Quick Usage Examples for LLMs & AI Agents
 
-- \`X-Respond-With\`: \`markdown\` | \`html\` | \`text\` | \`frontmatter\`
-- \`X-Preset\`: \`reader\` | \`index\` | \`research\` | \`agent\` | \`spider\`
-- \`X-Target-Selector\`: CSS selector for targeted extraction
-- \`X-Remove-Selector\`: CSS selector to omit unwanted DOM nodes
-- \`X-No-Cache\`: Set to \`true\` to force fresh fetching
+### 1. Read Web Page
+\`\`\`bash
+curl -s -H "Accept: text/plain" "${baseDomain}/https://news.ycombinator.com"
+\`\`\`
+
+### 2. Parse PDF / Document (Remote URL or Local File Upload)
+\`\`\`bash
+# Read remote PDF / Document URL
+curl -s -H "Accept: text/plain" "${baseDomain}/https://arxiv.org/pdf/2301.00001.pdf"
+
+# Upload local PDF / Document file
+curl -s -X POST "${baseDomain}/" -H "Accept: text/plain" -F "file=@document.pdf"
+\`\`\`
+
+### 3. Live Web Search (SERP)
+\`\`\`bash
+# Path-based search
+curl -s -H "Accept: text/plain" "${baseDomain}/s/artificial+intelligence"
+
+# Query parameter search
+curl -s -H "Accept: text/plain" "${baseDomain}/search?q=NVIDIA+stock"
+\`\`\`
+
+### 4. Multi-URL Batch Crawl
+\`\`\`bash
+curl -s -X POST "${baseDomain}/v1/batch" \\
+  -H "Content-Type: application/json" \\
+  -H "Accept: text/plain" \\
+  -d '{"urls": ["https://example.com/page1", "https://example.com/page2"]}'
+\`\`\`
+
+## Optional Customization Headers
+
+- \`X-Respond-With\`: \`markdown\` (default) | \`html\` | \`text\` | \`frontmatter\`
+- \`X-Preset\`: \`reader\` (default) | \`index\` | \`research\` | \`agent\` | \`spider\`
+- \`X-Target-Selector\`: CSS selector for targeted extraction (e.g. \`article\`, \`main\`, \`#content\`)
+- \`X-Remove-Selector\`: CSS selector to omit unwanted DOM nodes (e.g. \`nav\`, \`footer\`, \`.ads\`)
+- \`X-No-Cache\`: Set to \`true\` to bypass cache and force fresh fetching
+- \`X-With-Generated-Alt\`: Set to \`true\` to enable AI image captioning
+- \`X-With-Images-Summary\`: Set to \`true\` to extract image summaries
 
 ## WebMCP Browser Tools
 
-When the homepage is opened in a WebMCP-enabled Chrome browser, it registers
-the following read-only tools through \`document.modelContext\`:
+When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the following read-only tools through \`document.modelContext\`:
 
 - \`search_web\`: Search the live web. Input: \`{ "query": "..." }\`.
 - \`read_web_page\`: Read one page. Input: \`{ "url": "https://..." }\`.
 - \`read_web_pages\`: Read multiple pages concurrently. Input: \`{ "urls": ["https://..."] }\`.
-
-The tools return clean Markdown and update the visible result panel. Browsers
-without \`document.modelContext\` continue to use the regular API and forms.
 `;
     }
 

@@ -93,6 +93,11 @@ export class SearchStandAloneServer extends KoaServer {
                 return next();
             }
 
+            const lowerFile = file.toLowerCase();
+            if (lowerFile === 'llms.txt' || lowerFile === 'llms-full.txt' || lowerFile === 'skill.md') {
+                return next();
+            }
+
             const asset = this.assets.get(file);
             if (asset?.type !== 'file') {
                 return next();

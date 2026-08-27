@@ -1,0 +1,150 @@
+# 888 URL to Markdown (888-url2md) API — Full Documentation
+
+> High-performance Web Reader, Live Web Search (SERP), Document & PDF Parsing (Firecrawl AnyDoc), and Multi-URL Batch Crawling API service for LLMs and AI Agents. Converts web pages, document files (PDF, Word, Excel, PPT, EPUB, RTF, CSV), and live search queries into clean Markdown or structured JSON.
+
+---
+
+## 1. Capabilities Overview
+
+1. **Single URL Web Reader & Scraper**: Convert any web page or online document URL into clean LLM-friendly Markdown.
+2. **High-Speed Document & PDF Parsing (AnyDoc Engine)**: Extract and convert local document files (PDF, DOCX, DOC, XLSX, XLS, PPTX, PPT, EPUB, RTF, ODT, ODS, ODP, CSV) into clean Markdown with sub-5ms latency via multipart form-data or direct remote URLs.
+3. **Real-Time Live Web Search (SERP)**: Execute zero-config live web searches and get structured Markdown snippets powered by DuckDuckGo with multi-engine fallback.
+4. **Multi-URL Batch Crawling**: Fetch, scrape, and convert multiple web pages concurrently in a single HTTP request with isolated fault tolerance.
+5. **Flexible Response Formats**: Supports clean GitHub-Flavored Markdown (`Accept: text/plain` or default), structured JSON (`Accept: application/json`), or SSE event streaming (`Accept: text/event-stream`).
+6. **WebMCP Browser Tools**: For Chrome browsers supporting WebMCP (`document.modelContext`), automatically registers `search_web`, `read_web_page`, and `read_web_pages` client tools.
+
+---
+
+## 2. API Endpoints & Detailed Usage
+
+### 2.1 Single URL Reading
+- **GET Request**: `/<URL>`
+  *Example*: `/https://news.ycombinator.com`
+- **POST Request**: `/`
+  *JSON Body*:
+  ```json
+  {
+    "url": "https://news.ycombinator.com"
+  }
+  ```
+
+### 2.2 Document & PDF Parsing (AnyDoc Engine)
+- **Direct Online Document URL**:
+  - `GET /https://arxiv.org/pdf/2301.00001.pdf`
+  - `POST /` with `{"url": "https://example.com/document.docx"}`
+- **Multipart Form-Data File Upload**:
+  - `POST /`
+  - Form field `file` or `pdf`:
+    ```bash
+    curl -X POST "https://create360.ai/" \
+      -H "Accept: text/plain" \
+      -F "file=@sample.pdf"
+    ```
+- **Supported Formats**:
+  - PDF (`.pdf`)
+  - Microsoft Word (`.docx`, `.doc`)
+  - Microsoft Excel (`.xlsx`, `.xls`)
+  - Microsoft PowerPoint (`.pptx`, `.ppt`)
+  - EPUB e-books (`.epub`)
+  - Rich Text Format (`.rtf`)
+  - OpenDocument Formats (`.odt`, `.ods`, `.odp`)
+  - CSV / Tabular Data (`.csv`, `.tsv`)
+
+### 2.3 Live Web Search (SERP)
+- **Path-based Search**: `GET /s/<QUERY>`
+  *Example*: `/s/artificial+intelligence` or `/s/%E5%8F%B0%E7%A9%8D%E9%9B%BB`
+- **Query Parameter-based Search**: `GET /search?q=<QUERY>`
+  *Example*: `/search?q=NVIDIA+stock`
+
+### 2.4 Multi-URL Batch Crawling (Batch Crawl)
+- **POST Request**: `/v1/batch` (or `/batch` or `/`)
+  *JSON Body*:
+  ```json
+  {
+    "urls": [
+      "https://example.com/page1",
+      "https://example.com/page2",
+      "https://example.com/page3"
+    ]
+  }
+  ```
+
+---
+
+## 3. Response Formats
+
+### 3.1 Plain Text / Markdown (`Accept: text/plain` or default)
+Returns clean GitHub-Flavored Markdown. For batch requests, pages are separated by `---`.
+
+### 3.2 Structured JSON (`Accept: application/json`)
+```json
+{
+  "code": 200,
+  "status": 20000,
+  "data": [
+    {
+      "url": "https://example.com/page1",
+      "title": "Page 1 Title",
+      "content": "# Page 1\n\nContent here..."
+    }
+  ]
+}
+```
+
+---
+
+## 4. Optional Headers & Customization
+
+| Header | Values | Description |
+| :--- | :--- | :--- |
+| `X-Respond-With` | `markdown` \| `html` \| `text` \| `frontmatter` | Output format selection (default: `markdown`) |
+| `X-Preset` | `reader` \| `index` \| `research` \| `agent` \| `spider` | Extraction preset configuration |
+| `X-Target-Selector` | CSS Selector string (e.g. `article`, `main`) | Focus extraction on matching DOM elements |
+| `X-Remove-Selector` | CSS Selector string (e.g. `nav`, `footer`, `.ad`) | Remove unwanted elements from DOM before conversion |
+| `X-No-Cache` | `true` \| `false` | Bypass internal cache and force live fetch |
+| `X-With-Generated-Alt` | `true` \| `false` | Enable AI-generated image captions |
+| `X-With-Images-Summary` | `true` \| `false` | Include image metadata summaries |
+
+---
+
+## 5. WebMCP Browser Tools
+
+When the web UI is opened in a WebMCP-compatible browser (Chrome with `document.modelContext`):
+
+```javascript
+// Available tools
+document.modelContext.registerTool({
+  name: "search_web",
+  description: "Search the live web and return results as Markdown.",
+  inputSchema: {
+    type: "object",
+    properties: { query: { type: "string" } },
+    required: ["query"]
+  }
+});
+```
+
+---
+
+## 6. Tool Specification (LLM / Agent Schema)
+
+```json
+{
+  "name": "888_url2md",
+  "description": "Fetch and convert web pages, document files (PDF/Word/Excel/PPT/EPUB/CSV), search results, or multiple URLs into clean Markdown.",
+  "parameters": {
+    "type": "object",
+    "properties": {
+      "urls": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "List of web page URLs to scrape concurrently in batch."
+      },
+      "url": {
+        "type": "string",
+        "description": "Single web page URL to scrape, document URL, or search query."
+      }
+    }
+  }
+}
+```
