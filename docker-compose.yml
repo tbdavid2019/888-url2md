@@ -1,8 +1,6 @@
 services:
   888-url2md:
-    build:
-      context: .
-    image: 888-url2md:latest
+    image: ghcr.io/tbdavid2019/888-url2md:latest
     container_name: 888-url2md
     ports:
       # The app listens on h2c at APP_PORT (8080 by default) and HTTP/1.1 at
@@ -15,6 +13,18 @@ services:
     security_opt:
       - seccomp=unconfined
     restart: always
+
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: watchtower-url2md
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_POLL_INTERVAL=300
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_INCLUDE_RESTARTING=true
+    command: 888-url2md
 
   # Optional local dependency for development. It is excluded from the default
   # production deployment so its ports do not conflict with other services.
