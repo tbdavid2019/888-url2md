@@ -81,6 +81,30 @@ If you are an LLM or AI Agent accessing this service for the first time:
 - `X-No-Cache: true`: Bypass internal page cache.
 - `X-With-Generated-Alt: true`: Generate AI alt text for images.
 - `X-With-Images-Summary: true`: Include image metadata summaries.
+- `X-Content-Filter: pruning | bm25`: Return compact filtered Markdown in JSON as `fitMarkdown`.
+- `X-Content-Query: ...`: Query used by the BM25 content filter.
+- `X-Session-Id: ...`: Reuse session cookies for related requests.
+- `X-Prefetch: true`: Discover links without formatting the page.
+
+### 7. Advanced JSON Options
+
+The POST body can also include:
+
+```json
+{
+  "extraction": {
+    "type": "css",
+    "baseSelector": ".product",
+    "fields": [{"name": "title", "selector": "h2"}]
+  },
+  "contentFilter": "bm25",
+  "contentQuery": "product price",
+  "deepCrawl": {"maxDepth": 2, "maxPages": 20},
+  "virtualScroll": {"maxScrolls": 20}
+}
+```
+
+Use `asyncJob: true` for a background deep crawl. Poll `GET /jobs/{jobId}`, cancel with `POST /jobs/{jobId}/cancel`, or provide an HTTPS `webhook.url`.
 
 ### 7. WebMCP Browser Tools
 

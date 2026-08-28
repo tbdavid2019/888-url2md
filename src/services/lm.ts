@@ -110,7 +110,7 @@ export class LmControl extends AsyncService {
         return;
     }
 
-    async* readerLMFromSnapshot(schema?: string, instruction: string = 'Infer useful information from the HTML and present it in a structured JSON object.', snapshot?: PageSnapshot) {
+    async* readerLMFromSnapshot(instruction?: string, schema?: string, snapshot?: PageSnapshot) {
         if (!snapshot) {
             throw new AssertionFailureError('Snapshot of the page is not available');
         }

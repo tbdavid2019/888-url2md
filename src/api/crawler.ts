@@ -255,7 +255,9 @@ If you are an LLM or AI Agent accessing this service for the first time:
 2. Use **Document File Upload mode** to parse PDF, Word, Excel, PPT, EPUB, CSV files via multipart form-data.
 3. Use **Web Search mode** to execute live web search queries.
 4. Use **Multi-URL Batch mode** to fetch and extract multiple pages concurrently in a single request.
-5. Include \`Accept: application/json\` header for JSON responses or \`Accept: text/plain\` for clean Markdown text.
+5. Use **Advanced Extraction mode** with CSS/XPath schemas when you need records instead of prose.
+6. Use **Deep Crawl mode** with explicit depth/page limits to explore a site from a starting URL.
+7. Include \`Accept: application/json\` header for JSON responses or \`Accept: text/plain\` for clean Markdown text.
 
 ---
 
@@ -317,7 +319,18 @@ If you are an LLM or AI Agent accessing this service for the first time:
   }
   \`\`\`
 
-### 6. Optional Headers
+### 6. Advanced Crawl and Extraction
+- Add \`extraction\` with \`type\`, \`baseSelector\`, and \`fields\` to return deterministic \`extracted\` JSON records.
+- Add \`contentFilter: "pruning"\` or \`"bm25"\` and optional \`contentQuery\` to return compact \`fitMarkdown\` while preserving \`rawMarkdown\`.
+- Add \`deepCrawl: { "maxDepth": 2, "maxPages": 20 }\` for bounded BFS exploration, or \`prefetch: true\` to return discovered links.
+- Add \`sessionId\` to reuse session cookies, or \`virtualScroll: { "maxScrolls": 20 }\` for bounded infinite-scroll content.
+
+### 7. Async Jobs
+- Add \`asyncJob: true\` to run a deep crawl in the background.
+- Poll \`GET ${baseDomain}/jobs/{jobId}\`, cancel with \`POST ${baseDomain}/jobs/{jobId}/cancel\`, or list metrics with \`GET ${baseDomain}/jobs\`.
+- Optional \`webhook: { "url": "https://..." }\` receives the final job status. Webhook URLs must use HTTPS.
+
+### 8. Optional Headers
 - \`X-Respond-With\`: \`markdown\` | \`html\` | \`text\` | \`frontmatter\`
 - \`X-Preset\`: \`reader\` | \`index\` | \`research\` | \`agent\` | \`spider\`
 - \`X-Target-Selector\`: Extract specific CSS selector.
@@ -389,6 +402,8 @@ without \`document.modelContext\` continue to use the regular API and forms.
 - **High-Speed Document & PDF Parsing (AnyDoc Engine)**: Extract and convert local document files (PDF, DOCX, DOC, XLSX, XLS, PPTX, PPT, EPUB, RTF, ODT, ODS, ODP, CSV) into clean Markdown with sub-5ms latency via \`POST ${baseDomain}/\` using multipart form-data (\`file=@document.pdf\` or \`pdf=@document.pdf\`), or by providing direct remote PDF/document URLs.
 - **Real-Time Live Web Search (SERP)**: Execute zero-config live web searches and get structured Markdown snippets by calling \`GET ${baseDomain}/s/<QUERY>\` or \`GET ${baseDomain}/search?q=<QUERY>\`. Powered by DuckDuckGo with multi-engine fallback.
 - **Multi-URL Batch Crawling**: Fetch, scrape, and convert multiple web pages concurrently in a single HTTP request by calling \`POST ${baseDomain}/v1/batch\` (or \`POST ${baseDomain}/\`) with \`{"urls": ["...", "..."]}\`. Features isolated fault tolerance where individual failures do not disrupt the entire batch.
+- **Advanced Extraction and Deep Crawl**: Use CSS/XPath schemas for deterministic JSON extraction, Pruning/BM25 filters for compact Fit Markdown, or bounded BFS crawling with \`maxDepth\` and \`maxPages\`.
+- **Async Crawl Jobs**: Submit long-running deep crawls with \`asyncJob: true\`, then poll \`/jobs/{jobId}\`, cancel with \`POST /jobs/{jobId}/cancel\`, or receive an HTTPS webhook.
 - **Flexible Response Formats**: Supports clean GitHub-Flavored Markdown (\`Accept: text/plain\` or default), structured JSON (\`Accept: application/json\`), or SSE event streaming (\`Accept: text/event-stream\`).
 - **WebMCP Browser Tools**: For Chrome browsers supporting WebMCP (\`document.modelContext\`), the web UI automatically registers \`search_web\`, \`read_web_page\`, and \`read_web_pages\` client tools.
 
