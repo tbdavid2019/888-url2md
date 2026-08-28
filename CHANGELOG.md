@@ -52,6 +52,10 @@ All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888
 
 ## [Unreleased]
 
+### 🧭 Repository Workflow
+- Added `AGENTS.md` with the repository rule that every Git commit must update `CHANGELOG.md`.
+- Documented when user-facing changes also require a `README.md` update.
+
 ### 🤖 WebMCP Browser Tools
 - Added WebMCP imperative API integration to the browser landing page through `document.modelContext`.
 - Registered `search_web`, `read_web_page`, and `read_web_pages` read-only tools for WebMCP-enabled Chrome browsers.
