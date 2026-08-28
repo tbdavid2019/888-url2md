@@ -7,6 +7,7 @@ All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888
 ### 🐛 Bug Fixes & Dynamic Domain Detection
 - **Dynamic Host Header Prioritization**: Updated `CrawlerHost.getPublicDomain(ctx)` to prioritize incoming HTTP request headers (`X-Forwarded-Host`, `Host`, and `X-Forwarded-Proto`). Requests to `https://2md.aiurl.tw/llms.txt`, `https://2md.glsoft.ai/llms.txt`, or `https://create360.ai/llms.txt` dynamically render their respective hostnames in all documentation links and code snippets.
 - **Docker Compose Fallback Cleanup**: Removed the hardcoded `https://create360.ai` fallback default for `PUBLIC_DOMAIN` in `docker-compose.yml`, allowing multi-host deployments to automatically adopt their reverse-proxy domains without manual configuration.
+- **Static Documentation Templates**: Replaced hardcoded `https://create360.ai` URLs in static repository files (`public/SKILL.md`, `public/llms.txt`, `public/llms-full.txt`) with neutral `<HOST>` placeholders.
 
 ---
 

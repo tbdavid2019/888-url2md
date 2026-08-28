@@ -24,30 +24,30 @@
 
 ### 1. Read Web Page
 ```bash
-curl -s -H "Accept: text/plain" "https://create360.ai/https://news.ycombinator.com"
+curl -s -H "Accept: text/plain" "https://<HOST>/https://news.ycombinator.com"
 ```
 
 ### 2. Parse PDF / Document (Remote URL or Local File Upload)
 ```bash
 # Read remote PDF / Document URL
-curl -s -H "Accept: text/plain" "https://create360.ai/https://arxiv.org/pdf/2301.00001.pdf"
+curl -s -H "Accept: text/plain" "https://<HOST>/https://arxiv.org/pdf/2301.00001.pdf"
 
 # Upload local PDF / Document file
-curl -s -X POST "https://create360.ai/" -H "Accept: text/plain" -F "file=@document.pdf"
+curl -s -X POST "https://<HOST>/" -H "Accept: text/plain" -F "file=@document.pdf"
 ```
 
 ### 3. Live Web Search (SERP)
 ```bash
 # Path-based search
-curl -s -H "Accept: text/plain" "https://create360.ai/s/artificial+intelligence"
+curl -s -H "Accept: text/plain" "https://<HOST>/s/artificial+intelligence"
 
 # Query parameter search
-curl -s -H "Accept: text/plain" "https://create360.ai/search?q=NVIDIA+stock"
+curl -s -H "Accept: text/plain" "https://<HOST>/search?q=NVIDIA+stock"
 ```
 
 ### 4. Multi-URL Batch Crawl
 ```bash
-curl -s -X POST "https://create360.ai/v1/batch" \
+curl -s -X POST "https://<HOST>/v1/batch" \
   -H "Content-Type: application/json" \
   -H "Accept: text/plain" \
   -d '{"urls": ["https://example.com/page1", "https://example.com/page2"]}'

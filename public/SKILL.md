@@ -53,7 +53,7 @@ If you are an LLM or AI Agent accessing this service for the first time:
 ### 4. Document File Upload & Parsing (AnyDoc Engine)
 - **POST Request**: `/`
   *Multipart Form-Data*: Attach file in form-data parameter `file` or `pdf`:
-  `curl -X POST 'https://create360.ai/' -H 'Accept: text/plain' -F "file=@report.pdf"`
+  `curl -X POST 'https://<HOST>/' -H 'Accept: text/plain' -F "file=@report.pdf"`
   *Supported Formats*: PDF, Word (.docx/.doc), Excel (.xlsx/.xls), PowerPoint (.pptx/.ppt), EPUB, RTF, OpenDocument (.odt/.ods/.odp), CSV.
   *Latency*: Sub-5ms conversion via Firecrawl AnyDoc engine.
 

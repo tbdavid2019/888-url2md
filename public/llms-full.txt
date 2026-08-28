@@ -36,7 +36,7 @@
   - `POST /`
   - Form field `file` or `pdf`:
     ```bash
-    curl -X POST "https://create360.ai/" \
+    curl -X POST "https://<HOST>/" \
       -H "Accept: text/plain" \
       -F "file=@sample.pdf"
     ```
