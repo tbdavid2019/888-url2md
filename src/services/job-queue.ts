@@ -129,10 +129,15 @@ export class JobQueueService extends AsyncService {
     }
 
     private async deliverWebhook(job: StoredJob<unknown>) {
-        const webhookUrl = new URL(job.webhook!.url);
-        const addresses = await lookup(webhookUrl.hostname, { all: true });
-        if (addresses.some((address) => isIPInNonPublicRange(address.address))) {
-            this.logger.warn('Webhook delivery blocked for non-public address', { jobId: job.id });
+        try {
+            const webhookUrl = new URL(job.webhook!.url);
+            const addresses = await lookup(webhookUrl.hostname, { all: true });
+            if (addresses.some((address) => isIPInNonPublicRange(address.address))) {
+                this.logger.warn('Webhook delivery blocked for non-public address', { jobId: job.id });
+                return;
+            }
+        } catch (error) {
+            this.logger.warn('Webhook endpoint could not be resolved', { jobId: job.id, error: `${error}` });
             return;
         }
         const payload = JSON.stringify(this.publicJob(job));

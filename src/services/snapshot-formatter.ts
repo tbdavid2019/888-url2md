@@ -75,7 +75,9 @@ export class FormattedPageDto extends Coercible {
     content?: string;
     @Prop({ type: ArrayOf(Object) })
     extracted?: Record<string, unknown>[];
+    @Prop()
     rawMarkdown?: string;
+    @Prop()
     fitMarkdown?: string;
     @Prop({
         type: ArrayOf(String),

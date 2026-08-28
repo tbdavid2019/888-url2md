@@ -59,6 +59,7 @@ All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888
 - Added session cookie continuity and bounded virtual scrolling for dynamic pages.
 - Added asynchronous crawl jobs with progress polling, cancellation, and HTTPS webhook retries.
 - Added queue statistics and recent-job listing for lightweight monitoring.
+- Fixed JSON serialization for `rawMarkdown` and `fitMarkdown`, and contained webhook DNS failures.
 
 ### 🧭 Repository Workflow
 - Added `AGENTS.md` with the repository rule that every Git commit must update `CHANGELOG.md`.

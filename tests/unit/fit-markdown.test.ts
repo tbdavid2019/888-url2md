@@ -1,6 +1,8 @@
+import 'reflect-metadata';
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import { buildFitMarkdown } from '../../build/services/fit-markdown.js';
+import { FormattedPageDto } from '../../build/services/snapshot-formatter.js';
 
 describe('fit markdown', () => {
     const markdown = [
@@ -30,5 +32,16 @@ describe('fit markdown', () => {
         const result = buildFitMarkdown(markdown, { mode: 'bm25', query: 'unrelated topic' });
         assert.match(result, /Article title/);
         assert.match(result, /structured extraction/);
+    });
+
+    it('serializes raw and fit markdown alongside the selected content', () => {
+        const result = FormattedPageDto.from({
+            url: 'https://example.com',
+            content: 'fit content',
+            rawMarkdown: 'raw content',
+            fitMarkdown: 'fit content',
+        }) as FormattedPageDto;
+        assert.equal(result.rawMarkdown, 'raw content');
+        assert.equal(result.fitMarkdown, 'fit content');
     });
 });
