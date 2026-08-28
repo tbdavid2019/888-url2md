@@ -2,7 +2,7 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
-## [v0.8.0] - Crawl4AI Integration & Advanced Extraction (2026-08-28)
+## 2026-08-28 - Crawl4AI 核心整合與進階抽取 (Crawl4AI Integration & Advanced Extraction)
 
 ### 🚀 Crawl4AI Core Integration & Advanced Extraction
 - **CSS / XPath Structured Data Extraction (Zero-Token JSON)**: Pass `extraction` schema (`type: "css"|"xpath"`, `baseSelector`, `fields`) in POST request bodies to extract structured JSON arrays (`data.extracted`) directly in the Linkedom DOM without invoking LLMs (sub-millisecond latency).
@@ -19,7 +19,7 @@ All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888
 - **DOM TreeWalker NodeFilter Hardening**: Fixed Puppeteer's invisible DOM detachment TreeWalker filter to use standard `{ acceptNode(node) }` object format.
 
 ### 🧭 Repository Workflow & Agent Guidelines
-- **Mandatory Documentation Rules in `AGENTS.md`**: Enforced a zero-reminder policy requiring every AI Agent / LLM to proactively update `CHANGELOG.md` (and `README.md` for user/API facing changes) on every commit.
+- **Mandatory Documentation Rules in `AGENTS.md`**: Enforced a zero-reminder policy requiring every AI Agent / LLM to proactively update `CHANGELOG.md` (and `README.md` for user/API facing changes) on every commit with explicit dates.
 - **Updated `README.md`**: Added dedicated sections 1.5–1.9 for CSS/XPath structured extraction, BM25 Fit Markdown, bounded deep crawl, async job queues, and invisible DOM filtering in both Chinese and English sections.
 
 ### 🤖 WebMCP Browser Tools
@@ -38,7 +38,7 @@ All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888
 
 ---
 
-## [v0.7.1] - UI Overhaul & Search Relevance Filter (2026-08-11)
+## 2026-08-11 - UI Overhaul & Search Relevance Filter
 
 ### 🎨 Web Landing Page UI Overhaul (`public/app.html`)
 - **Instant Enter-Key Search Submit**: Replaced `<textarea>` search query box with `<input type="text">` and added a `keydown` listener to immediately submit web search queries when pressing `Enter`.
@@ -53,7 +53,7 @@ All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888
 
 ---
 
-## [v0.7.0] - Firecrawl AnyDoc Integration & High-Speed Document Parsing (2026-08-11)
+## 2026-08-11 - Firecrawl AnyDoc Integration & High-Speed Document Parsing
 
 ### 🚀 High-Reliability SERP Engine & Bing RSS Integration
 - **Bing RSS Endpoint Integration**: Added `https://www.bing.com/search?format=rss&q=...` as a primary search provider in `DuckDuckGoSERP`. This provides 100% reliable, structured XML search results that bypass cloud IP anti-bot blocks and deliver clean, un-redirected URLs for Chinese, English, CJK names, and all search queries.
@@ -77,7 +77,7 @@ All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888
 
 ---
 
-## [v0.6.2] - SEO, Open Graph & PWA Asset Enhancements (2026-08-10)
+## 2026-08-10 - SEO, Open Graph & PWA Asset Enhancements
 
 ### 🎨 SEO & Open Graph Meta Tags
 - **Full Social & Search Optimization**: Complete revamp of the `<head>` section in `public/app.html`. Added Open Graph (`og:image`, `og:url`, `og:site_name`, `og:locale`), Twitter Card (`summary_large_image`, `twitter:image`, `twitter:site`), canonical URL link (`https://2md.aiurl.tw`), and optimized title (55 visual width) and meta description (116 characters).
@@ -86,17 +86,17 @@ All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888
 
 ---
 
-## [v0.6.1] - 888-url2md Fixes & Docker Hub Sync (2026-08-09)
+## 2026-08-09 - 888-url2md Fixes & Docker Hub Sync
 
 ### 🐛 Bug Fixes & Improvements
 - **Google SERP User-Agent Fallback**: Added default fallback UA in `getGsaUserAgent()` to prevent unhandled exceptions when `gsa_useragents.txt` is absent in container environments.
 - **CI/CD Docker Hub & GHCR Dual-Publish**: Updated GitHub Actions workflow (`oss-image.yml`) to automatically build and push multi-arch Docker images to both GHCR (`ghcr.io/tbdavid2019/888-url2md`) and Docker Hub (`tbdavid2019/888-url2md`).
 - **Docker Hub README Auto-Sync**: Integrated `peter-evans/dockerhub-description@v4` action to automatically sync `README.md` to Docker Hub repository overview.
-- **Deployment Hardening**: Renamed remote container and image tags to official `888-url2md:latest` / `v0.6.1`.
+- **Deployment Hardening**: Renamed remote container and image tags to official `888-url2md:latest`.
 
 ---
 
-## [v0.6.0] - 888 URL to Markdown Release (2026-08-09)
+## 2026-08-09 - 888 URL to Markdown Release
 
 ### 🚀 Branding & Project Rename
 - Renamed project branding from `jina-reader` / `web-reader-batch` to **888 URL to Markdown (`888-url2md`)**.
@@ -125,5 +125,6 @@ All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888
 
 ---
 
-## [v0.5.0] - Baseline Upstream Release
+## 2026-08-01 - Baseline Upstream Release
 - Upstream base release from Jina AI Reader (`jina-ai/reader`).
+
