@@ -419,27 +419,31 @@ function detachDisplayNoneElements(root) {
     }
     const skipTags = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEMPLATE', 'LINK', 'META', 'HEAD']);
     const toDetach = [];
-    const walker = document.createTreeWalker(startRoot, NodeFilter.SHOW_ELEMENT, (node) => {
-        if (skipTags.has(node.tagName)) {
-            return NodeFilter.FILTER_REJECT;
+    const walker = document.createTreeWalker(startRoot, NodeFilter.SHOW_ELEMENT, {
+        acceptNode(node) {
+            if (skipTags.has(node.tagName)) {
+                return NodeFilter.FILTER_REJECT;
+            }
+            let cs;
+            try {
+                cs = window.getComputedStyle(node);
+            } catch (e) {
+                cs = null;
+            }
+            if (cs && cs.display === 'none') {
+                toDetach.push(node);
+                return NodeFilter.FILTER_REJECT;
+            }
+            return NodeFilter.FILTER_ACCEPT;
         }
-        let cs;
-        try {
-            cs = window.getComputedStyle(node);
-        } catch (e) {
-            cs = null;
-        }
-        if (cs && cs.display === 'none') {
-            toDetach.push(node);
-            return NodeFilter.FILTER_REJECT;
-        }
-        return NodeFilter.FILTER_ACCEPT;
     });
     while (walker.nextNode()) { /* traversal drives the filter */ }
     for (const elem of toDetach) {
-        const marker = document.createComment('jina-detached-invisible');
-        elem.parentNode.replaceChild(marker, elem);
-        detached.push({ marker, elem });
+        if (elem && elem.parentNode) {
+            const marker = document.createComment('jina-detached-invisible');
+            elem.parentNode.replaceChild(marker, elem);
+            detached.push({ marker, elem });
+        }
     }
     return detached;
 }
@@ -473,12 +477,13 @@ function detectOverlay() {
 
     return null;
 }
-function giveSnapshot(stopActiveSnapshot, overrideDomAnalysis) {
+function giveSnapshot(stopActiveSnapshot, overrideDomAnalysis, detachInvisiblesParam) {
     if (stopActiveSnapshot) {
         window.haltSnapshot = true;
     }
+    const shouldDetach = typeof detachInvisiblesParam === 'boolean' ? detachInvisiblesParam : Boolean(window.__detachInvisibles);
     let detached;
-    if (window.__detachInvisibles) {
+    if (shouldDetach) {
         try {
             detached = detachDisplayNoneElements(document.documentElement);
         } catch (err) {
@@ -568,7 +573,7 @@ function giveSnapshot(stopActiveSnapshot, overrideDomAnalysis) {
 
         return r;
     } finally {
-        if (window.__detachInvisibles) {
+        if (shouldDetach) {
             try {
                 reattachDetachedElements(detached);
             } catch (err) {
@@ -1347,14 +1352,18 @@ export class PuppeteerControl extends AsyncService {
                 );
             });
         }
-        if (options.detachInvisibles) {
-            preparations.push(
-                page.evaluateOnNewDocument(() => {
-                    // @ts-ignore
-                    window.__detachInvisibles = true;
-                })
-            );
-        }
+        preparations.push(
+            page.evaluateOnNewDocument((detach) => {
+                // @ts-ignore
+                window.__detachInvisibles = detach;
+            }, Boolean(options.detachInvisibles))
+        );
+        preparations.push(
+            page.evaluate((detach) => {
+                // @ts-ignore
+                window.__detachInvisibles = detach;
+            }, Boolean(options.detachInvisibles)).catch(() => void 0)
+        );
         const sn = this.snMap.get(page);
         this.logger.info(`Page ${sn}: Scraping ${url}`, { url });
         if (options.locale) {

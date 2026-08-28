@@ -106,7 +106,7 @@ The POST body can also include:
 
 Use `asyncJob: true` for a background deep crawl. Keep the returned `accessToken` private and send it as `X-Job-Token` when polling `GET /jobs/{jobId}` or cancelling with `POST /jobs/{jobId}/cancel`. Provide an HTTPS `webhook.url` when needed.
 
-### 7. WebMCP Browser Tools
+### 8. WebMCP Browser Tools
 
 When the homepage is opened in a WebMCP-enabled Chrome browser, it registers
 the following read-only tools through `document.modelContext`:

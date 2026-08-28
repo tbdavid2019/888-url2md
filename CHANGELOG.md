@@ -67,6 +67,9 @@ All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888
 - Fixed deep-crawl include patterns so the starting URL is always available for link discovery.
 - Protected asynchronous job results and cancellation with per-job `X-Job-Token` access tokens.
 - Fixed Job Queue service initialization during Docker dry-run and production startup.
+- Fixed `POST /` RPC route decorator on `crawl()` to restore custom header injection (`X-Token-Budget`, `X-With-Images-Summary`, etc.).
+- Hardened multipart and binary file upload handling against missing `libmagic` native binary failures with graceful fallback.
+- Added comprehensive `detachInvisibles` invisible DOM filtering support across both browser and DOM narrowing pipelines.
 
 ### 🧭 Repository Workflow
 - Added `AGENTS.md` with the repository rule that every Git commit must update `CHANGELOG.md`.

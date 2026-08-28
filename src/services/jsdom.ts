@@ -33,7 +33,7 @@ export class JSDomControl extends AsyncService {
     }
 
     async narrowSnapshot(snapshot: PageSnapshot | undefined, options?: ExtraScrappingOptions) {
-        if (snapshot?.parsed && !options?.targetSelector && !options?.removeSelector && !options?.withIframe && !options?.withShadowDom) {
+        if (snapshot?.parsed && !options?.targetSelector && !options?.removeSelector && !options?.withIframe && !options?.withShadowDom && !options?.detachInvisibles) {
             return snapshot;
         }
         if (!snapshot?.html) {
@@ -66,6 +66,14 @@ export class JSDomControl extends AsyncService {
         }
         const allNodes: Node[] = [];
         jsdom.window.document.querySelectorAll('svg').forEach((x) => x.innerHTML = '');
+        if (options?.detachInvisibles) {
+            jsdom.window.document.querySelectorAll('*').forEach((el: any) => {
+                const style = el.getAttribute?.('style') || '';
+                if (/\bdisplay\s*:\s*none\b/i.test(style)) {
+                    el.replaceWith(jsdom.window.document.createComment('jina-detached-invisible'));
+                }
+            });
+        }
         if (options?.withIframe) {
             jsdom.window.document.querySelectorAll('iframe[src],frame[src]').forEach((x) => {
                 const origSrc = x.getAttribute('src');

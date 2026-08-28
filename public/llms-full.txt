@@ -104,10 +104,77 @@ Returns clean GitHub-Flavored Markdown. For batch requests, pages are separated 
 | `X-No-Cache` | `true` \| `false` | Bypass internal cache and force live fetch |
 | `X-With-Generated-Alt` | `true` \| `false` | Enable AI-generated image captions |
 | `X-With-Images-Summary` | `true` \| `false` | Include image metadata summaries |
+| `X-Content-Filter` | `pruning` \| `bm25` | Filter noisy DOM blocks or score relevance via BM25 |
+| `X-Content-Query` | String query | Search query string used with BM25 filter |
+| `X-Session-Id` | String UUID/ID | Persist and reuse browser session cookies across requests |
+| `X-Detach-Invisibles` | `true` \| `false` | Detach display:none elements from DOM snapshot |
 
 ---
 
-## 5. WebMCP Browser Tools
+## 5. Advanced Crawling & Extraction Options (JSON Payload)
+
+When calling `POST /` or `POST /v1/batch`, the JSON payload supports advanced crawler options:
+
+### A. CSS / XPath Structured Data Extraction (Zero-Token Cost)
+Extract deterministic JSON fields directly without LLM inference:
+```json
+{
+  "url": "https://example.com/products",
+  "extraction": {
+    "type": "css",
+    "baseSelector": ".product-card",
+    "fields": [
+      { "name": "title", "selector": "h3.title", "type": "text" },
+      { "name": "price", "selector": ".price", "type": "number" },
+      { "name": "link", "selector": "a.buy-btn", "type": "attribute", "attribute": "href" }
+    ]
+  }
+}
+```
+The response returns `data.extracted` containing the structured JSON array.
+
+### B. Fit Markdown / BM25 Content Filtering
+Reduce LLM prompt token costs on large documents by filtering irrelevant boilerplate or scoring relevance:
+```json
+{
+  "url": "https://example.com/long-article",
+  "contentFilter": "bm25",
+  "contentQuery": "quarterly revenue profit"
+}
+```
+The response returns `data.fitMarkdown` containing only the relevant sections.
+
+### C. Bounded BFS Deep Crawling
+Crawl linked pages within the same domain with conservative limits:
+```json
+{
+  "url": "https://docs.example.com/intro",
+  "deepCrawl": {
+    "maxDepth": 2,
+    "maxPages": 10,
+    "maxDurationMs": 30000,
+    "includePatterns": ["https://docs.example.com/*"]
+  }
+}
+```
+
+### D. Asynchronous Job Queue & HTTPS Webhooks
+For long-running deep crawls or background processing:
+```json
+{
+  "url": "https://example.com",
+  "deepCrawl": { "maxPages": 20 },
+  "asyncJob": true,
+  "webhook": {
+    "url": "https://my-service.com/webhook"
+  }
+}
+```
+Returns a `jobId` and `accessToken`. Poll progress with `GET /jobs/{jobId}` using the `X-Job-Token: <accessToken>` header, or cancel via `POST /jobs/{jobId}/cancel`.
+
+---
+
+## 6. WebMCP Browser Tools
 
 When the web UI is opened in a WebMCP-compatible browser (Chrome with `document.modelContext`):
 
@@ -126,7 +193,7 @@ document.modelContext.registerTool({
 
 ---
 
-## 6. Tool Specification (LLM / Agent Schema)
+## 7. Tool Specification (LLM / Agent Schema)
 
 ```json
 {

@@ -52,13 +52,14 @@ import { readFile } from 'fs/promises';
 import { openAsBlob } from 'fs';
 import { AltTextService } from '../services/alt-text';
 import '../config';
+import path from 'path';
 import { AUTH_DTO_CLS } from '../config';
 import { Crawled, DomainBlockade } from '../db/models';
 import { BaseAuthDTO } from '../dto/base-auth';
 import { StorageLayer } from '../db/noop-storage';
 import { BinaryExtractorService } from '../services/binary-extractor';
 import { HashManager } from 'civkit/hash';
-import { detectBuff, extOfMime } from 'civkit/mime';
+import { detectBuff, extOfMime, mimeOfExt } from 'civkit/mime';
 import { STATUS_CODES } from 'http';
 import { fileURLToPath } from 'url';
 import { BogoSitesControl } from '../services/bogo-sites';
@@ -336,8 +337,14 @@ If you are an LLM or AI Agent accessing this service for the first time:
 - \`X-Target-Selector\`: Extract specific CSS selector.
 - \`X-Remove-Selector\`: Remove specific CSS selector.
 - \`X-No-Cache: true\`: Bypass internal page cache.
+- \`X-With-Generated-Alt: true\`: Generate AI alt text for images.
+- \`X-With-Images-Summary: true\`: Include image metadata summaries.
+- \`X-Content-Filter: pruning | bm25\`: Filter noisy DOM blocks or score relevance via BM25.
+- \`X-Content-Query: ...\`: Query used by the BM25 content filter.
+- \`X-Session-Id: ...\`: Reuse session cookies for related requests.
+- \`X-Detach-Invisibles: true\`: Remove display:none elements from snapshot.
 
-### 7. WebMCP Browser Tools
+### 9. WebMCP Browser Tools
 
 When the homepage is opened in a WebMCP-enabled Chrome browser, it registers
 the following read-only tools through \`document.modelContext\`:
@@ -769,18 +776,6 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
     }
 
     @Method({
-        name: 'crawlByPostingToIndex',
-        description: 'Crawl any url into markdown',
-        proto: {
-            http: {
-                action: 'POST',
-                path: '/',
-            }
-        },
-        tags: ['crawl'],
-        returnType: [RawString, FormattedPageDto, OutputServerEventStream],
-    })
-    @Method({
         name: 'searchByPath',
         proto: {
             http: {
@@ -835,6 +830,18 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
         );
     }
 
+    @Method({
+        name: 'crawlByPostingToIndex',
+        description: 'Crawl any url into markdown',
+        proto: {
+            http: {
+                action: 'POST',
+                path: '/',
+            }
+        },
+        tags: ['crawl'],
+        returnType: [RawString, FormattedPageDto, OutputServerEventStream],
+    })
     @Method({
         description: 'Crawl any url into markdown',
         proto: {
@@ -926,7 +933,7 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
         if (isAnonymous && !auth.isInternal) {
             // Enforce no proxy is allocated for anonymous users due to abuse.
             crawlerOptions.proxy = 'none';
-            if (crawlerOptions.respondWith.includes('html')) {
+            if (crawlerOptions.respondWith.includes('html') && crawlerOptions.browserIsNotRequired()) {
                 crawlerOptions.engine ??= ENGINE_TYPE.CURL;
             }
             const blockade = await this.storageLayer.findDomainBlockade({
@@ -1542,13 +1549,29 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
         if (binaryFile) {
             if (binaryFile instanceof FancyFile && (await binaryFile.size) > 0) {
                 const binFilePath = await binaryFile.filePath;
-                blob = await openAsBlob(binFilePath, { type: await binaryFile.mimeType }) as any as Blob;
+                const fileName = (await binaryFile.fileName) || '';
+                let mimeType = fileName ? mimeOfExt(path.extname(fileName)) : undefined;
+                if (!mimeType) {
+                    try {
+                        mimeType = await Promise.resolve().then(() => (binaryFile as FancyFile).mimeType);
+                    } catch {
+                        // ignore dlopen libmagic failure
+                    }
+                }
+                mimeType ||= 'application/octet-stream';
+                blob = await openAsBlob(binFilePath, { type: mimeType }) as any as Blob;
                 digest = await binaryFile.sha256Sum;
-                blob = new File([blob], await binaryFile.fileName || `${digest}`, { type: blob.type });
+                blob = new File([blob], fileName || `${digest}`, { type: blob.type });
             } else if (typeof binaryFile === 'string') {
                 const binBuffer = Buffer.from(binaryFile, 'base64');
                 digest = sha256Hasher.hash(binBuffer, 'hex') as string;
-                blob = new Blob([binBuffer], { type: await detectBuff(binBuffer).catch(() => 'application/octet-stream') });
+                let mimeType = 'application/octet-stream';
+                try {
+                    mimeType = await Promise.resolve().then(() => detectBuff(binBuffer)).catch(() => 'application/octet-stream');
+                } catch {
+                    mimeType = 'application/octet-stream';
+                }
+                blob = new Blob([binBuffer], { type: mimeType });
             }
         }
 
@@ -1671,7 +1694,20 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
                 if (potentialPreviousResult.body instanceof Blob) {
                     blob = potentialPreviousResult.body;
                 } else {
-                    blob = await openAsBlob(await potentialPreviousResult.body.filePath, { type: potentialPreviousResult.contentType || await potentialPreviousResult.body.mimeType }) as any as Blob;
+                    const bodyFile = potentialPreviousResult.body;
+                    let bodyMime: string | undefined = potentialPreviousResult.contentType;
+                    if (!bodyMime) {
+                        const fn = await bodyFile.fileName;
+                        bodyMime = fn ? (mimeOfExt(path.extname(fn)) ?? undefined) : undefined;
+                        if (!bodyMime) {
+                            try {
+                                bodyMime = await Promise.resolve().then(() => (bodyFile as FancyFile).mimeType);
+                            } catch {
+                                // ignore dlopen libmagic failure
+                            }
+                        }
+                    }
+                    blob = await openAsBlob(await bodyFile.filePath, { type: bodyMime || 'application/octet-stream' }) as any as Blob;
                 }
 
                 const draftSnapshot = await this.createSnapshotFromBlob(equivalentOpts, urlToCrawl, blob, potentialPreviousResult.contentType);
