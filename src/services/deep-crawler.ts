@@ -66,7 +66,7 @@ export async function deepCrawl<T>(
         if (!allowedDomains.includes(parsed.hostname.toLowerCase()) || matchesAny(entry.url, options.excludePatterns)) {
             continue;
         }
-        if (options.includePatterns.length && !matchesAny(entry.url, options.includePatterns)) {
+        if (entry.depth > 0 && options.includePatterns.length && !matchesAny(entry.url, options.includePatterns)) {
             continue;
         }
         visited.add(entry.url);

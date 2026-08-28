@@ -34,6 +34,6 @@ describe('deep crawler', () => {
         const pages = await deepCrawl('https://example.com/', { maxDepth: 1, maxPages: 10, includePatterns: ['*docs*'], excludePatterns: ['*private*'] }, async () => ({
             links: ['https://example.com/docs/a', 'https://example.com/private/docs'],
         }));
-        assert.equal(pages.length, 0);
+        assert.deepEqual(pages.map((page) => page.url), ['https://example.com/', 'https://example.com/docs/a']);
     });
 });
