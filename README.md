@@ -216,6 +216,12 @@ curl -X POST 'https://create360.ai/' \
 - **查詢與取消**：伺服器立即回傳 `jobId` 與專屬的 `accessToken`。後續以 `X-Job-Token: <accessToken>` Header 搭配 `GET /jobs/{jobId}` 查詢進度，或以 `POST /jobs/{jobId}/cancel` 取消任務。
 - **Webhook 回調**：任務完成時自動發送 HTTPS POST 至指定的 Webhook 端點（內建 SSRF 內網安全防護）。
 
+### 1.9 隱形元素過濾與 Cookie 延續 (Detach Invisibles & Session Continuity)
+
+- **過濾隱形節點**：傳入 `"detachInvisibles": true`（或帶入 Header `X-Detach-Invisibles: true`）可在產生 Markdown 與 DOM 快照前徹底剔除 `display:none` 及隱藏節點。
+- **Session Cookie 延續**：傳入 `"sessionId": "my-session-uuid"`（或 Header `X-Session-Id`）可在同一工作階段的多個請求間自動保留與共享 Cookie。
+- **動態虛擬滾動**：傳入 `"virtualScroll": true`（可搭配 `scrollCount` 與 `scrollWait`）自動滾動觸發懶加載或無限滾動網頁。
+
 ---
 
 ### 2. 即時 Web 搜尋 (Real-time Web Search)
@@ -592,6 +598,12 @@ For multi-page deep crawls or background tasks, enable `asyncJob: true` to avoid
 
 - **Polling & Cancellation**: The server returns a `jobId` and an `accessToken`. Use the `X-Job-Token: <accessToken>` header with `GET /jobs/{jobId}` to poll progress or `POST /jobs/{jobId}/cancel` to cancel.
 - **Webhook Delivery**: Automated HTTPS POST webhook upon completion with built-in SSRF private-IP blocking.
+
+### 1.9 Detach Invisible Elements & Session Continuity
+
+- **Invisible Element Detachment**: Pass `"detachInvisibles": true` (or header `X-Detach-Invisibles: true`) to strip `display:none` and hidden CSS subtrees before generating markdown.
+- **Session Cookie Continuity**: Pass `"sessionId": "my-session-uuid"` (or header `X-Session-Id`) to share and persist cookies across sequential requests.
+- **Virtual Scrolling**: Pass `"virtualScroll": true` (with optional `scrollCount` and `scrollWait`) to trigger lazy-loading and infinite-scroll web pages.
 
 ---
 

@@ -1,11 +1,12 @@
 # Repository Agent Rules
 
-## Git and documentation
+## Mandatory Documentation Rules (Strict & Non-Negotiable)
 
-- Every Git commit must include a corresponding entry in `CHANGELOG.md`.
-- Update `README.md` when a change affects user-visible behavior, public API usage, configuration, deployment, or supported features.
+- **Zero Reminder Policy**: Do not wait for the user to prompt or remind you to write documentation. Proactive documentation is mandatory for EVERY change.
+- **`CHANGELOG.md` Requirement**: Every single Git commit MUST include an entry in `CHANGELOG.md` under the `[Unreleased]` section describing the exact changes, bug fixes, or enhancements.
+- **`README.md` Requirement**: Whenever a change adds, modifies, or deprecates user-visible behavior, public API parameters, HTTP headers, endpoints, configuration, Docker deployment, or supported features, `README.md` MUST be proactively updated in **BOTH Traditional Chinese and English** sections before committing.
+- **Pre-commit Verification**: Before committing, inspect the staged diff with `git diff --staged` or `git status` to verify that `CHANGELOG.md` (and `README.md` if applicable) are modified and staged, and run all relevant tests and type checks.
 - Keep each commit focused and use a descriptive conventional commit message.
-- Before committing, inspect the staged diff and run the relevant tests and type checks.
 
 ## User-facing communication
 
@@ -13,7 +14,7 @@
 - Report only verifiable actions, evidence, and conclusions.
 - Do not use model identity, feelings, or qualifications as evidence.
 
-## Scope
+## Scope & Security
 
 - Preserve existing user changes and unrelated work.
 - Keep advanced crawler features opt-in with conservative limits.

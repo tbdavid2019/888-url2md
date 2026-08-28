@@ -2,6 +2,42 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [Unreleased]
+
+### 🚀 Crawl4AI Core Integration & Advanced Extraction
+- **CSS / XPath Structured Data Extraction (Zero-Token JSON)**: Pass `extraction` schema (`type: "css"|"xpath"`, `baseSelector`, `fields`) in POST request bodies to extract structured JSON arrays (`data.extracted`) directly in the Linkedom DOM without invoking LLMs (sub-millisecond latency).
+- **Fit Markdown & BM25 Relevance Filtering**: Pass `contentFilter: "bm25"` and `contentQuery` (or headers `X-Content-Filter: bm25` and `X-Content-Query: ...`) to filter boilerplate and retrieve query-relevant markdown sections (`data.fitMarkdown`), dramatically reducing downstream LLM prompt token costs. Complete unpruned markdown remains accessible via `data.rawMarkdown`.
+- **Bounded BFS Deep Crawl**: Pass `deepCrawl: { maxDepth, maxPages, allowedDomains, includePatterns }` in POST request bodies to explore internal domain links using breadth-first traversal with conservative safety limits.
+- **Asynchronous Crawl Job Queue**: Submit long-running deep crawls with `asyncJob: true`. The API immediately returns a `jobId` and single-use `accessToken`. Clients poll progress via `GET /jobs/{jobId}` with header `X-Job-Token: <accessToken>`, cancel via `POST /jobs/{jobId}/cancel`, or view queue metrics via `GET /jobs`.
+- **Secure HTTPS Webhooks**: Automated asynchronous job completion notifications delivered via HTTPS POST webhooks with built-in private IP SSRF blocking.
+- **Invisible Element Detachment (`detachInvisibles`)**: Pass `detachInvisibles: true` (or header `X-Detach-Invisibles: true`) to strip `display:none` and hidden CSS subtrees from both browser and DOM narrowing pipelines.
+- **Session Continuity & Virtual Scroll**: Pass `sessionId` (or `X-Session-Id`) for multi-request cookie continuity, and `virtualScroll: true` for dynamic scroll-loaded pages.
+
+### 🐛 Bug Fixes & Runtime Hardening
+- **RPC Route Decorator Fix**: Moved `crawlByPostingToIndex` decorator back to `CrawlerHost.crawl()`, restoring custom header injection (`X-Token-Budget`, `X-With-Images-Summary`, `X-With-Links-Summary`, etc.).
+- **Graceful libmagic Fallback**: Added safe MIME extension fallback (`mimeOfExt`) wrapped in try-catch blocks to prevent unhandled dlopen exceptions on platforms without `libmagic.dylib`.
+- **DOM TreeWalker NodeFilter Hardening**: Fixed Puppeteer's invisible DOM detachment TreeWalker filter to use standard `{ acceptNode(node) }` object format.
+
+### 🧭 Repository Workflow & Agent Guidelines
+- **Mandatory Documentation Rules in `AGENTS.md`**: Enforced a zero-reminder policy requiring every AI Agent / LLM to proactively update `CHANGELOG.md` (and `README.md` for user/API facing changes) on every commit.
+- **Updated `README.md`**: Added dedicated sections 1.5–1.9 for CSS/XPath structured extraction, BM25 Fit Markdown, bounded deep crawl, async job queues, and invisible DOM filtering in both Chinese and English sections.
+
+### 🤖 WebMCP Browser Tools
+- Added WebMCP imperative API integration to the browser landing page through `document.modelContext`.
+- Registered `search_web`, `read_web_page`, and `read_web_pages` read-only tools for WebMCP-enabled Chrome browsers.
+- Documented browser tools in `public/SKILL.md`, `/llms.txt`, dynamic `/skill.md` and `/llms-full.txt`.
+
+### ✨ Human-facing Web Interface
+- Kept the **888 URL2MD** browser landing page at `GET /` clean, minimalist, and frictionless for humans (Live SERP Search, Batch URL Converter, and AnyDoc File Upload).
+- Bare domains entered in the web interface or batch API are normalized to `https://…` automatically.
+- Dual-language support (Traditional Chinese and English) with local preference persistence.
+
+### 🛠 CI & Deployment
+- Migrated GitHub Actions to Node 24-compatible action releases and configured the workflows to force remaining JavaScript actions to run on Node 24 ahead of Node 20 removal.
+- Replaced legacy MinIO-only `docker-compose.yml` with a production-ready `888-url2md` service. `docker compose up -d --build` now builds and starts the application on host port `8083` by default.
+
+---
+
 ## [v0.7.1] - UI Overhaul & Search Relevance Filter (2026-08-11)
 
 ### 🎨 Web Landing Page UI Overhaul (`public/app.html`)
@@ -47,54 +83,6 @@ All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888
 - **Full Social & Search Optimization**: Complete revamp of the `<head>` section in `public/app.html`. Added Open Graph (`og:image`, `og:url`, `og:site_name`, `og:locale`), Twitter Card (`summary_large_image`, `twitter:image`, `twitter:site`), canonical URL link (`https://2md.aiurl.tw`), and optimized title (55 visual width) and meta description (116 characters).
 - **Structured Data (JSON-LD)**: Embedded `WebApplication` JSON-LD schema for search engine rich results.
 - **PWA & Favicon Assets**: Generated SVG favicon (`favicon.svg`), 32x32 PNG favicon (`favicon-32x32.png`), 180x180 Apple Touch Icon (`apple-touch-icon.png`), 1200x630 Open Graph preview image (`og-image.png`), and web application manifest (`site.webmanifest`).
-
----
-
-## [Unreleased]
-
-### 🗣️ Communication Rules
-- Added an `AGENTS.md` rule to avoid first-person and anthropomorphic wording in user-facing responses.
-
-### 🚀 Advanced Crawl and Extraction
-- Added CSS/XPath schema-based structured extraction with `extracted` JSON output.
-- Added opt-in Pruning/BM25 Fit Markdown with `rawMarkdown` and `fitMarkdown` fields.
-- Added bounded BFS deep crawl and prefetch API options.
-- Added session cookie continuity and bounded virtual scrolling for dynamic pages.
-- Added asynchronous crawl jobs with progress polling, cancellation, and HTTPS webhook retries.
-- Added queue statistics and recent-job listing for lightweight monitoring.
-- Fixed JSON serialization for `rawMarkdown` and `fitMarkdown`, and contained webhook DNS failures.
-- Fixed ReaderLM structured-output calls so `instruction` and `jsonSchema` reach the intended prompt fields.
-- Fixed deep-crawl include patterns so the starting URL is always available for link discovery.
-- Protected asynchronous job results and cancellation with per-job `X-Job-Token` access tokens.
-- Fixed Job Queue service initialization during Docker dry-run and production startup.
-- Fixed `POST /` RPC route decorator on `crawl()` to restore custom header injection (`X-Token-Budget`, `X-With-Images-Summary`, etc.).
-- Hardened multipart and binary file upload handling against missing `libmagic` native binary failures with graceful fallback.
-- Added comprehensive `detachInvisibles` invisible DOM filtering support across both browser and DOM narrowing pipelines.
-
-### 🧭 Repository Workflow
-- Added `AGENTS.md` with the repository rule that every Git commit must update `CHANGELOG.md`.
-- Documented when user-facing changes also require a `README.md` update.
-- Updated `README.md` with dedicated 1.5–1.8 sections for CSS/XPath structured extraction, BM25 Fit Markdown, bounded deep crawl, and async job queues in both Chinese and English sections.
-
-### 🤖 WebMCP Browser Tools
-- Added WebMCP imperative API integration to the browser landing page through `document.modelContext`.
-- Registered `search_web`, `read_web_page`, and `read_web_pages` read-only tools for WebMCP-enabled Chrome browsers.
-- WebMCP tool calls return clean Markdown and update the visible result panel; unsupported browsers continue to use the existing forms.
-- Documented the browser tools in `public/SKILL.md`, `/llms.txt`, the dynamic `/skill.md` and `/llms-full.txt` responses, and the README.
-
-### ✨ Human-facing Web Interface
-- Added the **888 URL2MD** browser landing page at `GET /` for `create360.ai`. Users can paste one or more URLs to convert them into Markdown, preview the result, copy it, or download it as a `.md` file.
-- The interface detects the browser language and defaults to Traditional Chinese or English accordingly. Users can switch languages manually, and their preference is retained locally.
-- Bare domains entered in the web interface or batch API are normalized to `https://…` automatically.
-- Added a web search input to the landing page. It uses the existing `GET /search?q=...` endpoint and presents the Markdown result in the same interface.
-- Kept the API and LLM-facing behaviour unchanged: non-browser requests to `GET /` continue to receive the `SKILL.md` content, and `GET /skill.md` remains the direct LLM documentation endpoint.
-
-### 🛠 CI
-- Migrated GitHub Actions to Node 24-compatible action releases and configured the workflows to force remaining JavaScript actions to run on Node 24 ahead of Node 20 removal.
-
-### 🐳 Deployment
-- Replaced the legacy MinIO-only `docker-compose.yml` with a production-ready `888-url2md` service. `docker compose up -d --build` now builds and starts the application on host port `8083` by default; MinIO is available only with the optional `dev` profile.
-- Rewrote `architecture.md` to document the actual `create360.ai` deployment, the browser/API route split, and the current Docker Compose workflow.
 
 ---
 
