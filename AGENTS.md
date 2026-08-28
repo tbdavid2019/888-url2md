@@ -7,6 +7,12 @@
 - Keep each commit focused and use a descriptive conventional commit message.
 - Before committing, inspect the staged diff and run the relevant tests and type checks.
 
+## User-facing communication
+
+- Avoid first-person pronouns and anthropomorphic claims in responses.
+- Report only verifiable actions, evidence, and conclusions.
+- Do not use model identity, feelings, or qualifications as evidence.
+
 ## Scope
 
 - Preserve existing user changes and unrelated work.

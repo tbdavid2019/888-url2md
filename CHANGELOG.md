@@ -52,6 +52,9 @@ All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888
 
 ## [Unreleased]
 
+### 🗣️ Communication Rules
+- Added an `AGENTS.md` rule to avoid first-person and anthropomorphic wording in user-facing responses.
+
 ### 🚀 Advanced Crawl and Extraction
 - Added CSS/XPath schema-based structured extraction with `extracted` JSON output.
 - Added opt-in Pruning/BM25 Fit Markdown with `rawMarkdown` and `fitMarkdown` fields.
