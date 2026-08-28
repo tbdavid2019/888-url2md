@@ -218,8 +218,18 @@ export class CrawlerHost extends RPCHost {
     }
 
     getPublicDomain(ctx?: Context): string {
+        if (ctx) {
+            const rawHost = ctx.headers['x-forwarded-host'] || ctx.headers['host'] || ctx.host || ctx.hostname;
+            const host = Array.isArray(rawHost) ? rawHost[0] : (typeof rawHost === 'string' ? rawHost.split(',')[0].trim() : '');
+            if (host && !host.startsWith('localhost') && !host.startsWith('127.0.0.1') && !host.startsWith('0.0.0.0') && !host.startsWith('::ffff:')) {
+                const rawProto = ctx.headers['x-forwarded-proto'] || ctx.protocol || 'https';
+                const proto = Array.isArray(rawProto) ? rawProto[0] : (typeof rawProto === 'string' ? rawProto.split(',')[0].trim() : 'https');
+                return `${proto}://${host}`.replace(/\/+$/, '');
+            }
+        }
+
         const envDomain = process.env.PUBLIC_DOMAIN || process.env.BASE_URL || process.env.SERVER_DOMAIN || process.env.HOST_DOMAIN || process.env.JINA_READER_DOMAIN;
-        if (envDomain) {
+        if (envDomain && envDomain.trim() && !envDomain.includes('localhost') && !envDomain.includes('127.0.0.1')) {
             let domain = envDomain.trim();
             if (!domain.startsWith('http://') && !domain.startsWith('https://')) {
                 domain = `https://${domain}`;
@@ -228,10 +238,12 @@ export class CrawlerHost extends RPCHost {
         }
 
         if (ctx) {
-            const proto = ctx.headers['x-forwarded-proto'] || ctx.protocol || 'https';
-            const host = ctx.headers['x-forwarded-host'] || ctx.host || ctx.hostname;
+            const rawHost = ctx.headers['x-forwarded-host'] || ctx.headers['host'] || ctx.host || ctx.hostname;
+            const host = Array.isArray(rawHost) ? rawHost[0] : (typeof rawHost === 'string' ? rawHost.split(',')[0].trim() : '');
             if (host) {
-                return `${proto}://${host}`;
+                const rawProto = ctx.headers['x-forwarded-proto'] || ctx.protocol || 'http';
+                const proto = Array.isArray(rawProto) ? rawProto[0] : (typeof rawProto === 'string' ? rawProto.split(',')[0].trim() : 'http');
+                return `${proto}://${host}`.replace(/\/+$/, '');
             }
         }
 

@@ -7,7 +7,7 @@ services:
       # APP_PORT + 1. Nginx on the production host proxies to this port.
       - "${HOST_PORT:-8083}:8081"
     environment:
-      PUBLIC_DOMAIN: ${PUBLIC_DOMAIN:-https://create360.ai}
+      PUBLIC_DOMAIN: ${PUBLIC_DOMAIN:-}
       APP_PORT: ${APP_PORT:-8080}
       PORT: ${APP_PORT:-8080}
     security_opt:

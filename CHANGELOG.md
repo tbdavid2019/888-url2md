@@ -2,6 +2,14 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.08.28.2] - 2026-08-28 - 動態域名偵測修正 (Dynamic Host Domain Detection for llms.txt & Skill)
+
+### 🐛 Bug Fixes & Dynamic Domain Detection
+- **Dynamic Host Header Prioritization**: Updated `CrawlerHost.getPublicDomain(ctx)` to prioritize incoming HTTP request headers (`X-Forwarded-Host`, `Host`, and `X-Forwarded-Proto`). Requests to `https://2md.aiurl.tw/llms.txt`, `https://2md.glsoft.ai/llms.txt`, or `https://create360.ai/llms.txt` dynamically render their respective hostnames in all documentation links and code snippets.
+- **Docker Compose Fallback Cleanup**: Removed the hardcoded `https://create360.ai` fallback default for `PUBLIC_DOMAIN` in `docker-compose.yml`, allowing multi-host deployments to automatically adopt their reverse-proxy domains without manual configuration.
+
+---
+
 ## [2026.08.28.1] - 2026-08-28 - Crawl4AI 核心整合與進階抽取 (Crawl4AI Integration & Advanced Extraction)
 
 ### 🚀 Crawl4AI Core Integration & Advanced Extraction
