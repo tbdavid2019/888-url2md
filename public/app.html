@@ -386,6 +386,214 @@
 
       @keyframes spin { to { transform: rotate(360deg); } }
 
+      /* Advanced Options Accordion */
+      .advanced-panel {
+        margin-top: 18px;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        overflow: hidden;
+        transition: all 0.2s ease;
+      }
+
+      .advanced-panel[open] {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+      }
+
+      .advanced-summary {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 16px;
+        font-size: 0.92rem;
+        font-weight: 600;
+        color: #334155;
+        cursor: pointer;
+        user-select: none;
+        list-style: none;
+      }
+
+      .advanced-summary::-webkit-details-marker {
+        display: none;
+      }
+
+      .advanced-summary-title {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .advanced-toggle-icon {
+        font-size: 0.85rem;
+        color: #64748b;
+        transition: transform 0.2s ease;
+      }
+
+      .advanced-panel[open] .advanced-toggle-icon {
+        transform: rotate(180deg);
+      }
+
+      .advanced-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 12px;
+        padding: 0 16px 16px;
+      }
+
+      .option-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 12px 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        transition: border-color 0.2s;
+      }
+
+      .option-card.active {
+        border-color: var(--primary);
+      }
+
+      .option-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .option-title {
+        font-size: 0.88rem;
+        font-weight: 700;
+        color: #1e293b;
+      }
+
+      .option-desc {
+        margin: 0;
+        font-size: 0.78rem;
+        color: #64748b;
+        line-height: 1.4;
+      }
+
+      /* Toggle Switch */
+      .switch {
+        position: relative;
+        display: inline-block;
+        width: 36px;
+        height: 20px;
+        flex-shrink: 0;
+      }
+
+      .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+
+      .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background-color: #cbd5e1;
+        transition: .2s;
+        border-radius: 20px;
+      }
+
+      .slider:before {
+        position: absolute;
+        content: "";
+        height: 14px;
+        width: 14px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: .2s;
+        border-radius: 50%;
+      }
+
+      input:checked + .slider {
+        background-color: var(--primary);
+      }
+
+      input:checked + .slider:before {
+        transform: translateX(16px);
+      }
+
+      .sub-input {
+        width: 100%;
+        padding: 8px 10px;
+        font-size: 0.82rem;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        background: #ffffff;
+        color: #1e293b;
+        box-sizing: border-box;
+      }
+
+      .sub-input:disabled {
+        background: #f1f5f9;
+        color: #94a3b8;
+        cursor: not-allowed;
+      }
+
+      .sub-row {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+      }
+
+      .sub-label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.8rem;
+        color: #475569;
+      }
+
+      .sub-num {
+        width: 58px;
+        padding: 6px 8px;
+        font-size: 0.82rem;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        text-align: center;
+      }
+
+      .sub-num:disabled {
+        background: #f1f5f9;
+        color: #94a3b8;
+        cursor: not-allowed;
+      }
+
+      /* Result Segmented Tabs */
+      .result-tabs-nav {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 12px;
+        padding: 4px;
+        background: #f1f5f9;
+        border-radius: 10px;
+        width: fit-content;
+      }
+
+      .result-tab-btn {
+        padding: 6px 14px;
+        border: none;
+        background: transparent;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #64748b;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
+
+      .result-tab-btn.active {
+        background: #ffffff;
+        color: var(--primary);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      }
+
       @media (max-width: 640px) {
         main { padding-top: 24px; }
         .tabs-nav { flex-direction: column; gap: 4px; }
@@ -443,7 +651,79 @@
               <span data-i18n="urlsHelp">每行一個網址；支援空白或逗號分隔，多頁面將自動串接併入同一份 Markdown。</span>
               <span class="key-badge">Ctrl + Enter / Cmd + Enter 鍵提交</span>
             </div>
-            <div class="actions">
+
+            <!-- Crawl4AI Advanced Options Accordion -->
+            <details class="advanced-panel" id="advanced-options">
+              <summary class="advanced-summary">
+                <span class="advanced-summary-title">
+                  <span>⚙️</span> <span data-i18n="advancedTitle">進階爬取設定 (Crawl4AI 增強選項)</span>
+                </span>
+                <span class="advanced-toggle-icon">▾</span>
+              </summary>
+              <div class="advanced-grid">
+                <!-- 1. BM25 / Fit Markdown Option -->
+                <div class="option-card" id="card-fit-markdown">
+                  <div class="option-header">
+                    <label class="switch">
+                      <input type="checkbox" id="opt-fit-markdown">
+                      <span class="slider"></span>
+                    </label>
+                    <span class="option-title" data-i18n="optFitMarkdownTitle">BM25 關鍵詞精簡 (Fit Markdown)</span>
+                  </div>
+                  <p class="option-desc" data-i18n="optFitMarkdownDesc">依關鍵詞過濾無關冗餘段落，大幅降低 LLM Prompt Token 消耗。</p>
+                  <input type="text" id="opt-content-query" placeholder="輸入搜尋關鍵詞，例如：財務 營收 獲利" data-i18n-placeholder="optContentQueryPlaceholder" class="sub-input" disabled>
+                </div>
+
+                <!-- 2. Deep Crawl Option -->
+                <div class="option-card" id="card-deep-crawl">
+                  <div class="option-header">
+                    <label class="switch">
+                      <input type="checkbox" id="opt-deep-crawl">
+                      <span class="slider"></span>
+                    </label>
+                    <span class="option-title" data-i18n="optDeepCrawlTitle">同網域深度爬取 (Deep Crawl)</span>
+                  </div>
+                  <p class="option-desc" data-i18n="optDeepCrawlDesc">自動沿著站內同源連結進行廣度優先爬取 (BFS)。</p>
+                  <div class="sub-row">
+                    <label class="sub-label">
+                      <span data-i18n="optMaxPages">最大頁數:</span>
+                      <input type="number" id="opt-max-pages" value="5" min="1" max="20" class="sub-num" disabled>
+                    </label>
+                    <label class="sub-label">
+                      <span data-i18n="optMaxDepth">最大深度:</span>
+                      <input type="number" id="opt-max-depth" value="2" min="1" max="3" class="sub-num" disabled>
+                    </label>
+                  </div>
+                </div>
+
+                <!-- 3. Detach Invisibles Option -->
+                <div class="option-card" id="card-detach-invisibles">
+                  <div class="option-header">
+                    <label class="switch">
+                      <input type="checkbox" id="opt-detach-invisibles">
+                      <span class="slider"></span>
+                    </label>
+                    <span class="option-title" data-i18n="optDetachInvisiblesTitle">過濾隱形元素 (Detach Invisibles)</span>
+                  </div>
+                  <p class="option-desc" data-i18n="optDetachInvisiblesDesc">從 DOM 快照中徹底移除 display:none 與隱藏節點。</p>
+                </div>
+
+                <!-- 4. Structured JSON Extraction -->
+                <div class="option-card" id="card-structured">
+                  <div class="option-header">
+                    <label class="switch">
+                      <input type="checkbox" id="opt-structured">
+                      <span class="slider"></span>
+                    </label>
+                    <span class="option-title" data-i18n="optStructuredTitle">CSS 結構化提取 (Zero-Token JSON)</span>
+                  </div>
+                  <p class="option-desc" data-i18n="optStructuredDesc">輸入主容器選擇器，由後端 DOM 直接抽取結構化 JSON。</p>
+                  <input type="text" id="opt-base-selector" placeholder="主容器選擇器 (例如 .product-card, article)" data-i18n-placeholder="optBaseSelectorPlaceholder" class="sub-input" disabled>
+                </div>
+              </div>
+            </details>
+
+            <div class="actions" style="margin-top: 18px">
               <button class="primary-btn" id="convert-btn" type="submit">
                 <span>🌐</span> <span data-i18n="convertAction">轉換成 Markdown</span>
               </button>
@@ -485,6 +765,7 @@
             <button class="secondary-btn" id="download-btn" type="button" data-i18n="downloadBtn">⬇️ 下載 .md</button>
           </div>
         </div>
+        <div class="result-tabs-nav" id="result-tabs-nav" hidden></div>
         <pre id="result"></pre>
       </section>
 
@@ -519,10 +800,51 @@
         const status = document.querySelector('#status');
         const resultArea = document.querySelector('#result-area');
         const result = document.querySelector('#result');
+        const resultTabsNav = document.querySelector('#result-tabs-nav');
         const statsBadge = document.querySelector('#stats-badge');
         const copyBtn = document.querySelector('#copy-btn');
         const downloadBtn = document.querySelector('#download-btn');
         const languageToggle = document.querySelector('#language-toggle');
+
+        // Advanced Option Elements
+        const optFitMarkdown = document.querySelector('#opt-fit-markdown');
+        const optContentQuery = document.querySelector('#opt-content-query');
+        const cardFitMarkdown = document.querySelector('#card-fit-markdown');
+
+        const optDeepCrawl = document.querySelector('#opt-deep-crawl');
+        const optMaxPages = document.querySelector('#opt-max-pages');
+        const optMaxDepth = document.querySelector('#opt-max-depth');
+        const cardDeepCrawl = document.querySelector('#card-deep-crawl');
+
+        const optDetachInvisibles = document.querySelector('#opt-detach-invisibles');
+        const cardDetachInvisibles = document.querySelector('#card-detach-invisibles');
+
+        const optStructured = document.querySelector('#opt-structured');
+        const optBaseSelector = document.querySelector('#opt-base-selector');
+        const cardStructured = document.querySelector('#card-structured');
+
+        // Toggle Listeners for Advanced Options
+        optFitMarkdown.addEventListener('change', () => {
+          optContentQuery.disabled = !optFitMarkdown.checked;
+          cardFitMarkdown.classList.toggle('active', optFitMarkdown.checked);
+          if (optFitMarkdown.checked) optContentQuery.focus();
+        });
+
+        optDeepCrawl.addEventListener('change', () => {
+          optMaxPages.disabled = !optDeepCrawl.checked;
+          optMaxDepth.disabled = !optDeepCrawl.checked;
+          cardDeepCrawl.classList.toggle('active', optDeepCrawl.checked);
+        });
+
+        optDetachInvisibles.addEventListener('change', () => {
+          cardDetachInvisibles.classList.toggle('active', optDetachInvisibles.checked);
+        });
+
+        optStructured.addEventListener('change', () => {
+          optBaseSelector.disabled = !optStructured.checked;
+          cardStructured.classList.toggle('active', optStructured.checked);
+          if (optStructured.checked) optBaseSelector.focus();
+        });
 
         // i18n Dictionary
         const translations = {
@@ -538,6 +860,22 @@
             urlsLabel: '網址批量轉換 (URL Batch)',
             urlsHelp: '每行一個網址；支援空白或逗號分隔，多頁面將自動串接併入同一份 Markdown。',
             convertAction: '轉換成 Markdown',
+            advancedTitle: '進階爬取設定 (Crawl4AI 增強選項)',
+            optFitMarkdownTitle: 'BM25 關鍵詞精簡 (Fit Markdown)',
+            optFitMarkdownDesc: '依關鍵詞過濾無關冗餘段落，大幅降低 LLM Prompt Token 消耗。',
+            optContentQueryPlaceholder: '輸入搜尋關鍵詞，例如：財務 營收 獲利',
+            optDeepCrawlTitle: '同網域深度爬取 (Deep Crawl)',
+            optDeepCrawlDesc: '自動沿著站內同源連結進行廣度優先爬取 (BFS)。',
+            optMaxPages: '最大頁數:',
+            optMaxDepth: '最大深度:',
+            optDetachInvisiblesTitle: '過濾隱形元素 (Detach Invisibles)',
+            optDetachInvisiblesDesc: '從 DOM 快照中徹底移除 display:none 與隱藏節點。',
+            optStructuredTitle: 'CSS 結構化提取 (Zero-Token JSON)',
+            optStructuredDesc: '輸入主容器選擇器，由後端 DOM 直接抽取結構化 JSON。',
+            optBaseSelectorPlaceholder: '主容器選擇器 (例如 .product-card, article)',
+            tabRawMd: '📝 原始 Markdown',
+            tabFitMd: '🎯 精簡 Fit Markdown',
+            tabJson: '📊 結構化 JSON',
             uploadLabel: '文件檔案解析 (AnyDoc 超極速引擎)',
             dropzonePrompt: '拖曳檔案至此，或點擊選擇檔案上傳',
             dropzoneHint: '支援 PDF, Word (.docx/.doc), Excel (.xlsx/.xls), PowerPoint (.pptx/.ppt), EPUB, RTF, CSV, ODT...',
@@ -572,6 +910,22 @@
             urlsLabel: 'Batch URL Conversion',
             urlsHelp: 'One URL per line. Spaces or commas also work as separators.',
             convertAction: 'Convert to Markdown',
+            advancedTitle: 'Advanced Crawl Options (Crawl4AI Enhanced)',
+            optFitMarkdownTitle: 'BM25 Filtering (Fit Markdown)',
+            optFitMarkdownDesc: 'Filter boilerplate by keywords to reduce LLM prompt token costs.',
+            optContentQueryPlaceholder: 'Enter search keywords, e.g. revenue earnings guidance',
+            optDeepCrawlTitle: 'Same-Domain Deep Crawl',
+            optDeepCrawlDesc: 'Follow internal links automatically using bounded BFS.',
+            optMaxPages: 'Max Pages:',
+            optMaxDepth: 'Max Depth:',
+            optDetachInvisiblesTitle: 'Detach Invisible Elements',
+            optDetachInvisiblesDesc: 'Strip display:none and invisible nodes from snapshot.',
+            optStructuredTitle: 'CSS Structured Extraction (Zero-Token JSON)',
+            optStructuredDesc: 'Extract deterministic JSON from DOM using CSS selectors.',
+            optBaseSelectorPlaceholder: 'Container selector (e.g. .product-card, article)',
+            tabRawMd: '📝 Raw Markdown',
+            tabFitMd: '🎯 Fit Markdown',
+            tabJson: '📊 Structured JSON',
             uploadLabel: 'Document File Parsing (AnyDoc)',
             dropzonePrompt: 'Drag & drop file here, or click to choose file',
             dropzoneHint: 'Supports PDF, Word (.docx/.doc), Excel (.xlsx/.xls), PowerPoint (.pptx/.ppt), EPUB, RTF, CSV...',
@@ -612,6 +966,9 @@
           });
           languageToggle.textContent = text('switchLanguage');
           updateFileNameDisplay();
+          if (activeResultViews && Object.keys(activeResultViews).length > 1) {
+            renderResultTabs();
+          }
         };
 
         // Tab Switching
@@ -642,10 +999,57 @@
           status.classList.toggle('error', isError);
         };
 
-        // Result Show Helper
-        const showResult = markdown => {
-          result.textContent = markdown;
-          statsBadge.textContent = `${markdown.length.toLocaleString()} 字 / ${markdown.split(/\s+/).filter(Boolean).length.toLocaleString()} words`;
+        // Result Show & View Switching Helper
+        let activeResultViews = {};
+        let currentTabKey = 'raw';
+
+        const updateResultTabContent = (key) => {
+          currentTabKey = key;
+          const textContent = activeResultViews[key] || '';
+          result.textContent = textContent;
+          statsBadge.textContent = `${textContent.length.toLocaleString()} 字 / ${textContent.split(/\s+/).filter(Boolean).length.toLocaleString()} words`;
+          document.querySelectorAll('.result-tab-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.key === key);
+          });
+        };
+
+        const renderResultTabs = () => {
+          resultTabsNav.innerHTML = '';
+          const viewKeys = Object.keys(activeResultViews);
+          if (viewKeys.length > 1) {
+            viewKeys.forEach(k => {
+              const btn = document.createElement('button');
+              btn.type = 'button';
+              btn.className = `result-tab-btn ${k === currentTabKey ? 'active' : ''}`;
+              btn.dataset.key = k;
+              btn.textContent = k === 'fit' ? text('tabFitMd') : (k === 'json' ? text('tabJson') : text('tabRawMd'));
+              btn.addEventListener('click', () => updateResultTabContent(k));
+              resultTabsNav.appendChild(btn);
+            });
+            resultTabsNav.hidden = false;
+          } else {
+            resultTabsNav.hidden = true;
+          }
+        };
+
+        const showResult = data => {
+          activeResultViews = {};
+          if (typeof data === 'string') {
+            activeResultViews.raw = data;
+          } else if (data && typeof data === 'object') {
+            const rawContent = data.content || data.rawMarkdown || (typeof data === 'string' ? data : JSON.stringify(data, null, 2));
+            activeResultViews.raw = rawContent;
+            if (data.fitMarkdown && data.fitMarkdown !== rawContent) {
+              activeResultViews.fit = data.fitMarkdown;
+            }
+            if (data.extracted && (Array.isArray(data.extracted) ? data.extracted.length : Object.keys(data.extracted).length)) {
+              activeResultViews.json = JSON.stringify(data.extracted, null, 2);
+            }
+          }
+
+          currentTabKey = activeResultViews.fit ? 'fit' : (activeResultViews.raw ? 'raw' : Object.keys(activeResultViews)[0] || 'raw');
+          renderResultTabs();
+          updateResultTabContent(currentTabKey);
           resultArea.hidden = false;
           resultArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         };
@@ -734,9 +1138,44 @@
           resultArea.hidden = true;
 
           try {
-            const markdown = await requestBatch(urls);
-            showResult(markdown);
-            setStatus(text('converted')(urls.length));
+            const isAdvancedActive = optFitMarkdown.checked || optDeepCrawl.checked || optDetachInvisibles.checked || optStructured.checked;
+            if (isAdvancedActive && urls.length === 1) {
+              const payload = {
+                url: urls[0],
+                contentFilter: optFitMarkdown.checked ? 'bm25' : undefined,
+                contentQuery: (optFitMarkdown.checked && optContentQuery.value.trim()) ? optContentQuery.value.trim() : undefined,
+                deepCrawl: optDeepCrawl.checked ? {
+                  maxPages: parseInt(optMaxPages.value, 10) || 5,
+                  maxDepth: parseInt(optMaxDepth.value, 10) || 2
+                } : undefined,
+                detachInvisibles: optDetachInvisibles.checked ? true : undefined,
+                extraction: (optStructured.checked && optBaseSelector.value.trim()) ? {
+                  type: 'css',
+                  baseSelector: optBaseSelector.value.trim(),
+                  fields: [
+                    { name: 'title', selector: 'h1, h2, h3, .title, a', type: 'text' },
+                    { name: 'content', selector: 'p, article, .content, .desc', type: 'text' },
+                    { name: 'link', selector: 'a', type: 'attribute', attribute: 'href' }
+                  ]
+                } : undefined
+              };
+
+              const response = await fetch('/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify(payload)
+              });
+              const json = await response.json();
+              if (!response.ok || (json && json.code >= 400)) {
+                throw new Error((json && json.message) || `Server error ${response.status}`);
+              }
+              showResult(json.data || json);
+              setStatus(text('converted')(1));
+            } else {
+              const markdown = await requestBatch(urls);
+              showResult(markdown);
+              setStatus(text('converted')(urls.length));
+            }
           } catch (err) {
             setStatus(text('errorMsg')(err.message || 'Conversion failed'), true);
           } finally {
