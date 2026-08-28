@@ -2,7 +2,7 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
-## 2026-08-28 - Crawl4AI 核心整合與進階抽取 (Crawl4AI Integration & Advanced Extraction)
+## [2026.08.28.1] - 2026-08-28 - Crawl4AI 核心整合與進階抽取 (Crawl4AI Integration & Advanced Extraction)
 
 ### 🚀 Crawl4AI Core Integration & Advanced Extraction
 - **CSS / XPath Structured Data Extraction (Zero-Token JSON)**: Pass `extraction` schema (`type: "css"|"xpath"`, `baseSelector`, `fields`) in POST request bodies to extract structured JSON arrays (`data.extracted`) directly in the Linkedom DOM without invoking LLMs (sub-millisecond latency).
