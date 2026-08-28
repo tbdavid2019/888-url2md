@@ -38,6 +38,7 @@
     "@napi-rs/canvas": "^0.1.68",
     "@nomagick/mathml-to-latex": "^1.5.3",
     "@nomagick/node-libcurl-impersonate": "^5.0.4",
+    "@xmldom/xmldom": "^0.9.12",
     "civkit": "^0.10.0-ca17c8a",
     "dayjs": "^1.11.9",
     "franc": "^6.2.0",
@@ -61,7 +62,8 @@
     "tld-extract": "^2.1.0",
     "tslib": "^2.8.1",
     "tsyringe": "^4.10.0",
-    "undici": "^7.24.7"
+    "undici": "^7.24.7",
+    "xpath": "^0.0.34"
   },
   "devDependencies": {
     "@types/koa": "^2.15.0",

@@ -5,6 +5,16 @@ import { Context } from '../services/registry';
 import { TurnDownTweakableOptions } from './turndown-tweakable-options';
 import type { PageSnapshot } from '../services/puppeteer';
 import { PseudoBoolean, PseudoBooleanLoose } from '../lib/pseudo-boolean';
+import {
+    AsyncJobOptions,
+    ContentFilterMode,
+    DeepCrawlOptions,
+    StructuredExtractionSchema,
+    validateDeepCrawlOptions,
+    validateStructuredExtractionSchema,
+    validateVirtualScrollOptions,
+    VirtualScrollOptions,
+} from './advanced-crawl-options';
 import _ from 'lodash';
 
 export enum CONTENT_FORMAT {
@@ -624,8 +634,54 @@ export class CrawlerOptions extends Coercible {
     })
     customHeader?: { [k: string]: string; };
 
+    @Prop()
+    extraction?: StructuredExtractionSchema;
+
+    @Prop()
+    contentFilter?: ContentFilterMode;
+
+    @Prop()
+    contentQuery?: string;
+
+    @Prop({ type: PseudoBooleanLoose })
+    prefetch?: boolean;
+
+    @Prop()
+    deepCrawl?: DeepCrawlOptions;
+
+    @Prop()
+    sessionId?: string;
+
+    @Prop()
+    virtualScroll?: VirtualScrollOptions;
+
+    @Prop({ type: PseudoBooleanLoose })
+    asyncJob?: boolean;
+
+    @Prop()
+    webhook?: AsyncJobOptions['webhook'];
+
     _hintIps?: string[];
     _hintCountry?: string;
+
+    validateAdvancedOptions() {
+        if (this.extraction) {
+            this.extraction = validateStructuredExtractionSchema(this.extraction);
+        }
+        if (this.contentFilter && !['pruning', 'bm25'].includes(this.contentFilter)) {
+            throw new ParamValidationError({ message: 'contentFilter must be pruning or bm25', path: 'contentFilter' });
+        }
+        if (this.contentQuery !== undefined && (typeof this.contentQuery !== 'string' || this.contentQuery.length > 500)) {
+            throw new ParamValidationError({ message: 'contentQuery must be at most 500 characters', path: 'contentQuery' });
+        }
+        if (this.deepCrawl) {
+            this.deepCrawl = validateDeepCrawlOptions(this.deepCrawl);
+        }
+        if (this.virtualScroll) {
+            this.virtualScroll = validateVirtualScrollOptions(this.virtualScroll);
+        }
+        return this;
+    }
 
     static override from(input: any) {
         if (input && typeof input === 'object') {
