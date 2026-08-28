@@ -1,4 +1,4 @@
-import { randomUUID } from 'crypto';
+import { randomBytes, randomUUID } from 'crypto';
 import { singleton } from 'tsyringe';
 import { AsyncService } from 'civkit/async-service';
 import { assertSafeWebhookUrl, WebhookOptions } from '../dto/advanced-crawl-options';
@@ -24,6 +24,7 @@ export interface CrawlJob<T = unknown> {
     progress?: JobProgress;
     result?: T;
     error?: string;
+    accessToken?: string;
 }
 
 type JobRunner<T> = (signal: AbortSignal, reportProgress: (progress: JobProgress) => void) => Promise<T>;
@@ -32,6 +33,7 @@ interface StoredJob<T> extends CrawlJob<T> {
     controller: AbortController;
     runner: JobRunner<T>;
     webhook?: WebhookOptions;
+    accessToken: string;
 }
 
 @singleton()
@@ -63,20 +65,21 @@ export class JobQueueService extends AsyncService {
             controller: new AbortController(),
             runner,
             webhook,
+            accessToken: randomBytes(24).toString('base64url'),
         };
         this.jobs.set(job.id, job);
         void this.run(job);
-        return this.publicJob(job);
+        return this.publicJob(job, true);
     }
 
-    get<T = unknown>(id: string): CrawlJob<T> | undefined {
+    get<T = unknown>(id: string, accessToken?: string): CrawlJob<T> | undefined {
         const job = this.jobs.get(id);
-        return job ? this.publicJob(job) as CrawlJob<T> : undefined;
+        return job && accessToken === job.accessToken ? this.publicJob(job) as CrawlJob<T> : undefined;
     }
 
     list() {
         this.prune();
-        return [...this.jobs.values()].map((job) => this.publicJob(job));
+        return [...this.jobs.values()].map((job) => this.publicJob(job, false, false));
     }
 
     stats() {
@@ -91,9 +94,9 @@ export class JobQueueService extends AsyncService {
         return { total: Object.values(counts).reduce((sum, count) => sum + count, 0), counts };
     }
 
-    cancel(id: string) {
+    cancel(id: string, accessToken?: string) {
         const job = this.jobs.get(id);
-        if (!job || ['completed', 'failed', 'cancelled'].includes(job.status)) {
+        if (!job || accessToken !== job.accessToken || ['completed', 'failed', 'cancelled'].includes(job.status)) {
             return false;
         }
         job.controller.abort();
@@ -104,9 +107,13 @@ export class JobQueueService extends AsyncService {
         return true;
     }
 
-    private publicJob<T>(job: StoredJob<T>): CrawlJob<T> {
-        const { controller: _controller, runner: _runner, webhook: _webhook, ...publicJob } = job;
-        return publicJob;
+    private publicJob<T>(job: StoredJob<T>, includeAccessToken = false, includeResult = true): CrawlJob<T> {
+        const { controller: _controller, runner: _runner, webhook: _webhook, accessToken, result, ...publicJob } = job;
+        return {
+            ...publicJob,
+            ...(includeResult && result !== undefined ? { result } : {}),
+            ...(includeAccessToken ? { accessToken } : {}),
+        };
     }
 
     private async run<T>(job: StoredJob<T>) {

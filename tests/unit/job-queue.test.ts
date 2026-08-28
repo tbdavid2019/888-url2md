@@ -7,9 +7,9 @@ function makeQueue() {
     return new JobQueueService({ child: () => ({}) } as any);
 }
 
-async function waitFor(queue: JobQueueService, id: string) {
+async function waitFor(queue: JobQueueService, id: string, accessToken: string) {
     for (let i = 0; i < 50; i += 1) {
-        const job = queue.get(id);
+        const job = queue.get(id, accessToken);
         if (job && ['completed', 'failed', 'cancelled'].includes(job.status)) return job;
         await new Promise((resolve) => setTimeout(resolve, 5));
     }
@@ -23,11 +23,12 @@ describe('job queue', () => {
             progress({ completed: 1, url: 'https://example.com' });
             return { pages: 1 };
         });
-        const result = await waitFor(queue, job.id);
+        const result = await waitFor(queue, job.id, job.accessToken!);
         assert.equal(result.status, 'completed');
         assert.deepEqual(result.result, { pages: 1 });
         assert.deepEqual(result.progress, { completed: 1, url: 'https://example.com' });
         assert.equal((result as any).controller, undefined);
+        assert.equal(queue.get(job.id), undefined);
     });
 
     it('cancels a running job through AbortSignal', async () => {
@@ -37,8 +38,8 @@ describe('job queue', () => {
             if (signal.aborted) throw new Error('cancelled');
             return 'done';
         });
-        assert.equal(queue.cancel(job.id), true);
-        const result = await waitFor(queue, job.id);
+        assert.equal(queue.cancel(job.id, job.accessToken), true);
+        const result = await waitFor(queue, job.id, job.accessToken!);
         assert.equal(result.status, 'cancelled');
     });
 
@@ -49,5 +50,6 @@ describe('job queue', () => {
         assert.equal(listed[0].id, job.id);
         assert.equal(queue.stats().total, 1);
         assert.equal((listed[0] as any).runner, undefined);
+        assert.equal((listed[0] as any).result, undefined);
     });
 });

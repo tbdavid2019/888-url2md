@@ -194,7 +194,7 @@ curl -X POST 'https://create360.ai/' \
   }'
 ```
 
-回應中的 `statusUrl` 可用 `GET /jobs/{jobId}` 查詢狀態；使用 `POST /jobs/{jobId}/cancel` 取消任務。Webhook 僅接受 HTTPS URL。
+回應中的 `accessToken` 只顯示一次；之後使用 `X-Job-Token` 搭配 `GET /jobs/{jobId}` 查詢狀態，或搭配 `POST /jobs/{jobId}/cancel` 取消任務。Webhook 僅接受 HTTPS URL。
 
 ---
 
@@ -558,7 +558,7 @@ Set `asyncJob: true` for long-running deep crawls:
 }
 ```
 
-Poll the returned `statusUrl` with `GET /jobs/{jobId}` or cancel with `POST /jobs/{jobId}/cancel`. Webhook URLs must use HTTPS.
+The response includes an `accessToken` shown only at submission time. Send it as `X-Job-Token` when polling `GET /jobs/{jobId}` or cancelling with `POST /jobs/{jobId}/cancel`. Webhook URLs must use HTTPS.
 
 ---
 

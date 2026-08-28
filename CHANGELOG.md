@@ -62,6 +62,7 @@ All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888
 - Fixed JSON serialization for `rawMarkdown` and `fitMarkdown`, and contained webhook DNS failures.
 - Fixed ReaderLM structured-output calls so `instruction` and `jsonSchema` reach the intended prompt fields.
 - Fixed deep-crawl include patterns so the starting URL is always available for link discovery.
+- Protected asynchronous job results and cancellation with per-job `X-Job-Token` access tokens.
 
 ### 🧭 Repository Workflow
 - Added `AGENTS.md` with the repository rule that every Git commit must update `CHANGELOG.md`.

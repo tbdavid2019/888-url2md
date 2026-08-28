@@ -2300,9 +2300,9 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
     })
     async getCrawlJob(@Ctx() ctx: Context) {
         const id = ctx.path.replace(/^\/jobs\//i, '').split('/')[0];
-        const job = this.jobQueue.get(id);
+        const job = this.jobQueue.get(id, ctx.get('x-job-token'));
         if (!job) {
-            throw new AssertionFailureError(`Crawl job ${id} was not found`);
+            throw new AssertionFailureError(`Crawl job ${id} was not found or the X-Job-Token is invalid`);
         }
         return job;
     }
@@ -2327,9 +2327,10 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
     })
     async cancelCrawlJob(@Ctx() ctx: Context) {
         const id = ctx.path.replace(/^\/jobs\//i, '').replace(/\/cancel\/?$/i, '');
-        const cancelled = this.jobQueue.cancel(id);
-        if (!cancelled && !this.jobQueue.get(id)) {
-            throw new AssertionFailureError(`Crawl job ${id} was not found`);
+        const token = ctx.get('x-job-token');
+        const cancelled = this.jobQueue.cancel(id, token);
+        if (!cancelled && !this.jobQueue.get(id, token)) {
+            throw new AssertionFailureError(`Crawl job ${id} was not found or the X-Job-Token is invalid`);
         }
         return { id, cancelled };
     }
