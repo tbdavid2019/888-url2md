@@ -1,3 +1,6 @@
+import { isIP } from 'node:net';
+import { isIPInNonPublicRange } from '../utils/ip';
+
 export const ADVANCED_CRAWL_LIMITS = {
     maxDepth: 5,
     maxPages: 500,
@@ -157,7 +160,8 @@ export function assertSafeWebhookUrl(rawUrl: string) {
     if (url.protocol !== 'https:') {
         throw new TypeError('job.webhook.url must use HTTPS');
     }
-    if (url.username || url.password || ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname.toLowerCase())) {
+    const hostname = url.hostname.toLowerCase().replace(/^\[|\]$/g, '');
+    if (url.username || url.password || hostname === 'localhost' || (isIP(hostname) && isIPInNonPublicRange(hostname))) {
         throw new TypeError('job.webhook.url must not contain credentials or target localhost');
     }
     return url.href;

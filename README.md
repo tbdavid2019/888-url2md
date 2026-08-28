@@ -40,6 +40,7 @@ Currently deployed at: [**create360.ai**](https://create360.ai) (or easily self-
   - 可用 CSS/XPath schema 直接抽取重複資料並回傳 `extracted` JSON。
   - 可選用 `contentFilter: "pruning"` 或 `"bm25"` 產生較精簡的 `fitMarkdown`。
   - 支援有上限的 BFS deep crawl、prefetch、session cookie 延續與 virtual scroll。
+  - 長任務支援 `asyncJob`、進度查詢、取消與 HTTPS webhook。
 
 ---
 
@@ -176,6 +177,24 @@ curl -X POST 'https://create360.ai/' \
 ```
 
 服務預設限制最大深度、頁數與執行時間，避免意外掃描整個網站。
+
+### 1.7 非同步任務 (Async Job)
+
+深度爬取可改為背景任務，避免長時間佔用 HTTP 連線：
+
+```bash
+curl -X POST 'https://create360.ai/' \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json' \
+  -d '{
+    "url": "https://docs.example.com",
+    "asyncJob": true,
+    "deepCrawl": {"maxDepth": 2, "maxPages": 20},
+    "webhook": {"url": "https://hooks.example.com/crawl-complete"}
+  }'
+```
+
+回應中的 `statusUrl` 可用 `GET /jobs/{jobId}` 查詢狀態；使用 `POST /jobs/{jobId}/cancel` 取消任務。Webhook 僅接受 HTTPS URL。
 
 ---
 
@@ -397,6 +416,7 @@ Currently deployed at: [**create360.ai**](https://create360.ai) (or easily self-
    - Extract repeated records directly as `extracted` JSON with CSS/XPath schemas.
    - Opt into `contentFilter: "pruning"` or `"bm25"` for compact `fitMarkdown`.
    - Supports bounded BFS deep crawling, prefetch, session cookies, and virtual scrolling.
+   - Long-running crawls support `asyncJob`, progress polling, cancellation, and HTTPS webhooks.
 
 ---
 
@@ -524,6 +544,21 @@ The JSON response keeps `content` and adds `extracted`, `rawMarkdown`, and `fitM
 ```
 
 Deep crawling is bounded by depth, page count, and execution time to prevent accidental whole-site scans.
+
+### 1.7 Async Jobs
+
+Set `asyncJob: true` for long-running deep crawls:
+
+```json
+{
+  "url": "https://docs.example.com",
+  "asyncJob": true,
+  "deepCrawl": {"maxDepth": 2, "maxPages": 20},
+  "webhook": {"url": "https://hooks.example.com/crawl-complete"}
+}
+```
+
+Poll the returned `statusUrl` with `GET /jobs/{jobId}` or cancel with `POST /jobs/{jobId}/cancel`. Webhook URLs must use HTTPS.
 
 ---
 

@@ -64,6 +64,7 @@ import { fileURLToPath } from 'url';
 import { BogoSitesControl } from '../services/bogo-sites';
 import { extractStructuredData } from '../services/structured-extractor';
 import { deepCrawl } from '../services/deep-crawler';
+import { JobQueueService } from '../services/job-queue';
 
 
 export const sha256Hasher = new HashManager('sha256', 'hex');
@@ -130,6 +131,7 @@ export class CrawlerHost extends RPCHost {
         protected storageLayer: StorageLayer,
         protected binaryExtractorService: BinaryExtractorService,
         protected bogoSitesControl: BogoSitesControl,
+        protected jobQueue: JobQueueService,
     ) {
         super(...arguments);
 
@@ -930,6 +932,21 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
             this.threadLocal.set('isInternal', true);
         }
         if (crawlerOptions.deepCrawl || crawlerOptions.prefetch) {
+            if (crawlerOptions.asyncJob) {
+                const job = this.jobQueue.submit(
+                    (signal, reportProgress) => this.runDeepCrawl(
+                        { signal } as RPCReflection,
+                        crawlerOptions,
+                        crawlOpts,
+                        targetUrl,
+                        'data',
+                        signal,
+                        reportProgress,
+                    ),
+                    crawlerOptions.webhook,
+                );
+                return { ...job, statusUrl: `/jobs/${job.id}` };
+            }
             return this.runDeepCrawl(rpcReflect, crawlerOptions, crawlOpts, targetUrl);
         }
         this.logger.info(`Accepting request from ${uid || ctx.ip}`, { opts: crawlerOptions });
@@ -2184,6 +2201,9 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
         crawlerOptions: CrawlerOptions,
         crawlOpts: ExtraScrappingOptions,
         targetUrl: URL,
+        outputMode: 'response' | 'data' = 'response',
+        signal: AbortSignal = rpcReflect.signal,
+        onProgress?: (progress: { visited: number; queued: number; completed: number; url: string; depth: number }) => void,
     ) {
         const options = {
             ...(crawlerOptions.deepCrawl || {}),
@@ -2221,10 +2241,23 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
                 links,
                 value: await this.formatSnapshot(pageOptions, snapshot, new URL(url), this.urlValidMs),
             };
-        }, rpcReflect.signal);
+        }, signal, onProgress);
+
+        const data = {
+            pages: pages.map((page) => ({
+                url: page.url,
+                depth: page.depth,
+                links: page.links,
+                error: page.error,
+                ...(page.value ? { result: page.value } : {}),
+            })),
+        };
+        if (outputMode === 'data') {
+            return data;
+        }
 
         const ctx = this.threadLocal.ctx;
-        if (!rpcReflect.signal.aborted && ctx?.accepts?.('text/event-stream') && !ctx?.accepts?.('text/plain')) {
+        if (!signal.aborted && ctx?.accepts?.('text/event-stream') && !ctx?.accepts?.('text/plain')) {
             const stream = new OutputServerEventStream();
             for (const page of pages) {
                 stream.write({ event: page.error ? 'error' : 'data', data: { ...page, value: undefined, result: page.value } });
@@ -2234,21 +2267,56 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
         }
 
         if (ctx?.accepts?.('application/json')) {
-            return {
-                pages: pages.map((page) => ({
-                    url: page.url,
-                    depth: page.depth,
-                    links: page.links,
-                    error: page.error,
-                    ...(page.value ? { result: page.value } : {}),
-                })),
-            };
+            return data;
         }
 
         if (crawlerOptions.prefetch) {
             return pages.map((page) => `URL: ${page.url}\nDepth: ${page.depth}\nLinks: ${page.links.join('\n')}`).join('\n\n---\n\n');
         }
         return pages.map((page) => page.error ? `URL: ${page.url}\nError: ${page.error}` : page.value?.content || '').filter(Boolean).join('\n\n---\n\n');
+    }
+
+    @Method({
+        name: 'getCrawlJob',
+        description: 'Get the status and result of an asynchronous crawl job',
+        proto: { http: { action: 'GET', path: '/jobs/::id' } },
+        tags: ['crawl', 'jobs'],
+        returnType: Object,
+    })
+    async getCrawlJob(@Ctx() ctx: Context) {
+        const id = ctx.path.replace(/^\/jobs\//i, '').split('/')[0];
+        const job = this.jobQueue.get(id);
+        if (!job) {
+            throw new AssertionFailureError(`Crawl job ${id} was not found`);
+        }
+        return job;
+    }
+
+    @Method({
+        name: 'listCrawlJobs',
+        description: 'List recent asynchronous crawl jobs and queue statistics',
+        proto: { http: { action: 'GET', path: '/jobs' } },
+        tags: ['crawl', 'jobs'],
+        returnType: Object,
+    })
+    async listCrawlJobs() {
+        return { stats: this.jobQueue.stats(), jobs: this.jobQueue.list() };
+    }
+
+    @Method({
+        name: 'cancelCrawlJob',
+        description: 'Cancel an asynchronous crawl job',
+        proto: { http: { action: 'POST', path: '/jobs/::id/cancel' } },
+        tags: ['crawl', 'jobs'],
+        returnType: Object,
+    })
+    async cancelCrawlJob(@Ctx() ctx: Context) {
+        const id = ctx.path.replace(/^\/jobs\//i, '').replace(/\/cancel\/?$/i, '');
+        const cancelled = this.jobQueue.cancel(id);
+        if (!cancelled && !this.jobQueue.get(id)) {
+            throw new AssertionFailureError(`Crawl job ${id} was not found`);
+        }
+        return { id, cancelled };
     }
 
     async getFinalSnapshot(url: URL, opts?: ExtraScrappingOptions, crawlerOptions?: CrawlerOptions): Promise<PageSnapshot | undefined> {

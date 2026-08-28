@@ -13,6 +13,7 @@ import {
     validateDeepCrawlOptions,
     validateStructuredExtractionSchema,
     validateVirtualScrollOptions,
+    assertSafeWebhookUrl,
     VirtualScrollOptions,
 } from './advanced-crawl-options';
 import _ from 'lodash';
@@ -683,6 +684,9 @@ export class CrawlerOptions extends Coercible {
         if (this.virtualScroll) {
             this.virtualScroll = validateVirtualScrollOptions(this.virtualScroll);
         }
+        if (this.webhook) {
+            this.webhook.url = assertSafeWebhookUrl(this.webhook.url);
+        }
         return this;
     }
 
@@ -885,6 +889,23 @@ export class CrawlerOptions extends Coercible {
         const baseMode = ctx?.get('x-base');
         if (baseMode) {
             instance.base = baseMode as any;
+        }
+
+        const contentFilter = ctx?.get('x-content-filter');
+        if (contentFilter && ['pruning', 'bm25'].includes(contentFilter.toLowerCase())) {
+            instance.contentFilter ??= contentFilter.toLowerCase() as ContentFilterMode;
+        }
+        const contentQuery = ctx?.get('x-content-query');
+        if (contentQuery) {
+            instance.contentQuery ??= contentQuery;
+        }
+        const prefetch = ctx?.get('x-prefetch');
+        if (prefetch) {
+            instance.prefetch ??= PseudoBooleanLoose.from(prefetch);
+        }
+        const sessionId = ctx?.get('x-session-id');
+        if (sessionId) {
+            instance.sessionId ??= sessionId;
         }
 
         const dnt = ctx?.get('dnt');

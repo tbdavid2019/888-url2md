@@ -41,5 +41,6 @@ describe('advanced crawl option validation', () => {
         assert.equal(assertSafeWebhookUrl('https://hooks.example.com/crawl'), 'https://hooks.example.com/crawl');
         assert.throws(() => assertSafeWebhookUrl('http://hooks.example.com/crawl'), /HTTPS/);
         assert.throws(() => assertSafeWebhookUrl('https://localhost/crawl'), /localhost/);
+        assert.throws(() => assertSafeWebhookUrl('https://127.0.0.1/crawl'), /localhost/);
     });
 });

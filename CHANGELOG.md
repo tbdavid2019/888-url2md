@@ -57,6 +57,8 @@ All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888
 - Added opt-in Pruning/BM25 Fit Markdown with `rawMarkdown` and `fitMarkdown` fields.
 - Added bounded BFS deep crawl and prefetch API options.
 - Added session cookie continuity and bounded virtual scrolling for dynamic pages.
+- Added asynchronous crawl jobs with progress polling, cancellation, and HTTPS webhook retries.
+- Added queue statistics and recent-job listing for lightweight monitoring.
 
 ### 🧭 Repository Workflow
 - Added `AGENTS.md` with the repository rule that every Git commit must update `CHANGELOG.md`.
