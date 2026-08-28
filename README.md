@@ -135,7 +135,9 @@ curl -X POST 'https://create360.ai/' \
 
 ---
 
-### 1.5 結構化抽取與 Fit Markdown (Advanced Extraction)
+### 1.5 結構化資料抽取 (Structured Data Extraction - 零 Token 消耗)
+
+在 Request Body 傳入 `extraction` 定義 CSS 或 XPath 規則，由後端 DOM 直接解析，**無需呼叫外部 LLM，耗時僅數毫秒**：
 
 ```bash
 curl -X POST 'https://create360.ai/' \
@@ -145,21 +147,38 @@ curl -X POST 'https://create360.ai/' \
     "url": "https://example.com/products",
     "extraction": {
       "type": "css",
-      "baseSelector": ".product",
+      "baseSelector": ".product-card",
       "fields": [
-        {"name": "name", "selector": "h2"},
+        {"name": "title", "selector": "h3.title", "type": "text"},
         {"name": "price", "selector": ".price", "type": "number"},
-        {"name": "url", "selector": "a", "type": "attribute", "attribute": "href"}
+        {"name": "link", "selector": "a.buy-btn", "type": "attribute", "attribute": "href"}
       ]
-    },
-    "contentFilter": "bm25",
-    "contentQuery": "product price"
+    }
   }'
 ```
 
-JSON 回應會保留 `content`，並額外提供 `extracted`、`rawMarkdown` 與 `fitMarkdown`。
+- 回應的 `data.extracted` 欄位將直接包含結構化 JSON 物件陣列。
 
-### 1.6 有上限的網站探索 (Deep Crawl)
+### 1.6 Fit Markdown 與 BM25 關鍵詞過濾 (Token 成本縮減)
+
+針對巨型網頁、長文檔或 RAG 場景，可傳入 `contentFilter` 或 `contentQuery`（亦可透過 Header `X-Content-Filter: bm25` 與 `X-Content-Query: ...` 啟用）：
+
+```bash
+curl -X POST 'https://create360.ai/' \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json' \
+  -d '{
+    "url": "https://example.com/financial-report",
+    "contentFilter": "bm25",
+    "contentQuery": "quarterly revenue EBITDA guidance"
+  }'
+```
+
+- 回應的 `data.fitMarkdown` 將僅包含與查詢詞高度相關的段落，有效降低後續傳給 LLM 時的 Prompt Token 費用。原始全文保留於 `data.rawMarkdown`。
+
+### 1.7 有上限的深度爬取 (Bounded BFS Deep Crawl)
+
+指定網域範圍與最大爬取頁數，依序抓取站內關聯頁面：
 
 ```bash
 curl -X POST 'https://create360.ai/' \
@@ -169,18 +188,18 @@ curl -X POST 'https://create360.ai/' \
     "url": "https://docs.example.com",
     "deepCrawl": {
       "maxDepth": 2,
-      "maxPages": 20,
+      "maxPages": 10,
       "allowedDomains": ["docs.example.com"],
       "includePatterns": ["*guide*", "*api*"]
     }
   }'
 ```
 
-服務預設限制最大深度、頁數與執行時間，避免意外掃描整個網站。
+- 服務具備深度與頁數上限保護，避免無限制遞迴爬取整個網站。
 
-### 1.7 非同步任務 (Async Job)
+### 1.8 非同步任務隊列與 Webhook (Async Job & HTTPS Webhook)
 
-深度爬取可改為背景任務，避免長時間佔用 HTTP 連線：
+處理多頁面深度爬取或耗時較長的任務時，可啟用 `asyncJob: true` 避免 HTTP 連線逾時：
 
 ```bash
 curl -X POST 'https://create360.ai/' \
@@ -194,7 +213,8 @@ curl -X POST 'https://create360.ai/' \
   }'
 ```
 
-回應中的 `accessToken` 只顯示一次；之後使用 `X-Job-Token` 搭配 `GET /jobs/{jobId}` 查詢狀態，或搭配 `POST /jobs/{jobId}/cancel` 取消任務。Webhook 僅接受 HTTPS URL。
+- **查詢與取消**：伺服器立即回傳 `jobId` 與專屬的 `accessToken`。後續以 `X-Job-Token: <accessToken>` Header 搭配 `GET /jobs/{jobId}` 查詢進度，或以 `POST /jobs/{jobId}/cancel` 取消任務。
+- **Webhook 回調**：任務完成時自動發送 HTTPS POST 至指定的 Webhook 端點（內建 SSRF 內網安全防護）。
 
 ---
 
@@ -506,48 +526,60 @@ curl -X POST 'https://create360.ai/' \
 
 ---
 
-### 1.5 Structured Extraction & Fit Markdown
+### 1.5 CSS / XPath Structured Data Extraction (Zero-Token Cost)
 
-Use the `extraction` schema to return structured records together with Markdown:
+Pass `extraction` in the JSON request body to extract deterministic structured JSON records directly from the linkedom DOM **without invoking LLMs (sub-millisecond latency)**:
 
 ```json
 {
   "url": "https://example.com/products",
   "extraction": {
     "type": "css",
-    "baseSelector": ".product",
+    "baseSelector": ".product-card",
     "fields": [
-      {"name": "name", "selector": "h2"},
+      {"name": "title", "selector": "h3.title", "type": "text"},
       {"name": "price", "selector": ".price", "type": "number"},
-      {"name": "url", "selector": "a", "type": "attribute", "attribute": "href"}
+      {"name": "link", "selector": "a.buy-btn", "type": "attribute", "attribute": "href"}
     ]
-  },
-  "contentFilter": "bm25",
-  "contentQuery": "product price"
+  }
 }
 ```
 
-The JSON response keeps `content` and adds `extracted`, `rawMarkdown`, and `fitMarkdown`.
+- The response includes `data.extracted` containing the structured JSON array.
 
-### 1.6 Bounded Deep Crawl
+### 1.6 Fit Markdown & BM25 Content Filtering (Prompt Token Cost Reduction)
+
+For large web pages, dense documentation, or RAG ingestion, pass `contentFilter` / `contentQuery` (or use headers `X-Content-Filter: bm25` and `X-Content-Query: ...`):
+
+```json
+{
+  "url": "https://example.com/financial-report",
+  "contentFilter": "bm25",
+  "contentQuery": "quarterly revenue EBITDA guidance"
+}
+```
+
+- The response provides `data.fitMarkdown` containing only the sections relevant to the query, saving downstream LLM context window costs. Complete markdown remains available in `data.rawMarkdown`.
+
+### 1.7 Bounded BFS Deep Crawling
+
+Crawl linked pages within the allowed domain with conservative limits:
 
 ```json
 {
   "url": "https://docs.example.com",
   "deepCrawl": {
     "maxDepth": 2,
-    "maxPages": 20,
+    "maxPages": 10,
     "allowedDomains": ["docs.example.com"],
     "includePatterns": ["*guide*", "*api*"]
   }
 }
 ```
 
-Deep crawling is bounded by depth, page count, and execution time to prevent accidental whole-site scans.
+### 1.8 Asynchronous Job Queue & HTTPS Webhooks
 
-### 1.7 Async Jobs
-
-Set `asyncJob: true` for long-running deep crawls:
+For multi-page deep crawls or background tasks, enable `asyncJob: true` to avoid HTTP timeouts:
 
 ```json
 {
@@ -558,7 +590,8 @@ Set `asyncJob: true` for long-running deep crawls:
 }
 ```
 
-The response includes an `accessToken` shown only at submission time. Send it as `X-Job-Token` when polling `GET /jobs/{jobId}` or cancelling with `POST /jobs/{jobId}/cancel`. Webhook URLs must use HTTPS.
+- **Polling & Cancellation**: The server returns a `jobId` and an `accessToken`. Use the `X-Job-Token: <accessToken>` header with `GET /jobs/{jobId}` to poll progress or `POST /jobs/{jobId}/cancel` to cancel.
+- **Webhook Delivery**: Automated HTTPS POST webhook upon completion with built-in SSRF private-IP blocking.
 
 ---
 

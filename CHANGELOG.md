@@ -74,6 +74,7 @@ All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888
 ### 🧭 Repository Workflow
 - Added `AGENTS.md` with the repository rule that every Git commit must update `CHANGELOG.md`.
 - Documented when user-facing changes also require a `README.md` update.
+- Updated `README.md` with dedicated 1.5–1.8 sections for CSS/XPath structured extraction, BM25 Fit Markdown, bounded deep crawl, and async job queues in both Chinese and English sections.
 
 ### 🤖 WebMCP Browser Tools
 - Added WebMCP imperative API integration to the browser landing page through `document.modelContext`.
