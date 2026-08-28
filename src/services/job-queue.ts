@@ -48,6 +48,11 @@ export class JobQueueService extends AsyncService {
         super(...arguments);
     }
 
+    override async init() {
+        await this.dependencyReady();
+        this.emit('ready');
+    }
+
     submit<T>(runner: JobRunner<T>, webhook?: WebhookOptions): CrawlJob<T> {
         this.prune();
         if (this.jobs.size >= this.maxJobs) {

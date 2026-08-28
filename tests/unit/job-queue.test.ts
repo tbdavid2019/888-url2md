@@ -17,6 +17,11 @@ async function waitFor(queue: JobQueueService, id: string, accessToken: string) 
 }
 
 describe('job queue', () => {
+    it('initializes through the shared service lifecycle', async () => {
+        const queue = makeQueue();
+        await queue.serviceReady();
+    });
+
     it('runs a job and exposes progress without internal controls', async () => {
         const queue = makeQueue();
         const job = queue.submit(async (_signal, progress) => {
