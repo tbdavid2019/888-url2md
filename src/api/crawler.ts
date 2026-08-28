@@ -62,6 +62,8 @@ import { detectBuff, extOfMime } from 'civkit/mime';
 import { STATUS_CODES } from 'http';
 import { fileURLToPath } from 'url';
 import { BogoSitesControl } from '../services/bogo-sites';
+import { extractStructuredData } from '../services/structured-extractor';
+import { deepCrawl } from '../services/deep-crawler';
 
 
 export const sha256Hasher = new HashManager('sha256', 'hex');
@@ -78,6 +80,9 @@ export interface ExtraScrappingOptions extends ScrappingOptions {
     countryHint?: string;
     readabilityRequired?: boolean;
     eligibleForPageIndex?: boolean;
+    prefetch?: boolean;
+    sessionId?: string;
+    virtualScroll?: CrawlerOptions['virtualScroll'];
 }
 
 const indexProto = {
@@ -923,6 +928,9 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
         if (auth.isInternal) {
             crawlOpts.eligibleForPageIndex = true;
             this.threadLocal.set('isInternal', true);
+        }
+        if (crawlerOptions.deepCrawl || crawlerOptions.prefetch) {
+            return this.runDeepCrawl(rpcReflect, crawlerOptions, crawlOpts, targetUrl);
         }
         this.logger.info(`Accepting request from ${uid || ctx.ip}`, { opts: crawlerOptions });
         rpcReflect.finally(() => {
@@ -1965,6 +1973,7 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
     }
 
     async configure(opts: CrawlerOptions) {
+        opts.validateAdvancedOptions();
 
         this.threadLocal.set('withGeneratedAlt', opts.withGeneratedAlt);
         this.threadLocal.set('withLinksSummary', opts.withLinksSummary);
@@ -2006,6 +2015,8 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
                 this.threadLocal.set('markdownChunkingDepth', parseInt(opts.markdownChunking.substring(opts.markdownChunking.length - 1)));
             }
         }
+        this.threadLocal.set('contentFilter', opts.contentFilter);
+        this.threadLocal.set('contentQuery', opts.contentQuery);
 
         const crawlOpts: ExtraScrappingOptions = {
             proxyUrl: opts.proxyUrl,
@@ -2028,6 +2039,9 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
             readabilityRequired: opts.readabilityRequired(),
             extraHeaders: opts.customHeader,
             detachInvisibles: opts.detachInvisibles,
+            prefetch: opts.prefetch,
+            sessionId: opts.sessionId,
+            virtualScroll: opts.virtualScroll,
         };
 
         if (crawlOpts.targetSelector?.length) {
@@ -2158,7 +2172,83 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
             }
         }
 
-        return this.snapshotFormatter.formatSnapshot(respondWith, snapshot, presumedURL, urlValidMs);
+        const formatted = await this.snapshotFormatter.formatSnapshot(respondWith, snapshot, presumedURL, urlValidMs);
+        if (crawlerOptions.extraction && snapshot.html) {
+            formatted.extracted = await extractStructuredData(snapshot.html, crawlerOptions.extraction);
+        }
+        return formatted;
+    }
+
+    protected async runDeepCrawl(
+        rpcReflect: RPCReflection,
+        crawlerOptions: CrawlerOptions,
+        crawlOpts: ExtraScrappingOptions,
+        targetUrl: URL,
+    ) {
+        const options = {
+            ...(crawlerOptions.deepCrawl || {}),
+            prefetch: Boolean(crawlerOptions.prefetch),
+        };
+        if (!crawlerOptions.deepCrawl) {
+            options.maxDepth = 0;
+            options.maxPages = 1;
+        }
+        const pages = await deepCrawl(targetUrl.href, options, async (url, context) => {
+            const pageOptions = CrawlerOptions.from({
+                ...crawlerOptions,
+                url,
+                urls: undefined,
+                deepCrawl: undefined,
+                prefetch: undefined,
+                asyncJob: undefined,
+                webhook: undefined,
+            });
+            const snapshot = await this.getFinalSnapshot(new URL(url), {
+                ...crawlOpts,
+                targetSelector: undefined,
+                removeSelector: undefined,
+                prefetch: context.prefetch,
+            }, pageOptions);
+            if (!snapshot) {
+                throw new AssertionFailureError(`No content available for ${url}`);
+            }
+            const inferred = await this.jsdomControl.inferSnapshot(snapshot);
+            const links = inferred.snapshot.links?.map(([, href]) => href) || [];
+            if (context.prefetch) {
+                return { links };
+            }
+            return {
+                links,
+                value: await this.formatSnapshot(pageOptions, snapshot, new URL(url), this.urlValidMs),
+            };
+        }, rpcReflect.signal);
+
+        const ctx = this.threadLocal.ctx;
+        if (!rpcReflect.signal.aborted && ctx?.accepts?.('text/event-stream') && !ctx?.accepts?.('text/plain')) {
+            const stream = new OutputServerEventStream();
+            for (const page of pages) {
+                stream.write({ event: page.error ? 'error' : 'data', data: { ...page, value: undefined, result: page.value } });
+            }
+            stream.end();
+            return stream;
+        }
+
+        if (ctx?.accepts?.('application/json')) {
+            return {
+                pages: pages.map((page) => ({
+                    url: page.url,
+                    depth: page.depth,
+                    links: page.links,
+                    error: page.error,
+                    ...(page.value ? { result: page.value } : {}),
+                })),
+            };
+        }
+
+        if (crawlerOptions.prefetch) {
+            return pages.map((page) => `URL: ${page.url}\nDepth: ${page.depth}\nLinks: ${page.links.join('\n')}`).join('\n\n---\n\n');
+        }
+        return pages.map((page) => page.error ? `URL: ${page.url}\nError: ${page.error}` : page.value?.content || '').filter(Boolean).join('\n\n---\n\n');
     }
 
     async getFinalSnapshot(url: URL, opts?: ExtraScrappingOptions, crawlerOptions?: CrawlerOptions): Promise<PageSnapshot | undefined> {

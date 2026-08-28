@@ -19,12 +19,16 @@ import { StorageLayer } from '../db/noop-storage';
 import { readFile } from 'fs/promises';
 import { fileURLToPath } from 'url';
 import pseudoTransfer from './pseudo-transfer';
+import { buildFitMarkdown, type FitMarkdownMode } from './fit-markdown';
 
 export interface FormattedPage {
     title?: string;
     description?: string;
     url?: string;
     content?: string;
+    extracted?: Record<string, unknown>[];
+    rawMarkdown?: string;
+    fitMarkdown?: string;
     chunks?: string[];
     publishedTime?: string;
     html?: string;
@@ -69,6 +73,10 @@ export class FormattedPageDto extends Coercible {
 
     @Prop()
     content?: string;
+    @Prop({ type: ArrayOf(Object) })
+    extracted?: Record<string, unknown>[];
+    rawMarkdown?: string;
+    fitMarkdown?: string;
     @Prop({
         type: ArrayOf(String),
     })
@@ -778,11 +786,21 @@ export class SnapshotFormatter extends AsyncService {
             contentText = tokenTrim(contentText, maxTokens);
         }
 
+        const rawMarkdown = contentText;
+        const contentFilter = this.threadLocal.get('contentFilter') as FitMarkdownMode | undefined;
+        const fitMarkdown = contentFilter
+            ? buildFitMarkdown(rawMarkdown, {
+                mode: contentFilter,
+                query: this.threadLocal.get('contentQuery'),
+            })
+            : undefined;
         const formatted: FormattedPage = {
             title: (snapshot.parsed?.title || snapshot.title || '').trim(),
             description: (snapshot.description || '').trim(),
             url: nominalUrl?.toString() || snapshot.href?.trim(),
-            content: contentText,
+            content: fitMarkdown || contentText,
+            rawMarkdown: fitMarkdown ? rawMarkdown : undefined,
+            fitMarkdown,
             publishedTime: snapshot.parsed?.publishedTime || snapshot.metadata?.['article:published_time'] || snapshot.lastModified,
             metadata: snapshot.metadata,
             external: snapshot.external,

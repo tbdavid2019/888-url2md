@@ -674,6 +674,9 @@ export class CrawlerOptions extends Coercible {
         if (this.contentQuery !== undefined && (typeof this.contentQuery !== 'string' || this.contentQuery.length > 500)) {
             throw new ParamValidationError({ message: 'contentQuery must be at most 500 characters', path: 'contentQuery' });
         }
+        if (this.sessionId !== undefined && !/^[A-Za-z0-9._:-]{1,128}$/.test(this.sessionId)) {
+            throw new ParamValidationError({ message: 'sessionId must contain only safe identifier characters', path: 'sessionId' });
+        }
         if (this.deepCrawl) {
             this.deepCrawl = validateDeepCrawlOptions(this.deepCrawl);
         }

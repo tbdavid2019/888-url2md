@@ -36,6 +36,10 @@ Currently deployed at: [**create360.ai**](https://create360.ai) (or easily self-
 7. **WebMCP 瀏覽器工具 (WebMCP Browser Tools)**
   - 在支援 WebMCP 的 Chrome 瀏覽器中，首頁會透過 `document.modelContext` 註冊 `search_web`、`read_web_page` 與 `read_web_pages` 唯讀工具。
   - 工具會回傳乾淨 Markdown，並同步更新首頁結果區；不支援 WebMCP 的瀏覽器維持原本表單功能。
+8. **進階爬取與資料抽取 (Advanced Crawling & Extraction)**
+  - 可用 CSS/XPath schema 直接抽取重複資料並回傳 `extracted` JSON。
+  - 可選用 `contentFilter: "pruning"` 或 `"bm25"` 產生較精簡的 `fitMarkdown`。
+  - 支援有上限的 BFS deep crawl、prefetch、session cookie 延續與 virtual scroll。
 
 ---
 
@@ -127,6 +131,51 @@ curl -X POST 'https://create360.ai/' \
   -H 'Content-Type: application/json' \
   -d '{"url": "https://podcast.david888.com/post/2026-08-09"}'
 ```
+
+---
+
+### 1.5 結構化抽取與 Fit Markdown (Advanced Extraction)
+
+```bash
+curl -X POST 'https://create360.ai/' \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json' \
+  -d '{
+    "url": "https://example.com/products",
+    "extraction": {
+      "type": "css",
+      "baseSelector": ".product",
+      "fields": [
+        {"name": "name", "selector": "h2"},
+        {"name": "price", "selector": ".price", "type": "number"},
+        {"name": "url", "selector": "a", "type": "attribute", "attribute": "href"}
+      ]
+    },
+    "contentFilter": "bm25",
+    "contentQuery": "product price"
+  }'
+```
+
+JSON 回應會保留 `content`，並額外提供 `extracted`、`rawMarkdown` 與 `fitMarkdown`。
+
+### 1.6 有上限的網站探索 (Deep Crawl)
+
+```bash
+curl -X POST 'https://create360.ai/' \
+  -H 'Content-Type: application/json' \
+  -H 'Accept: application/json' \
+  -d '{
+    "url": "https://docs.example.com",
+    "deepCrawl": {
+      "maxDepth": 2,
+      "maxPages": 20,
+      "allowedDomains": ["docs.example.com"],
+      "includePatterns": ["*guide*", "*api*"]
+    }
+  }'
+```
+
+服務預設限制最大深度、頁數與執行時間，避免意外掃描整個網站。
 
 ---
 
@@ -344,6 +393,10 @@ Currently deployed at: [**create360.ai**](https://create360.ai) (or easily self-
 7. **WebMCP Browser Tools**
    - On WebMCP-enabled Chrome browsers, the homepage registers the read-only `search_web`, `read_web_page`, and `read_web_pages` tools through `document.modelContext`.
    - Tool calls return clean Markdown and update the visible result panel. Browsers without WebMCP continue to use the existing forms and REST API.
+8. **Advanced Crawling & Structured Extraction**
+   - Extract repeated records directly as `extracted` JSON with CSS/XPath schemas.
+   - Opt into `contentFilter: "pruning"` or `"bm25"` for compact `fitMarkdown`.
+   - Supports bounded BFS deep crawling, prefetch, session cookies, and virtual scrolling.
 
 ---
 
@@ -433,6 +486,47 @@ curl -X POST 'https://create360.ai/' \
 
 ---
 
+### 1.5 Structured Extraction & Fit Markdown
+
+Use the `extraction` schema to return structured records together with Markdown:
+
+```json
+{
+  "url": "https://example.com/products",
+  "extraction": {
+    "type": "css",
+    "baseSelector": ".product",
+    "fields": [
+      {"name": "name", "selector": "h2"},
+      {"name": "price", "selector": ".price", "type": "number"},
+      {"name": "url", "selector": "a", "type": "attribute", "attribute": "href"}
+    ]
+  },
+  "contentFilter": "bm25",
+  "contentQuery": "product price"
+}
+```
+
+The JSON response keeps `content` and adds `extracted`, `rawMarkdown`, and `fitMarkdown`.
+
+### 1.6 Bounded Deep Crawl
+
+```json
+{
+  "url": "https://docs.example.com",
+  "deepCrawl": {
+    "maxDepth": 2,
+    "maxPages": 20,
+    "allowedDomains": ["docs.example.com"],
+    "includePatterns": ["*guide*", "*api*"]
+  }
+}
+```
+
+Deep crawling is bounded by depth, page count, and execution time to prevent accidental whole-site scans.
+
+---
+
 ### 2. Real-time Web Search
 
 #### **A. Path-based Search**
@@ -494,4 +588,3 @@ curl -X POST 'https://create360.ai/upload' \
 
 - **License**: Released under the **GNU Affero General Public License v3.0 ([AGPL-3.0](LICENSE))**.
 - **Attribution**: Core module derived from [Jina AI](https://jina.ai) (`jina-ai/reader`). Special thanks to the Jina AI team and open-source community!
-

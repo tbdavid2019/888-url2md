@@ -52,6 +52,12 @@ All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888
 
 ## [Unreleased]
 
+### 🚀 Advanced Crawl and Extraction
+- Added CSS/XPath schema-based structured extraction with `extracted` JSON output.
+- Added opt-in Pruning/BM25 Fit Markdown with `rawMarkdown` and `fitMarkdown` fields.
+- Added bounded BFS deep crawl and prefetch API options.
+- Added session cookie continuity and bounded virtual scrolling for dynamic pages.
+
 ### 🧭 Repository Workflow
 - Added `AGENTS.md` with the repository rule that every Git commit must update `CHANGELOG.md`.
 - Documented when user-facing changes also require a `README.md` update.

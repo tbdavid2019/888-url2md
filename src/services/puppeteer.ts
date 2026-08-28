@@ -24,6 +24,7 @@ import { SecurityCompromiseError, ServiceCrashedError, ServiceNodeResourceDrainE
 import { randomBytes } from 'crypto';
 import { Finalizer } from './finalizer';
 import { privateIpNotAcceptable } from './misc';
+import type { VirtualScrollOptions } from '../dto/advanced-crawl-options';
 const tldExtract = require('tld-extract');
 
 const READABILITY_JS = fs.readFileSync(require.resolve('@mozilla/readability/Readability.js'), 'utf-8');
@@ -117,6 +118,9 @@ export interface ScrappingOptions<T = FancyFile | Blob> {
     viewport?: Viewport;
     proxyResources?: boolean;
     detachInvisibles?: boolean;
+    prefetch?: boolean;
+    sessionId?: string;
+    virtualScroll?: VirtualScrollOptions;
 
     sideLoad?: {
         impersonate: {
@@ -686,6 +690,7 @@ export class PuppeteerControl extends AsyncService {
     circuitBreakerHosts: Set<string> = new Set();
 
     lifeCycleTrack = new WeakMap();
+    sessionCookies = new Map<string, { cookies: CookieParam[]; expiresAt: number; }>();
 
     acceptedBlobMimetypes = new Set([
         'application/msword',
@@ -1087,6 +1092,12 @@ export class PuppeteerControl extends AsyncService {
         let frameScriptEvaluations: Promise<unknown>[] = [];
         const preparations: Promise<unknown>[] = [];
         const page = await this.getNextPage();
+        const sessionCookies = options.sessionId && !options.cookies
+            ? this.sessionCookies.get(options.sessionId)
+            : undefined;
+        if (sessionCookies && sessionCookies.expiresAt > Date.now()) {
+            options.cookies = sessionCookies.cookies as unknown as Cookie[];
+        }
         this.lifeCycleTrack.set(page, this.asyncLocalContext.ctx);
 
         page.on('response', async (resp) => {
@@ -1505,6 +1516,19 @@ export class PuppeteerControl extends AsyncService {
                 options,
                 parsedUrl,
             );
+            if (options.sessionId) {
+                const cookies = await page.cookies(parsedUrl.href).catch(() => []);
+                if (cookies.length) {
+                    if (this.sessionCookies.size >= 100 && !this.sessionCookies.has(options.sessionId)) {
+                        const oldest = this.sessionCookies.keys().next().value;
+                        if (oldest) this.sessionCookies.delete(oldest);
+                    }
+                    this.sessionCookies.set(options.sessionId, {
+                        cookies,
+                        expiresAt: Date.now() + 30 * 60 * 1000,
+                    });
+                }
+            }
         };
         const delayPromise = delay(timeout);
         let gotoPromise: Promise<any> | undefined;
@@ -1541,6 +1565,27 @@ export class PuppeteerControl extends AsyncService {
                     }
                     await Promise.race([Promise.allSettled([...pageScriptEvaluations, ...frameScriptEvaluations]), delayPromise])
                         .catch(() => void 0);
+                    if (options.virtualScroll) {
+                        await page.evaluate(async (config) => {
+                            const target = config.containerSelector
+                                ? document.querySelector(config.containerSelector)
+                                : document.scrollingElement;
+                            if (!target) return;
+                            let previous = -1;
+                            const maxScrolls = config.maxScrolls || 20;
+                            const scrollDelayMs = config.scrollDelayMs || 0;
+                            for (let i = 0; i < maxScrolls; i += 1) {
+                                const element = target as HTMLElement;
+                                const before = element.scrollTop;
+                                const step = config.stepPx || element.clientHeight || window.innerHeight;
+                                element.scrollBy(0, step);
+                                await new Promise((resolve) => setTimeout(resolve, scrollDelayMs));
+                                const current = element.scrollTop;
+                                if (current === previous || current === before || current + element.clientHeight >= element.scrollHeight) break;
+                                previous = current;
+                            }
+                        }, options.virtualScroll);
+                    }
                     return stuff;
                 });
             if (options.waitForSelector) {

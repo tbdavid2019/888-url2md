@@ -25,6 +25,7 @@ export interface StructuredExtractionSchema {
 export type ContentFilterMode = 'pruning' | 'bm25';
 
 export interface DeepCrawlOptions {
+    prefetch?: boolean;
     maxDepth?: number;
     maxPages?: number;
     maxDurationMs?: number;
@@ -105,6 +106,7 @@ export function validateDeepCrawlOptions(options: DeepCrawlOptions) {
         throw new TypeError('deepCrawl must be an object');
     }
     const normalized = {
+        prefetch: Boolean(options.prefetch),
         maxDepth: options.maxDepth ?? 1,
         maxPages: options.maxPages ?? 20,
         maxDurationMs: options.maxDurationMs ?? 60_000,
