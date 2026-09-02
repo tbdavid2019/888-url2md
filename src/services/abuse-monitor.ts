@@ -152,7 +152,16 @@ export class AbuseMonitorService extends AsyncService {
         }
     }
 
-    private initDatabase(): void {
+    private ensureDatabase() {
+        if (!this.db && this.enabled) {
+            this.initDatabase();
+        }
+    }
+
+    private initDatabase() {
+        if (this.db) {
+            return;
+        }
         try {
             const dir = path.dirname(this.dbPath);
             if (!fs.existsSync(dir)) {
@@ -183,8 +192,9 @@ export class AbuseMonitorService extends AsyncService {
                     error_message TEXT
                 );
                 CREATE INDEX IF NOT EXISTS idx_logs_timestamp ON request_logs(timestamp);
-                CREATE INDEX IF NOT EXISTS idx_logs_ip_timestamp ON request_logs(ip, timestamp);
-                CREATE INDEX IF NOT EXISTS idx_logs_target_domain ON request_logs(target_domain);
+                CREATE INDEX IF NOT EXISTS idx_logs_ip ON request_logs(ip);
+                CREATE INDEX IF NOT EXISTS idx_logs_domain ON request_logs(target_domain);
+                CREATE INDEX IF NOT EXISTS idx_logs_status ON request_logs(status_code);
             `);
 
             this.insertStmt = this.db.prepare(`
@@ -200,9 +210,9 @@ export class AbuseMonitorService extends AsyncService {
             `);
 
             this.pruneExpiredLogs();
-            this.logger.info(`AbuseMonitor SQLite logger initialized at ${this.dbPath}`);
-        } catch (err) {
-            this.logger.error(`Failed to initialize AbuseMonitor SQLite database at ${this.dbPath}:`, err);
+            this.logger.info(`AbuseMonitor SQLite database initialized at ${this.dbPath} in WAL mode.`);
+        } catch (err: any) {
+            this.logger.error(`Failed to initialize SQLite log database at ${this.dbPath}: ${err?.message || err}`);
         }
     }
 
@@ -389,6 +399,8 @@ export class AbuseMonitorService extends AsyncService {
     }
 
     public getSummaryStats(timeRangeMs = 86400000, topLimit = 10): SummaryStats {
+        this.ensureDatabase();
+        this.flush();
         if (!this.db) {
             return {
                 timeRangeMs,
@@ -406,7 +418,6 @@ export class AbuseMonitorService extends AsyncService {
             };
         }
 
-        this.flush();
         const sinceMs = Date.now() - timeRangeMs;
 
         const aggStmt = this.db.prepare(`
@@ -515,9 +526,10 @@ export class AbuseMonitorService extends AsyncService {
         statusCode?: number;
         errorsOnly?: boolean;
     } = {}): { total: number; logs: RequestLogEntry[] } {
+        this.ensureDatabase();
+        this.flush();
         if (!this.db) return { total: 0, logs: [] };
 
-        this.flush();
         const limit = Math.min(500, Math.max(1, options.limit || 50));
         const offset = Math.max(0, options.offset || 0);
 
@@ -573,6 +585,46 @@ export class AbuseMonitorService extends AsyncService {
         }));
 
         return { total, logs };
+    }
+
+    public exportLogs(options: {
+        sinceMs?: number;
+        untilMs?: number;
+        limit?: number;
+    } = {}): RequestLogEntry[] {
+        this.ensureDatabase();
+        this.flush();
+        if (!this.db) return [];
+
+        const limit = Math.min(10000, Math.max(1, options.limit || 1000));
+        const sinceMs = options.sinceMs || (Date.now() - 86400000);
+        const untilMs = options.untilMs || Date.now();
+
+        const stmt = this.db.prepare(`
+            SELECT * FROM request_logs
+            WHERE timestamp >= ? AND timestamp <= ?
+            ORDER BY timestamp ASC
+            LIMIT ?
+        `);
+        const rows = stmt.all(sinceMs, untilMs, limit) as any[];
+
+        return rows.map((r) => ({
+            id: String(r.id),
+            timestamp: Number(r.timestamp),
+            createdAt: String(r.created_at),
+            ip: String(r.ip),
+            method: String(r.method),
+            endpoint: String(r.endpoint),
+            targetUrl: r.target_url ? String(r.target_url) : undefined,
+            targetDomain: r.target_domain ? String(r.target_domain) : undefined,
+            statusCode: Number(r.status_code),
+            durationMs: Number(r.duration_ms),
+            userAgent: r.user_agent ? String(r.user_agent) : undefined,
+            responseBytes: Number(r.response_bytes || 0),
+            isBatch: Boolean(r.is_batch),
+            batchCount: Number(r.batch_count || 0),
+            errorMessage: r.error_message ? String(r.error_message) : undefined,
+        }));
     }
 
     public async backupPreviousDayToS3(): Promise<string | null> {

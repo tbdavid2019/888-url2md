@@ -2,6 +2,15 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.09.02.5] - 2026-09-02 - 修復 AbuseMonitor 服務初始化與日誌持久化機制 (Fix AbuseMonitor Service Initialization & Lazy Table Sync)
+
+### 🐛 Bug Fixes & Improvements
+- **AbuseMonitor Lifecycle Synchronization**: Added `await this.abuseMonitor.serviceReady()` to standalone server initializers (`crawl.ts`, `search.ts`, `serp.ts`).
+- **Lazy Database Initialization Safeguard**: Added `ensureDatabase()` lazy fallback in `recordLog()`, `getSummaryStats()`, `getRecentLogs()`, and `exportLogs()` to ensure the SQLite schema and WAL mode are initialized immediately even before asynchronous DI initialization finishes.
+- **SQL Schema Alignment**: Aligned column definitions in `initDatabase()` and `flush()` statements across 15 fields including `target_url`, `is_batch`, and `batch_count`.
+
+---
+
 ## [2026.09.02.4] - 2026-09-02 - DuckDB 終端日誌分析腳本 (DuckDB SRE Analysis Script)
 
 ### 🛠️ Tooling & SRE Utilities

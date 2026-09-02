@@ -54,6 +54,7 @@ export class CrawlStandAloneServer extends KoaServer {
     }
 
     override async init() {
+        await this.abuseMonitor.serviceReady();
         await this.walkForAssets();
         await super.init();
     }
