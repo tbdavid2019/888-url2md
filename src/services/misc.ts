@@ -12,7 +12,24 @@ import _ from 'lodash';
 
 const normalizeUrl = require('@esm2cjs/normalize-url').default;
 
-export const privateIpNotAcceptable = Boolean(process.env['NODE_ENV']?.toLowerCase()?.includes('prod') && process.env['GCLOUD_PROJECT']);
+export function isPrivateIpForbidden(): boolean {
+    if (process.env['ALLOW_PRIVATE_NETWORK'] === 'true') {
+        return false;
+    }
+    if (process.env['BLOCK_PRIVATE_IP'] === 'true' || Boolean(process.env['GCLOUD_PROJECT'])) {
+        return true;
+    }
+    const env = process.env['NODE_ENV']?.toLowerCase() || '';
+    if (env.includes('prod')) {
+        return true;
+    }
+    if (env.includes('test') || env.includes('dev')) {
+        return false;
+    }
+    return true;
+}
+
+export const privateIpNotAcceptable = isPrivateIpForbidden();
 
 @singleton()
 export class MiscService extends AsyncService {
@@ -67,10 +84,12 @@ export class MiscService extends AsyncService {
         if (isIp) {
             ips.push(normalizedHostname);
         }
+        const isLocal = result.hostname === 'localhost' || result.hostname.endsWith('.localhost');
+        const isNonPublic = isIp && isIPInNonPublicRange(normalizedHostname);
+        const forbidden = isPrivateIpForbidden();
         if (
-            privateIpNotAcceptable &&
-            (result.hostname === 'localhost') ||
-            (isIp && isIPInNonPublicRange(normalizedHostname))
+            forbidden &&
+            (isLocal || isNonPublic)
         ) {
             this.logger.warn(`Suspicious action: Request to localhost or non-public IP: ${normalizedHostname}`, { href: result.href });
             throw new SecurityCompromiseError({
@@ -91,7 +110,7 @@ export class MiscService extends AsyncService {
             });
             if (resolved) {
                 for (const x of resolved) {
-                    if (privateIpNotAcceptable && isIPInNonPublicRange(x.address)) {
+                    if (forbidden && isIPInNonPublicRange(x.address)) {
                         this.logger.warn(`Suspicious action: Domain resolved to non-public IP: ${result.hostname} => ${x.address}`, { href: result.href, ip: x.address });
                         throw new SecurityCompromiseError({
                             message: `Suspicious action: Domain resolved to non-public IP: ${x.address}`,

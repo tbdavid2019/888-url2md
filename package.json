@@ -1,6 +1,6 @@
 {
   "name": "reader",
-  "version": "2026.09.02.9",
+  "version": "2026.09.02.10",
   "license": "AGPL-3.0-or-later",
   "scripts": {
     "lint": "eslint --ext .js,.ts .",

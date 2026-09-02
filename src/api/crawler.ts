@@ -2155,8 +2155,9 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
 
         if (opts.injectFrameScript?.length) {
             crawlOpts.injectFrameScripts = (await Promise.all(
-                opts.injectFrameScript.map((x) => {
+                opts.injectFrameScript.map(async (x) => {
                     if (URL.canParse(x)) {
+                        await this.miscService.assertNormalizedUrl(x);
                         return fetch(x).then((r) => r.text());
                     }
 
@@ -2167,8 +2168,9 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
 
         if (opts.injectPageScript?.length) {
             crawlOpts.injectPageScripts = (await Promise.all(
-                opts.injectPageScript.map((x) => {
+                opts.injectPageScript.map(async (x) => {
                     if (URL.canParse(x)) {
+                        await this.miscService.assertNormalizedUrl(x);
                         return fetch(x).then((r) => r.text());
                     }
 

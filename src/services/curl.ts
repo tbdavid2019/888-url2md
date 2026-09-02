@@ -10,7 +10,11 @@ import { GlobalLogger } from './logger';
 import { AssertionFailureError } from 'civkit/civ-rpc';
 import { FancyFile } from 'civkit/fancy-file';
 
-import { ServiceBadAttemptError, ServiceBadApproachError, TargetFileTooLargeError } from './errors';
+import { isIP } from 'node:net';
+import { lookup } from 'node:dns/promises';
+import { isIPInNonPublicRange } from '../utils/ip';
+import { isPrivateIpForbidden } from './misc';
+import { SecurityCompromiseError, ServiceBadAttemptError, ServiceBadApproachError, TargetFileTooLargeError } from './errors';
 import { TempFileManager } from '../services/temp-file';
 import _ from 'lodash';
 import { PassThrough, Readable } from 'stream';
@@ -137,7 +141,8 @@ export class CurlControl extends AsyncService {
             curl.enable(CurlFeature.StreamResponse);
             curl.setOpt('URL', urlToCrawl.toString());
             curl.setOpt(Curl.option.FOLLOWLOCATION, false);
-            curl.setOpt(Curl.option.SSL_VERIFYPEER, false);
+            const sslVerify = process.env.CURL_SSL_VERIFYPEER === 'true' || (process.env.CURL_SSL_VERIFYPEER !== 'false' && process.env.NODE_ENV === 'production');
+            curl.setOpt(Curl.option.SSL_VERIFYPEER, sslVerify);
             curl.setOpt(Curl.option.TIMEOUT_MS, crawlOpts?.timeoutMs || 30_000);
             curl.setOpt(Curl.option.CONNECTTIMEOUT_MS, 3_000);
             curl.setOpt(Curl.option.LOW_SPEED_LIMIT, 32768);
@@ -374,6 +379,26 @@ export class CurlControl extends AsyncService {
                 }
 
                 nextHopUrl = new URL(location || '', nextHopUrl);
+                if (isPrivateIpForbidden()) {
+                    const normHostname = nextHopUrl.hostname.startsWith('[') ? nextHopUrl.hostname.slice(1, -1) : nextHopUrl.hostname;
+                    const isIp = isIP(normHostname);
+                    const isLocal = nextHopUrl.hostname === 'localhost' || nextHopUrl.hostname.endsWith('.localhost');
+                    if (isLocal || (isIp && isIPInNonPublicRange(normHostname))) {
+                        throw new SecurityCompromiseError({
+                            message: `Suspicious redirect to localhost or non-public IP: ${nextHopUrl.href}`,
+                            path: 'url'
+                        });
+                    }
+                    if (!isIp && nextHopUrl.protocol !== 'blob:') {
+                        const resolved = await lookup(nextHopUrl.hostname, { all: true }).catch(() => undefined);
+                        if (resolved?.some((addr) => isIPInNonPublicRange(addr.address))) {
+                            throw new SecurityCompromiseError({
+                                message: `Suspicious redirect domain resolved to non-public IP: ${nextHopUrl.href}`,
+                                path: 'url'
+                            });
+                        }
+                    }
+                }
                 leftRedirection -= 1;
                 continue;
             }

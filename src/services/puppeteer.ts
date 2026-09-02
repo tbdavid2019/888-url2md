@@ -23,7 +23,8 @@ import { minimalStealth } from './minimal-stealth';
 import { SecurityCompromiseError, ServiceCrashedError, ServiceNodeResourceDrainError } from './errors';
 import { randomBytes } from 'crypto';
 import { Finalizer } from './finalizer';
-import { privateIpNotAcceptable } from './misc';
+import { isPrivateIpForbidden } from './misc';
+import { isIPInNonPublicRange } from '../utils/ip';
 import type { VirtualScrollOptions } from '../dto/advanced-crawl-options';
 const tldExtract = require('tld-extract');
 
@@ -922,13 +923,12 @@ export class PuppeteerControl extends AsyncService {
                 return req.abort('blockedbyclient', 1000);
             }
 
+            const isLocal = parsedUrl.hostname === 'localhost' || parsedUrl.hostname.endsWith('.localhost');
+            const isNonPublic = (isIP(parsedUrl.hostname) && isIPInNonPublicRange(parsedUrl.hostname)) || parsedUrl.hostname.startsWith('127.');
             if (
-                privateIpNotAcceptable && (
-                    parsedUrl.hostname === 'localhost' ||
-                    parsedUrl.hostname.startsWith('127.')
-                )
+                isPrivateIpForbidden() && (isLocal || isNonPublic)
             ) {
-                page.emit('abuse', { url: requestUrl, page, sn, reason: `Suspicious action: Request to localhost: ${requestUrl}` });
+                page.emit('abuse', { url: requestUrl, page, sn, reason: `Suspicious action: Request to localhost or non-public IP: ${requestUrl}` });
 
                 return req.abort('blockedbyclient', 1000);
             }

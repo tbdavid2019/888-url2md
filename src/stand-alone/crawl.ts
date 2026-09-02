@@ -114,6 +114,16 @@ export class CrawlStandAloneServer extends KoaServer {
     }
 
     registerRoutes(): void {
+        this.koaApp.use(async (ctx: Context, next: Next) => {
+            ctx.set('X-Content-Type-Options', 'nosniff');
+            ctx.set('X-Frame-Options', 'SAMEORIGIN');
+            ctx.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+            ctx.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+            if (ctx.secure || ctx.get('x-forwarded-proto') === 'https') {
+                ctx.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+            }
+            await next();
+        });
         this.koaApp.use(koaCompress({
             filter(type) {
                 if (type.startsWith('text/')) {

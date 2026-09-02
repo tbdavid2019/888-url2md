@@ -634,8 +634,14 @@
 
         // Status Helper
         const setStatus = (msg, isError = false, isLoading = false) => {
+          status.textContent = '';
           if (isLoading) {
-            status.innerHTML = `<span class="spinner"></span><span>${msg}</span>`;
+            const spinner = document.createElement('span');
+            spinner.className = 'spinner';
+            const textSpan = document.createElement('span');
+            textSpan.textContent = msg;
+            status.appendChild(spinner);
+            status.appendChild(textSpan);
           } else {
             status.textContent = msg;
           }

@@ -2,6 +2,30 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.09.02.10] - 2026-09-02 - 全面安全審計漏洞修復與防護加固 (Comprehensive Security Audit Remediation & Hardening)
+
+### 🛡️ Security Hardening & Remediation
+- **SSRF 跨環境多層防禦 (Multi-layer SSRF Defense)**:
+  - Fixed private IP blocking in [`src/services/misc.ts`](file:///Users/david/git/tbdavid2019/888-url2md/src/services/misc.ts) (`isPrivateIpForbidden()`) to protect Docker, VPS, and cloud deployments beyond GCP.
+  - Corrected operator precedence bug in `assertNormalizedUrl` IPv6 hostname validation.
+  - Added redirect hop target SSRF validation in [`src/services/curl.ts`](file:///Users/david/git/tbdavid2019/888-url2md/src/services/curl.ts) (`urlToFile`) ensuring HTTP 301/302 redirects cannot pivot into AWS metadata (`169.254.169.254`) or private subnets.
+  - Enforced SSRF URL normalization checks before fetching remote injection scripts (`injectFrameScript` & `injectPageScript`) in [`src/api/crawler.ts`](file:///Users/david/git/tbdavid2019/888-url2md/src/api/crawler.ts).
+  - Enhanced Puppeteer request interception in [`src/services/puppeteer.ts`](file:///Users/david/git/tbdavid2019/888-url2md/src/services/puppeteer.ts) to drop sub-resource requests to non-public CIDR ranges.
+- **DOM XSS 防禦 (DOM XSS Elimination)**:
+  - Replaced unsafe `innerHTML` interpolation in [`public/app.html`](file:///Users/david/git/tbdavid2019/888-url2md/public/app.html) `setStatus()` with safe `document.createElement()` and `textContent` assignment to prevent script execution via crafted file names.
+- **機敏端點訪問控制 (Sensitive Endpoint Protection)**:
+  - Enforced strict 403 Forbidden checks on sensitive monitoring endpoints (`/api/stats/logs`, `/api/abuse/logs`, `/api/stats/export`, `/api/stats/backup`) in [`src/services/abuse-monitor.ts`](file:///Users/david/git/tbdavid2019/888-url2md/src/services/abuse-monitor.ts) when running in production without `ADMIN_API_KEY`.
+- **HTTP 安全標頭防護 (HTTP Security Headers Middleware)**:
+  - Injected `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy: camera=(), microphone=(), geolocation=()`, and `Strict-Transport-Security` headers into the Koa response pipeline in [`src/stand-alone/crawl.ts`](file:///Users/david/git/tbdavid2019/888-url2md/src/stand-alone/crawl.ts).
+- **Prompt 注入隔離 (LLM Prompt Injection Isolation)**:
+  - Wrapped untrusted HTML payloads inside explicit `<untrusted_web_content>` boundary delimiters with defensive system instructions in [`src/services/lm.ts`](file:///Users/david/git/tbdavid2019/888-url2md/src/services/lm.ts).
+- **供應鏈相依性修復 (Supply Chain CVE Remediation)**:
+  - Ran `npm audit fix` updating vulnerable dependencies (`tar`, `undici`, `ws`, `ip-address`, `form-data`, `js-yaml`).
+- **單元測試套件 (Automated Test Suite)**:
+  - Added [`tests/unit/security-remediations.test.ts`](file:///Users/david/git/tbdavid2019/888-url2md/tests/unit/security-remediations.test.ts) verifying all 460 unit tests pass with 0 failures.
+
+---
+
 ## [2026.09.02.9] - 2026-09-02 - 本地運維日誌規範與 Git 排除規則 (Local Operations Log Standard & Git Ignore Rules)
 
 ### 📝 Documentation & Repository Standards

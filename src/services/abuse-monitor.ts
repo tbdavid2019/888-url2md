@@ -797,6 +797,17 @@ export class AbuseMonitorService extends AsyncService {
                     ctx.body = { error: 'Unauthorized: Invalid or missing admin API key' };
                     return;
                 }
+            } else if (
+                requestPath === '/api/stats/logs' ||
+                requestPath === '/api/abuse/logs' ||
+                requestPath === '/api/stats/export' ||
+                requestPath === '/api/stats/backup'
+            ) {
+                if (process.env.NODE_ENV === 'production') {
+                    ctx.status = 403;
+                    ctx.body = { error: 'Forbidden: ADMIN_API_KEY must be configured to access sensitive logs in production' };
+                    return;
+                }
             }
 
             if (requestPath === '/api/stats' || requestPath === '/api/abuse/stats') {
