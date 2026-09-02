@@ -2,6 +2,13 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.09.02.6] - 2026-09-02 - 支援指定日期與即時 S3 日誌備份 (On-demand Date Parameter for S3 Log Backup)
+
+### 🚀 Enhancements
+- **On-Demand S3 Backup Query Parameter**: Added `POST /api/stats/backup?today=true` or `?date=YYYY-MM-DD` allowing SREs to back up today's logs or specific dates on demand in addition to the automated daily midnight cron.
+
+---
+
 ## [2026.09.02.5] - 2026-09-02 - 修復 AbuseMonitor 服務初始化與日誌持久化機制 (Fix AbuseMonitor Service Initialization & Lazy Table Sync)
 
 ### 🐛 Bug Fixes & Improvements

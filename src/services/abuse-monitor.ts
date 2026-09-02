@@ -627,19 +627,35 @@ export class AbuseMonitorService extends AsyncService {
         }));
     }
 
-    public async backupPreviousDayToS3(): Promise<string | null> {
+    public async backupPreviousDayToS3(dateParam?: string): Promise<string | null> {
         if (!this.s3BackupEnabled || !this.s3Bucket || !this.db) {
             return null;
         }
 
         this.flush();
 
-        const now = new Date();
-        const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-        const yStart = new Date(Date.UTC(yesterday.getUTCFullYear(), yesterday.getUTCMonth(), yesterday.getUTCDate(), 0, 0, 0, 0)).getTime();
-        const yEnd = new Date(Date.UTC(yesterday.getUTCFullYear(), yesterday.getUTCMonth(), yesterday.getUTCDate(), 23, 59, 59, 999)).getTime();
+        let dateStr: string;
+        let yStart: number;
+        let yEnd: number;
 
-        const dateStr = yesterday.toISOString().slice(0, 10);
+        if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
+            dateStr = dateParam;
+            const [y, m, d] = dateParam.split('-').map(Number);
+            yStart = new Date(Date.UTC(y, m - 1, d, 0, 0, 0, 0)).getTime();
+            yEnd = new Date(Date.UTC(y, m - 1, d, 23, 59, 59, 999)).getTime();
+        } else if (dateParam === 'today' || dateParam === 'now') {
+            const now = new Date();
+            dateStr = now.toISOString().slice(0, 10);
+            yStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0)).getTime();
+            yEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59, 999)).getTime();
+        } else {
+            const now = new Date();
+            const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+            dateStr = yesterday.toISOString().slice(0, 10);
+            yStart = new Date(Date.UTC(yesterday.getUTCFullYear(), yesterday.getUTCMonth(), yesterday.getUTCDate(), 0, 0, 0, 0)).getTime();
+            yEnd = new Date(Date.UTC(yesterday.getUTCFullYear(), yesterday.getUTCMonth(), yesterday.getUTCDate(), 23, 59, 59, 999)).getTime();
+        }
+
         const rowsStmt = this.db.prepare('SELECT * FROM request_logs WHERE timestamp >= ? AND timestamp <= ? ORDER BY timestamp ASC');
         const rows = rowsStmt.all(yStart, yEnd);
 
@@ -651,7 +667,8 @@ export class AbuseMonitorService extends AsyncService {
         const ndjsonLines = rows.map((r) => JSON.stringify(r)).join('\n');
         const buffer = Buffer.from(ndjsonLines, 'utf-8');
 
-        const objectName = `${this.s3Prefix}year=${yesterday.getUTCFullYear()}/month=${String(yesterday.getUTCMonth() + 1).padStart(2, '0')}/day=${String(yesterday.getUTCDate()).padStart(2, '0')}/logs-${dateStr}.ndjson`;
+        const [year, month, day] = dateStr.split('-');
+        const objectName = `${this.s3Prefix}year=${year}/month=${month}/day=${day}/logs-${dateStr}.ndjson`;
 
         let endpointUrl = this.s3Endpoint || 's3.amazonaws.com';
         let useSSL = true;
@@ -827,7 +844,8 @@ export class AbuseMonitorService extends AsyncService {
                     ctx.body = { error: 'S3 backup is not enabled or S3_LOG_BUCKET is not configured' };
                     return;
                 }
-                const s3Uri = await this.backupPreviousDayToS3();
+                const dateParam = (ctx.query.date as string) || (ctx.query.today === 'true' ? 'today' : undefined);
+                const s3Uri = await this.backupPreviousDayToS3(dateParam);
                 ctx.body = { success: true, s3Uri };
                 return;
             }
