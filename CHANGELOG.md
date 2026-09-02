@@ -2,6 +2,15 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.09.02.3] - 2026-09-02 - 完整 SRE 防濫用與日誌備援說明文檔 (Comprehensive SRE Anti-Abuse & Logging Docs)
+
+### 📖 Documentation & SRE Guidelines
+- **Detailed README Updates (Bilingual)**: Fully documented all 16 SRE environment variables (`REQUEST_LOG_ENABLED`, `LOG_DB_PATH`, `LOG_RETENTION_DAYS`, `RATE_LIMIT_ENABLED`, `RATE_LIMIT_MAX_PER_MINUTE`, `RATE_LIMIT_EXEMPT_IPS`, `BLOCKED_IPS`, `BLOCKED_DOMAINS`, `ADMIN_API_KEY`, `S3_LOG_BACKUP_ENABLED`, `S3_LOG_BUCKET`, `S3_LOG_ENDPOINT`, `S3_LOG_REGION`, `S3_LOG_ACCESS_KEY_ID`, `S3_LOG_SECRET_ACCESS_KEY`, `S3_LOG_PREFIX`) in both Traditional Chinese and English sections of `README.md`.
+- **API & Analytics Examples**: Added comprehensive documentation for `GET /api/stats` (with full JSON response schema), `GET /api/stats/logs` (filtering & pagination), `GET /api/stats/export`, and `POST /api/stats/backup`.
+- **DuckDB SQL Query Recipes**: Included copy-pasteable DuckDB queries for hourly request traffic breakdown and malicious error IP identification directly against `./data/logs.sqlite`.
+
+---
+
 ## [2026.09.02.2] - 2026-09-02 - 防濫用日誌統計與 SRE 彈性配置 (Abuse Monitoring, Request Logging & S3 Backup)
 
 ### 🚀 SRE Logging, Anti-Abuse & Lakehouse Analytics

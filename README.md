@@ -111,44 +111,91 @@ services:
 | `PORT` | 服務內部監聽 Port | `8081` (或 `8080`) |
 | `SERPER_SEARCH_API_KEY` | (可選) Serper.dev API 搜尋金鑰；若未設定則自動啟用免費 DuckDuckGo / Bing SERP 引擎 | 無 (預設免 Key) |
 | `REQUEST_LOG_ENABLED` | (SRE 選填) 是否啟用請求日誌與防濫用 SQLite WAL 記錄 | `false` (設為 `true` 啟用) |
-| `LOG_DB_PATH` | (SRE 選填) SQLite 日誌資料庫路徑 | `/app/data/logs.sqlite` |
-| `LOG_RETENTION_DAYS` | (SRE 選填) 日誌保留天數（自動清理過期數據） | `7` |
+| `LOG_DB_PATH` | (SRE 選填) SQLite 日誌資料庫檔案路徑 | `/app/data/logs.sqlite` |
+| `LOG_RETENTION_DAYS` | (SRE 選填) 日誌保留天數（每日定時自動清理過期數據） | `7` (天) |
 | `RATE_LIMIT_ENABLED` | (SRE 選填) 是否啟用每分鐘 IP 頻率限制 | `false` |
 | `RATE_LIMIT_MAX_PER_MINUTE` | (SRE 選填) 單一 IP 每分鐘最大請求次數（超過回傳 429） | `60` |
 | `RATE_LIMIT_EXEMPT_IPS` | (SRE 選填) 白名單 IP（逗號分隔，不限流） | `127.0.0.1,::1` |
-| `BLOCKED_IPS` | (SRE 選填) 黑名單 IP（逗號分隔，直接拒絕 403） | 無 |
-| `BLOCKED_DOMAINS` | (SRE 選填) 禁止抓取的目標網域（逗號分隔，拒絕 403） | 無 |
-| `ADMIN_API_KEY` | (SRE 選填) 統計與日誌 API 認證金鑰（透過 `X-Admin-Key` 驗證） | 無 (若未設定則無需認證) |
-| `S3_LOG_BACKUP_ENABLED` | (SRE 選填) 是否啟用每日日誌自動上傳備份至 S3 / Cloudflare R2 | `false` |
-| `S3_LOG_BUCKET` | (SRE 選填) S3 / R2 儲存桶名稱 | 無 |
+| `BLOCKED_IPS` | (SRE 選填) 永久黑名單 IP（逗號分隔，直接拒絕 403） | 範例：`1.2.3.4,5.6.7.8` |
+| `BLOCKED_DOMAINS` | (SRE 選填) 禁止抓取的目標網域（逗號分隔，拒絕 403） | 範例：`malicious.com,bad-site.org` |
+| `ADMIN_API_KEY` | (SRE 選填) 統計與日誌 API 認證金鑰（透過 `X-Admin-Key` 驗證） | 自訂密碼（未設定則無需認證） |
+| `S3_LOG_BACKUP_ENABLED` | (SRE 選填) 是否啟用每日日誌自動上傳備份至 S3 / Cloudflare R2 | `false` (設為 `true` 啟用) |
+| `S3_LOG_BUCKET` | (SRE 選填) S3 / Cloudflare R2 儲存桶名稱 | 範例：`my-log-bucket` |
 | `S3_LOG_ENDPOINT` | (SRE 選填) S3 / R2 API 端點 | `https://<account_id>.r2.cloudflarestorage.com` |
+| `S3_LOG_REGION` | (SRE 選填) S3 區域代碼 | `us-east-1` |
+| `S3_LOG_ACCESS_KEY_ID` | (SRE 選填) S3 / R2 Access Key ID | 填入金鑰 |
+| `S3_LOG_SECRET_ACCESS_KEY` | (SRE 選填) S3 / R2 Secret Access Key | 填入金鑰 |
+| `S3_LOG_PREFIX` | (SRE 選填) 上傳路徑前綴 | `url2md-logs/` |
 
 ---
 
 ### 5. SRE 防濫用監控、日誌統計與 DuckDB 分析 (Anti-Abuse & Analytics)
 
-當 SRE 啟用 `REQUEST_LOG_ENABLED=true` 時，系統會透過高效能 SQLite WAL 模式非同步寫入請求日誌，並提供即時統計與資料匯出端點：
+當 SRE 啟用 `REQUEST_LOG_ENABLED=true` 時，系統會透過高效能 SQLite WAL (Write-Ahead Logging) 模式非同步寫入請求日誌，零延遲影響 API 回應，並提供完整的防濫用控制、即時統計與資料分析介面：
 
-#### **A. 即時統計端點 (`GET /api/stats`)**
+#### **A. 即時統計彙總端點 (`GET /api/stats`)**
+支援 `range` 參數（可指定 `1h`、`24h`、`7d`、`30d` 或秒數）與 `top` 榜單筆數：
 ```bash
 curl -H "X-Admin-Key: <ADMIN_API_KEY>" "https://create360.ai/api/stats?range=24h&top=10"
 ```
-回傳彙總資訊包含：總請求數、獨立 IP 數、錯誤率、平均耗時、最活躍 IP 排行榜、目標爬取網域排行與 HTTP 狀態碼分佈。
-
-#### **B. 最近日誌查詢 (`GET /api/stats/logs`)**
-```bash
-curl -H "X-Admin-Key: <ADMIN_API_KEY>" "https://create360.ai/api/stats/logs?limit=50&errorsOnly=true"
+回傳結構範例：
+```json
+{
+  "timeRangeMs": 86400000,
+  "since": "2026-09-01T04:00:00.000Z",
+  "totalRequests": 15420,
+  "uniqueIps": 320,
+  "errorCount": 18,
+  "errorRatePercent": 0.12,
+  "avgDurationMs": 145,
+  "totalResponseBytes": 48291040,
+  "topIps": [
+    { "ip": "114.34.20.15", "count": 2840, "errorCount": 2, "avgDurationMs": 110, "lastSeen": "2026-09-02T03:55:12.000Z" }
+  ],
+  "topTargetDomains": [
+    { "domain": "github.com", "count": 4200 },
+    { "domain": "en.wikipedia.org", "count": 1850 }
+  ],
+  "topEndpoints": [
+    { "endpoint": "/https://github.com", "count": 4200 },
+    { "endpoint": "/v1/batch", "count": 850 }
+  ],
+  "statusCodeDistribution": { "200": 15402, "404": 12, "429": 6 }
+}
 ```
 
-#### **C. 匯出日誌與 DuckDB 零成本資料湖分析**
-可透過 API 匯出 NDJSON 格式，或直接在伺服器使用 DuckDB 即時分析本地 SQLite 檔案：
+#### **B. 最近日誌與異常查詢 (`GET /api/stats/logs`)**
+支援分頁與多維度過濾（`limit`、`offset`、`ip`、`domain`、`status`、`errorsOnly`）：
 ```bash
-# 終端機使用 DuckDB 秒級查詢昨日 Top 10 請求來源 IP
+# 查詢最近 50 筆 4xx / 5xx 錯誤請求
+curl -H "X-Admin-Key: <ADMIN_API_KEY>" "https://create360.ai/api/stats/logs?limit=50&errorsOnly=true"
+
+# 依特定 IP 查詢歷史日誌
+curl -H "X-Admin-Key: <ADMIN_API_KEY>" "https://create360.ai/api/stats/logs?ip=114.34.20.15&limit=20"
+```
+
+#### **C. 匯出日誌與手動 S3 備份觸發**
+- **匯出 NDJSON 格式**：`GET /api/stats/export?format=ndjson&limit=5000`
+- **手動觸發昨日日誌上傳 S3**：`POST /api/stats/backup`
+
+#### **D. DuckDB 零成本資料湖分析**
+日誌儲存於 SQLite（掛載在主機 `./data/logs.sqlite`），SRE 可隨時在終端使用 DuckDB 進行秒級複雜分析，不需額外架設重量級資料庫：
+```bash
+# 1. 分析今日各小時請求量分佈
 duckdb -c "
   INSTALL sqlite; LOAD sqlite;
-  SELECT ip, COUNT(*) as req_count, AVG(duration_ms) as avg_ms 
-  FROM sqlite_scan('data/logs.sqlite', 'request_logs') 
-  GROUP BY ip ORDER BY req_count DESC LIMIT 10;
+  SELECT strftime(created_at, '%Y-%m-%d %H:00') as hour, COUNT(*) as reqs, AVG(duration_ms) as avg_ms
+  FROM sqlite_scan('data/logs.sqlite', 'request_logs')
+  GROUP BY 1 ORDER BY 1 DESC LIMIT 24;
+"
+
+# 2. 找出高頻抓取失敗的異常 IP（潛在攻擊者）
+duckdb -c "
+  INSTALL sqlite; LOAD sqlite;
+  SELECT ip, COUNT(*) as total, SUM(CASE WHEN status_code >= 400 THEN 1 ELSE 0 END) as errors
+  FROM sqlite_scan('data/logs.sqlite', 'request_logs')
+  GROUP BY ip HAVING total > 50 AND errors > 10
+  ORDER BY errors DESC;
 "
 ```
 
@@ -554,35 +601,82 @@ services:
 | `BLOCKED_DOMAINS` | (SRE Optional) Comma-separated prohibited target domains (rejected with 403) | None |
 | `ADMIN_API_KEY` | (SRE Optional) Secret key for Stats & Export APIs (via `X-Admin-Key`) | None (open if unset) |
 | `S3_LOG_BACKUP_ENABLED` | (SRE Optional) Enable automated daily S3/R2 backup sync | `false` |
-| `S3_LOG_BUCKET` | (SRE Optional) Target S3 / Cloudflare R2 bucket name | None |
+| `S3_LOG_BUCKET` | (SRE Optional) Target S3 / Cloudflare R2 bucket name | `my-log-bucket` |
 | `S3_LOG_ENDPOINT` | (SRE Optional) S3 / Cloudflare R2 API endpoint | `https://<account_id>.r2.cloudflarestorage.com` |
+| `S3_LOG_REGION` | (SRE Optional) S3 Region Code | `us-east-1` |
+| `S3_LOG_ACCESS_KEY_ID` | (SRE Optional) S3 / R2 Access Key ID | Set credential |
+| `S3_LOG_SECRET_ACCESS_KEY` | (SRE Optional) S3 / R2 Secret Access Key | Set credential |
+| `S3_LOG_PREFIX` | (SRE Optional) Upload path prefix | `url2md-logs/` |
 
 ---
 
 ### 5. SRE Abuse Monitoring, Request Analytics & DuckDB Inspection
 
-When `REQUEST_LOG_ENABLED=true` is set, requests are logged asynchronously into SQLite in WAL mode with negligible latency overhead:
+When `REQUEST_LOG_ENABLED=true` is set, requests are logged asynchronously into SQLite in WAL mode with negligible latency overhead, providing real-time anti-abuse controls, metrics, and query endpoints:
 
 #### **A. Real-time Summary Statistics (`GET /api/stats`)**
+Supports `range` (`1h`, `24h`, `7d`, `30d` or seconds) and `top` ranking count:
 ```bash
 curl -H "X-Admin-Key: <ADMIN_API_KEY>" "https://create360.ai/api/stats?range=24h&top=10"
 ```
-Returns total requests, unique IP count, error rate, average duration ms, top active IPs, top target domains, and HTTP status distributions.
-
-#### **B. Query Recent Logs (`GET /api/stats/logs`)**
-```bash
-curl -H "X-Admin-Key: <ADMIN_API_KEY>" "https://create360.ai/api/stats/logs?limit=50&errorsOnly=true"
+Example JSON Response:
+```json
+{
+  "timeRangeMs": 86400000,
+  "since": "2026-09-01T04:00:00.000Z",
+  "totalRequests": 15420,
+  "uniqueIps": 320,
+  "errorCount": 18,
+  "errorRatePercent": 0.12,
+  "avgDurationMs": 145,
+  "totalResponseBytes": 48291040,
+  "topIps": [
+    { "ip": "114.34.20.15", "count": 2840, "errorCount": 2, "avgDurationMs": 110, "lastSeen": "2026-09-02T03:55:12.000Z" }
+  ],
+  "topTargetDomains": [
+    { "domain": "github.com", "count": 4200 },
+    { "domain": "en.wikipedia.org", "count": 1850 }
+  ],
+  "topEndpoints": [
+    { "endpoint": "/https://github.com", "count": 4200 },
+    { "endpoint": "/v1/batch", "count": 850 }
+  ],
+  "statusCodeDistribution": { "200": 15402, "404": 12, "429": 6 }
+}
 ```
 
-#### **C. Zero-Cost Lakehouse Querying with DuckDB**
-Export logs via NDJSON API or query the local SQLite database directly using DuckDB without any data import steps:
+#### **B. Query Recent Logs & Errors (`GET /api/stats/logs`)**
+Supports pagination and filtering (`limit`, `offset`, `ip`, `domain`, `status`, `errorsOnly`):
 ```bash
-# Query top 10 requesting IPs with average duration using DuckDB in 1 second
+# Query recent 50 failing/error requests
+curl -H "X-Admin-Key: <ADMIN_API_KEY>" "https://create360.ai/api/stats/logs?limit=50&errorsOnly=true"
+
+# Query request logs for a specific IP
+curl -H "X-Admin-Key: <ADMIN_API_KEY>" "https://create360.ai/api/stats/logs?ip=114.34.20.15&limit=20"
+```
+
+#### **C. Export Logs & Trigger S3 Backup**
+- **Export NDJSON stream**: `GET /api/stats/export?format=ndjson&limit=5000`
+- **Manual S3 Backup Trigger**: `POST /api/stats/backup`
+
+#### **D. Zero-Cost Lakehouse Querying with DuckDB**
+Logs are stored locally in SQLite (`./data/logs.sqlite`). SREs can inspect logs on the host using DuckDB in sub-second speed:
+```bash
+# 1. Hourly request traffic breakdown
 duckdb -c "
   INSTALL sqlite; LOAD sqlite;
-  SELECT ip, COUNT(*) as req_count, AVG(duration_ms) as avg_ms 
-  FROM sqlite_scan('data/logs.sqlite', 'request_logs') 
-  GROUP BY ip ORDER BY req_count DESC LIMIT 10;
+  SELECT strftime(created_at, '%Y-%m-%d %H:00') as hour, COUNT(*) as reqs, AVG(duration_ms) as avg_ms
+  FROM sqlite_scan('data/logs.sqlite', 'request_logs')
+  GROUP BY 1 ORDER BY 1 DESC LIMIT 24;
+"
+
+# 2. Identify top error-generating IPs
+duckdb -c "
+  INSTALL sqlite; LOAD sqlite;
+  SELECT ip, COUNT(*) as total, SUM(CASE WHEN status_code >= 400 THEN 1 ELSE 0 END) as errors
+  FROM sqlite_scan('data/logs.sqlite', 'request_logs')
+  GROUP BY ip HAVING total > 50 AND errors > 10
+  ORDER BY errors DESC;
 "
 ```
 
