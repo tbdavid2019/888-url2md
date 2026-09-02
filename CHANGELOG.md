@@ -2,6 +2,13 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.09.02.4] - 2026-09-02 - DuckDB 終端日誌分析腳本 (DuckDB SRE Analysis Script)
+
+### 🛠️ Tooling & SRE Utilities
+- **Added `scripts/analyze-logs.sh` & `npm run logs:analyze`**: CLI utility that queries `./data/logs.sqlite` with DuckDB to print 24-hour summary metrics, top active requesting IPs, top target domains, and HTTP status distributions.
+
+---
+
 ## [2026.09.02.3] - 2026-09-02 - 完整 SRE 防濫用與日誌備援說明文檔 (Comprehensive SRE Anti-Abuse & Logging Docs)
 
 ### 📖 Documentation & SRE Guidelines

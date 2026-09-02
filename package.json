@@ -1,6 +1,6 @@
 {
   "name": "reader",
-  "version": "2026.09.02.3",
+  "version": "2026.09.02.4",
   "license": "AGPL-3.0-or-later",
   "scripts": {
     "lint": "eslint --ext .js,.ts .",
@@ -17,7 +17,8 @@
     "test": "npm run test:unit && npm run test:e2e",
     "test:unit:coverage": "tsc -p tests/tsconfig.json && c8 node tests-build/run-unit.js",
     "test:e2e:coverage": "tsc -p tests/tsconfig.json && c8 node tests-build/run.js",
-    "test:coverage": "tsc -p tests/tsconfig.json && c8 --reporter=none node tests-build/run-unit.js && c8 --no-clean --reporter=none node tests-build/run.js && c8 report"
+    "test:coverage": "tsc -p tests/tsconfig.json && c8 --reporter=none node tests-build/run-unit.js && c8 --no-clean --reporter=none node tests-build/run.js && c8 report",
+    "logs:analyze": "bash ./scripts/analyze-logs.sh"
   },
   "engines": {
     "node": ">=22.15"
