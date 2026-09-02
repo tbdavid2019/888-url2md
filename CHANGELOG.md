@@ -2,6 +2,13 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.09.02.8] - 2026-09-02 - 強化即時 S3 備份參數解析 (Robust Query Parsing for S3 Backup Trigger)
+
+### 🐛 Bug Fixes & Improvements
+- **Coercion-Resistant Query Parsing**: Supported boolean and string variations (`today=true`, `today=1`, `now=true`) when invoking `POST /api/stats/backup`.
+
+---
+
 ## [2026.09.02.7] - 2026-09-02 - 修復 Docker 構建 Dry-Run 與初始化時序 (Fix Docker Build Dry-Run & Dependency Resolution)
 
 ### 🐛 Bug Fixes & Improvements

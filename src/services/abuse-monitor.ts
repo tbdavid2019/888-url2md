@@ -844,7 +844,9 @@ export class AbuseMonitorService extends AsyncService {
                     ctx.body = { error: 'S3 backup is not enabled or S3_LOG_BUCKET is not configured' };
                     return;
                 }
-                const dateParam = (ctx.query.date as string) || (ctx.query.today === 'true' ? 'today' : undefined);
+                const todayVal = String(ctx.query.today || ctx.query.now || '').toLowerCase();
+                const isToday = todayVal === 'true' || todayVal === '1' || todayVal === 'yes';
+                const dateParam = (ctx.query.date as string) || (isToday ? 'today' : undefined);
                 const s3Uri = await this.backupPreviousDayToS3(dateParam);
                 ctx.body = { success: true, s3Uri };
                 return;
