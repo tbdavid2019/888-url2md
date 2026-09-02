@@ -2,6 +2,14 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.09.02.7] - 2026-09-02 - 修復 Docker 構建 Dry-Run 與初始化時序 (Fix Docker Build Dry-Run & Dependency Resolution)
+
+### 🐛 Bug Fixes & Improvements
+- **Fixed Subclass Property Initialization Timing**: Removed redundant manual `this.abuseMonitor.serviceReady()` calls inside `init()` which were invoked before subclass constructor fields were assigned during `super()` execution.
+- **Docker Dry-Run Success**: Verified `NODE_ENV=dry-run node ./build/stand-alone/search.js` passes without exceptions during Docker Buildx.
+
+---
+
 ## [2026.09.02.6] - 2026-09-02 - 支援指定日期與即時 S3 日誌備份 (On-demand Date Parameter for S3 Log Backup)
 
 ### 🚀 Enhancements

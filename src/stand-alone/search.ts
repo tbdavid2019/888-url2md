@@ -52,7 +52,6 @@ export class SearchStandAloneServer extends KoaServer {
     }
 
     override async init() {
-        await this.abuseMonitor.serviceReady();
         await this.walkForAssets();
         await this.dependencyReady();
 
