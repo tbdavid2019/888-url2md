@@ -6,10 +6,32 @@ services:
       # The app listens on h2c at APP_PORT (8080 by default) and HTTP/1.1 at
       # APP_PORT + 1. Nginx on the production host proxies to this port.
       - "${HOST_PORT:-8083}:8081"
+    volumes:
+      - ./data:/app/data
     environment:
       PUBLIC_DOMAIN: ${PUBLIC_DOMAIN:-}
       APP_PORT: ${APP_PORT:-8080}
       PORT: ${APP_PORT:-8080}
+      # --- SRE Logging & Anti-Abuse Controls (Opt-in) ---
+      REQUEST_LOG_ENABLED: ${REQUEST_LOG_ENABLED:-false}
+      LOG_DB_PATH: ${LOG_DB_PATH:-/app/data/logs.sqlite}
+      LOG_RETENTION_DAYS: ${LOG_RETENTION_DAYS:-7}
+      RATE_LIMIT_ENABLED: ${RATE_LIMIT_ENABLED:-false}
+      RATE_LIMIT_MAX_PER_MINUTE: ${RATE_LIMIT_MAX_PER_MINUTE:-60}
+      RATE_LIMIT_EXEMPT_IPS: ${RATE_LIMIT_EXEMPT_IPS:-127.0.0.1,::1}
+      BLOCKED_IPS: ${BLOCKED_IPS:-}
+      BLOCKED_DOMAINS: ${BLOCKED_DOMAINS:-}
+      ADMIN_API_KEY: ${ADMIN_API_KEY:-}
+      # --- S3 / Cloudflare R2 Remote Backup (Opt-in) ---
+      S3_LOG_BACKUP_ENABLED: ${S3_LOG_BACKUP_ENABLED:-false}
+      S3_LOG_BUCKET: ${S3_LOG_BUCKET:-}
+      S3_LOG_ENDPOINT: ${S3_LOG_ENDPOINT:-}
+      S3_LOG_REGION: ${S3_LOG_REGION:-us-east-1}
+      S3_LOG_ACCESS_KEY_ID: ${S3_LOG_ACCESS_KEY_ID:-}
+      S3_LOG_SECRET_ACCESS_KEY: ${S3_LOG_SECRET_ACCESS_KEY:-}
+      S3_LOG_PREFIX: ${S3_LOG_PREFIX:-url2md-logs/}
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
     security_opt:
       - seccomp=unconfined
     restart: always
@@ -24,8 +46,8 @@ services:
       - DOCKER_API_VERSION=1.44
       - WATCHTOWER_POLL_INTERVAL=300
       - WATCHTOWER_CLEANUP=true
-      - WATCHTOWER_INCLUDE_RESTARTING=true
-    command: 888-url2md
+      - WATCHTOWER_LABEL_ENABLE=true
+    command: --label-enable
 
   # Optional local dependency for development. It is excluded from the default
   # production deployment so its ports do not conflict with other services.

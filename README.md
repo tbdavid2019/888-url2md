@@ -105,15 +105,52 @@ services:
 
 ### 4. 主要環境變數說明 (Environment Variables)
 
-
-| 環境變數                    | 說明                                                             | 預設值 / 範例               |
-| :----------------------- | :-------------------------------------------------------------- | :---------------------- |
-| `PUBLIC_DOMAIN`         | 服務對外公開主機域名（用於產出連結與 SKILL.md 自動代入）                              | `https://create360.ai` |
-| `PORT`                  | 服務內部監聽 Port                                                    | `8081` (或 `8080`)      |
-| `SERPER_SEARCH_API_KEY` | (可選) Serper.dev API 搜尋金鑰；若未設定則自動啟用免費 DuckDuckGo / Bing SERP 引擎 | 無 (預設免 Key)            |
-
+| 環境變數 | 說明 | 預設值 / 範例 |
+| :--- | :--- | :--- |
+| `PUBLIC_DOMAIN` | 服務對外公開主機域名（用於產出連結與 SKILL.md 自動代入） | `https://create360.ai` |
+| `PORT` | 服務內部監聽 Port | `8081` (或 `8080`) |
+| `SERPER_SEARCH_API_KEY` | (可選) Serper.dev API 搜尋金鑰；若未設定則自動啟用免費 DuckDuckGo / Bing SERP 引擎 | 無 (預設免 Key) |
+| `REQUEST_LOG_ENABLED` | (SRE 選填) 是否啟用請求日誌與防濫用 SQLite WAL 記錄 | `false` (設為 `true` 啟用) |
+| `LOG_DB_PATH` | (SRE 選填) SQLite 日誌資料庫路徑 | `/app/data/logs.sqlite` |
+| `LOG_RETENTION_DAYS` | (SRE 選填) 日誌保留天數（自動清理過期數據） | `7` |
+| `RATE_LIMIT_ENABLED` | (SRE 選填) 是否啟用每分鐘 IP 頻率限制 | `false` |
+| `RATE_LIMIT_MAX_PER_MINUTE` | (SRE 選填) 單一 IP 每分鐘最大請求次數（超過回傳 429） | `60` |
+| `RATE_LIMIT_EXEMPT_IPS` | (SRE 選填) 白名單 IP（逗號分隔，不限流） | `127.0.0.1,::1` |
+| `BLOCKED_IPS` | (SRE 選填) 黑名單 IP（逗號分隔，直接拒絕 403） | 無 |
+| `BLOCKED_DOMAINS` | (SRE 選填) 禁止抓取的目標網域（逗號分隔，拒絕 403） | 無 |
+| `ADMIN_API_KEY` | (SRE 選填) 統計與日誌 API 認證金鑰（透過 `X-Admin-Key` 驗證） | 無 (若未設定則無需認證) |
+| `S3_LOG_BACKUP_ENABLED` | (SRE 選填) 是否啟用每日日誌自動上傳備份至 S3 / Cloudflare R2 | `false` |
+| `S3_LOG_BUCKET` | (SRE 選填) S3 / R2 儲存桶名稱 | 無 |
+| `S3_LOG_ENDPOINT` | (SRE 選填) S3 / R2 API 端點 | `https://<account_id>.r2.cloudflarestorage.com` |
 
 ---
+
+### 5. SRE 防濫用監控、日誌統計與 DuckDB 分析 (Anti-Abuse & Analytics)
+
+當 SRE 啟用 `REQUEST_LOG_ENABLED=true` 時，系統會透過高效能 SQLite WAL 模式非同步寫入請求日誌，並提供即時統計與資料匯出端點：
+
+#### **A. 即時統計端點 (`GET /api/stats`)**
+```bash
+curl -H "X-Admin-Key: <ADMIN_API_KEY>" "https://create360.ai/api/stats?range=24h&top=10"
+```
+回傳彙總資訊包含：總請求數、獨立 IP 數、錯誤率、平均耗時、最活躍 IP 排行榜、目標爬取網域排行與 HTTP 狀態碼分佈。
+
+#### **B. 最近日誌查詢 (`GET /api/stats/logs`)**
+```bash
+curl -H "X-Admin-Key: <ADMIN_API_KEY>" "https://create360.ai/api/stats/logs?limit=50&errorsOnly=true"
+```
+
+#### **C. 匯出日誌與 DuckDB 零成本資料湖分析**
+可透過 API 匯出 NDJSON 格式，或直接在伺服器使用 DuckDB 即時分析本地 SQLite 檔案：
+```bash
+# 終端機使用 DuckDB 秒級查詢昨日 Top 10 請求來源 IP
+duckdb -c "
+  INSTALL sqlite; LOAD sqlite;
+  SELECT ip, COUNT(*) as req_count, AVG(duration_ms) as avg_ms 
+  FROM sqlite_scan('data/logs.sqlite', 'request_logs') 
+  GROUP BY ip ORDER BY req_count DESC LIMIT 10;
+"
+```
 
 ## 📖 API 使用指南 (Usage)
 
@@ -506,11 +543,48 @@ services:
 | :--- | :--- | :--- |
 | `PUBLIC_DOMAIN` | Public host domain for auto-generating links and `SKILL.md` instructions | `https://create360.ai` |
 | `PORT` | Internal server listening port | `8081` (or `3000`) |
-| `GOOGLE_SEARCH_API_KEY` | (Optional) GCP Custom Search API Key for native Google Search | Default: keyless multi-engine |
-| `GOOGLE_SEARCH_CX` | (Optional) GCP Programmable Search Engine CX ID | Optional |
-| `SERPER_SEARCH_API_KEY` | (Optional) Serper.dev API Search Key | Optional |
+| `SERPER_SEARCH_API_KEY` | (Optional) Serper.dev API Search Key | Optional (Keyless by default) |
+| `REQUEST_LOG_ENABLED` | (SRE Optional) Enable request logging and SQLite WAL persistence | `false` (set `true` to enable) |
+| `LOG_DB_PATH` | (SRE Optional) SQLite log database file path | `/app/data/logs.sqlite` |
+| `LOG_RETENTION_DAYS` | (SRE Optional) Log retention period in days (auto-pruned) | `7` |
+| `RATE_LIMIT_ENABLED` | (SRE Optional) Enable per-minute IP sliding window rate limiter | `false` |
+| `RATE_LIMIT_MAX_PER_MINUTE` | (SRE Optional) Max requests per minute per IP (exceeding returns 429) | `60` |
+| `RATE_LIMIT_EXEMPT_IPS` | (SRE Optional) Comma-separated whitelist IPs (exempt from limits) | `127.0.0.1,::1` |
+| `BLOCKED_IPS` | (SRE Optional) Comma-separated blacklist IPs (rejected with 403) | None |
+| `BLOCKED_DOMAINS` | (SRE Optional) Comma-separated prohibited target domains (rejected with 403) | None |
+| `ADMIN_API_KEY` | (SRE Optional) Secret key for Stats & Export APIs (via `X-Admin-Key`) | None (open if unset) |
+| `S3_LOG_BACKUP_ENABLED` | (SRE Optional) Enable automated daily S3/R2 backup sync | `false` |
+| `S3_LOG_BUCKET` | (SRE Optional) Target S3 / Cloudflare R2 bucket name | None |
+| `S3_LOG_ENDPOINT` | (SRE Optional) S3 / Cloudflare R2 API endpoint | `https://<account_id>.r2.cloudflarestorage.com` |
 
 ---
+
+### 5. SRE Abuse Monitoring, Request Analytics & DuckDB Inspection
+
+When `REQUEST_LOG_ENABLED=true` is set, requests are logged asynchronously into SQLite in WAL mode with negligible latency overhead:
+
+#### **A. Real-time Summary Statistics (`GET /api/stats`)**
+```bash
+curl -H "X-Admin-Key: <ADMIN_API_KEY>" "https://create360.ai/api/stats?range=24h&top=10"
+```
+Returns total requests, unique IP count, error rate, average duration ms, top active IPs, top target domains, and HTTP status distributions.
+
+#### **B. Query Recent Logs (`GET /api/stats/logs`)**
+```bash
+curl -H "X-Admin-Key: <ADMIN_API_KEY>" "https://create360.ai/api/stats/logs?limit=50&errorsOnly=true"
+```
+
+#### **C. Zero-Cost Lakehouse Querying with DuckDB**
+Export logs via NDJSON API or query the local SQLite database directly using DuckDB without any data import steps:
+```bash
+# Query top 10 requesting IPs with average duration using DuckDB in 1 second
+duckdb -c "
+  INSTALL sqlite; LOAD sqlite;
+  SELECT ip, COUNT(*) as req_count, AVG(duration_ms) as avg_ms 
+  FROM sqlite_scan('data/logs.sqlite', 'request_logs') 
+  GROUP BY ip ORDER BY req_count DESC LIMIT 10;
+"
+```
 
 ## 📖 API Usage Guide
 

@@ -19,6 +19,7 @@ import { AsyncLocalContext } from '../services/async-context';
 import finalizer, { Finalizer } from '../services/finalizer';
 import { SerpHost } from '../api/serp';
 import koaCompress from '../lib/koa-compress';
+import { AbuseMonitorService } from '../services/abuse-monitor';
 
 @singleton()
 export class SERPStandAloneServer extends KoaServer {
@@ -33,6 +34,7 @@ export class SERPStandAloneServer extends KoaServer {
         protected serpHost: SerpHost,
         protected threadLocal: AsyncLocalContext,
         protected threads: ThreadedServiceRegistry,
+        protected abuseMonitor: AbuseMonitorService,
     ) {
         super(...arguments);
     }
@@ -129,6 +131,8 @@ export class SERPStandAloneServer extends KoaServer {
                 return false;
             }
         }));
+        this.koaApp.use(this.abuseMonitor.makeKoaMiddleware());
+        this.koaApp.use(this.abuseMonitor.makeAdminRouteController());
         this.koaApp.use(this.makeAssetsServingController());
         this.koaApp.use(this.registry.makeShimController());
     }

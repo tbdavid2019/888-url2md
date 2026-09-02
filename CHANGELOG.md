@@ -2,6 +2,18 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.09.02.2] - 2026-09-02 - 防濫用日誌統計與 SRE 彈性配置 (Abuse Monitoring, Request Logging & S3 Backup)
+
+### 🚀 SRE Logging, Anti-Abuse & Lakehouse Analytics
+- **SQLite WAL High-Performance Request Logging**: Added zero-latency in-memory buffered logger writing to SQLite in Write-Ahead-Logging (`WAL`) mode via Node.js native `node:sqlite`. Fully opt-in via `REQUEST_LOG_ENABLED=true` with configurable `LOG_RETENTION_DAYS` (default 7 days).
+- **In-Memory Rate Limiting & Anti-Abuse Blocking**: Added sliding-window IP rate limiter (`RATE_LIMIT_ENABLED=true`, `RATE_LIMIT_MAX_PER_MINUTE=60`) with IP whitelist (`RATE_LIMIT_EXEMPT_IPS`), permanent blacklist (`BLOCKED_IPS`), and prohibited target domains (`BLOCKED_DOMAINS`).
+- **Real-Time Statistics & Logs API**: Added `GET /api/stats` (summary metrics, error rates, top requesting IPs, top target domains, status distributions), `GET /api/stats/logs` (paginated query with error filter), and `GET /api/stats/export` (NDJSON / JSON export). Protected by optional `ADMIN_API_KEY`.
+- **DuckDB Compatibility**: Enabled zero-cost serverless lakehouse analytics directly querying the local SQLite database using DuckDB (`sqlite_scan`) without ETL steps.
+- **S3 / Cloudflare R2 Remote Backup**: Automated daily background sync of compressed request logs to S3 or Cloudflare R2 via `S3_LOG_BACKUP_ENABLED=true` and S3 bucket credentials.
+- **Documentation & Docker Compose**: Updated `README.md` in both Traditional Chinese and English with SRE configuration guides, and mapped `./data:/app/data` volume in `docker-compose.yml`.
+
+---
+
 ## [2026.09.02.1] - 2026-09-02 - 生產環境遷移至 GCP 主機與自動 CICD 設定 (Production Migration to GCP & Watchtower CI/CD)
 
 ### 🚀 Production Deployment & Infrastructure
