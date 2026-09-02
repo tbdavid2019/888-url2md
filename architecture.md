@@ -57,13 +57,13 @@ Search uses the built-in SERP integrations and fallbacks, so the browser UI does
 
 ## Production Deployment: create360.ai
 
-The active production deployment is self-hosted on `m.aiurl.tw`, not Cloud Run.
-
+- The active production deployment is self-hosted on `gitlab.aicreate360.com` (`34.80.178.194`).
 - **Domain:** `https://create360.ai`
-- **Reverse proxy:** Nginx terminates TLS and proxies all traffic to `127.0.0.1:8083`.
-- **Container:** `888-url2md` runs the Node application. Its HTTP/1.1 compatibility listener is container port `8081`; the application h2c listener is port `8080`.
+- **Reverse proxy:** Nginx (GitLab Omnibus custom virtual host) terminates TLS with Let's Encrypt and proxies all traffic to `127.0.0.1:8085`.
+- **Container:** `888-url2md` runs the Node application. Its HTTP/1.1 compatibility listener is container port `8082`; the application h2c listener is port `8081`.
 - **Runtime:** Node 24, Google Chrome, LibreOffice, and required fonts are packaged by the project Dockerfile.
 - **Container hardening:** `seccomp=unconfined` is required for the headless-browser runtime.
+- **CI/CD Auto Update:** Watchtower monitors `ghcr.io/tbdavid2019/888-url2md:latest` and auto-updates on new image pushes.
 
 ### Docker Compose
 

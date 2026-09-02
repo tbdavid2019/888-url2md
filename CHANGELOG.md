@@ -2,6 +2,16 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.09.02.1] - 2026-09-02 - 生產環境遷移至 GCP 主機與自動 CICD 設定 (Production Migration to GCP & Watchtower CI/CD)
+
+### 🚀 Production Deployment & Infrastructure
+- **Server Migration**: Migrated `https://create360.ai` production deployment from `m.aiurl.tw` to Google Cloud VM (`34.80.178.194` / `gitlab.aicreate360.com`).
+- **Nginx Reverse Proxy & SSL**: Configured Nginx custom virtual host with HTTP/2 support, Let's Encrypt SSL certificate auto-renewed via Certbot with automated Nginx reload deploy hooks.
+- **Watchtower Automated CI/CD**: Added Watchtower container monitoring `ghcr.io/tbdavid2019/888-url2md:latest` with label filtering and automated image cleanup on new pushes.
+- **Metadata URL Alignment**: Updated `public/app.html` canonical links, OpenGraph, and JSON-LD application metadata to point directly to `https://create360.ai`.
+
+---
+
 ## [2026.08.28.2] - 2026-08-28 - 動態域名偵測修正 (Dynamic Host Domain Detection for llms.txt & Skill)
 
 ### 🐛 Bug Fixes & Dynamic Domain Detection
