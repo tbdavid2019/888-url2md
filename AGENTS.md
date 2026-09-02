@@ -8,6 +8,16 @@
 - **Pre-commit Verification**: Before committing, inspect the staged diff with `git diff --staged` or `git status` to verify that `CHANGELOG.md` (and `README.md` if applicable) are modified and staged, and run all relevant tests and type checks.
 - Keep each commit focused and use a descriptive conventional commit message.
 
+## Local Operational Documentation (`local.md`)
+
+- **Purpose & Scope**: `local.md` is strictly for local operational logs, live host inventory, deployment details, IP/domain mappings, credentials/keys, AWS resource IDs (buckets, ARNs), internal ports, and cluster state.
+- **Git Exclusion**: `local.md` MUST remain ignored in `.gitignore` and NEVER committed or pushed to public Git remotes.
+- **When to update `local.md`**:
+  - Whenever SSH operations, deployments, or configuration changes are performed on production/staging hosts (e.g., `10.9.0.9`, `gitlab.aicreate360.com`, `git.glsoft.ai`).
+  - Whenever cloud infrastructure (AWS S3 buckets, prefixes, IAM keys, Cloudflare DNS/SSL) is provisioned or modified.
+  - Whenever local database files (`logs.sqlite`), analysis tool installations (`duckdb`), or cron jobs are configured on specific machines.
+  - Whenever operational summaries, traffic analysis snapshots, or verification evidence are generated during an active session.
+
 ## User-facing communication
 
 - Avoid first-person pronouns and anthropomorphic claims in responses.

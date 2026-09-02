@@ -79,3 +79,7 @@ tests-build/
 .secret.*
 licensed/
 .claude/
+local.md
+local*.md
+data/
+

@@ -2,6 +2,14 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.09.02.9] - 2026-09-02 - 本地運維日誌規範與 Git 排除規則 (Local Operations Log Standard & Git Ignore Rules)
+
+### 📝 Documentation & Repository Standards
+- **Local Operational Standard (`local.md`)**: Added strict guidelines in [`AGENTS.md`](file:///Users/david/Documents/git/tbdavid2019/888-url2md/AGENTS.md) detailing when to record host infrastructure, AWS resources, and production evidence into local operational files.
+- **Git Ignore Security**: Added `local.md` and `local*.md` patterns to [`.gitignore`](file:///Users/david/Documents/git/tbdavid2019/888-url2md/.gitignore) to guarantee private infrastructure operational details are not exposed to public Git repositories.
+
+---
+
 ## [2026.09.02.8] - 2026-09-02 - 強化即時 S3 備份參數解析 (Robust Query Parsing for S3 Backup Trigger)
 
 ### 🐛 Bug Fixes & Improvements
