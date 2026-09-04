@@ -306,6 +306,25 @@ curl -X POST 'https://create360.ai/' \
 - **Session Cookie 延續**：傳入 `"sessionId": "my-session-uuid"`（或 Header `X-Session-Id`）可在同一工作階段的多個請求間自動保留與共享 Cookie。
 - **動態虛擬滾動**：傳入 `"virtualScroll": true`（可搭配 `scrollCount` 與 `scrollWait`）自動滾動觸發懶加載或無限滾動網頁。
 
+### 1.10 爬蟲等待時間（Timeout）與 Fallback 階梯防護：避免驚群效應 (Thundering Herd Problem)
+
+在構建 AI Agent、RAG 檢索管線或搜尋系統時，開發者常會串接多層爬蟲備援架構（例如：`888-url2md` ➔ `Jina Reader` ➔ `Crawl4AI`，或反向串接）。
+
+> [!WARNING]
+> **切勿將爬蟲等待時間（Client Timeout）設定過短！**
+> 若將第一層或中間層爬蟲的等待時間設得太過激進（例如僅等待 3~5 秒）：
+> 1. **過早中斷 (Premature Aborts)**：現代動態網頁（SPA、複雜 DOM、Client-side JS 渲染、Cloudflare 驗證挑戰）通常合法需要 8~20 秒才能完整加載。過短的 Timeout 會導致請求在即將完成前被客戶端強行中斷。
+> 2. **驚群效應與雪崩式 Fallback (Thundering Herd & Cascading Failover Storm)**：當多個併發請求同時在第一層 Timeout，這些請求會**在同一瞬間全部湧向最後一層 Fallback 爬蟲**。
+> 3. **終端爬蟲癱瘓**：最後一層備援爬蟲（如 Crawl4AI 或 888-url2md）將瞬間承受巨大流量尖峰，導致無頭瀏覽器連線池（Browser Pool）耗盡、記憶體衝頂、觸發 Rate Limit 或 Token 預算耗盡，最終造成整個檢索系統全面停擺。
+> 4. **運算資源重複浪費**：被中斷的前層爬蟲背景可能仍在消耗 CPU/RAM 進行渲染，而後層爬蟲又重複執行相同任務。
+
+#### **建議設定與最佳實踐**：
+- **標準網頁抓取**：客戶端 Timeout 與 Header `X-Timeout` 建議設定 **至少 15 ~ 30 秒**（例如 `X-Timeout: 30`）。
+- **動態 SPA / 重度 JavaScript 網站**：建議設定 **30 ~ 45 秒**，確保 DOM 變更與網路空閒（Network Idle）完成。
+- **大文件 / 多頁深度爬取 (Deep Crawl)**：建議設定 **45 ~ 60 秒以上**，或啟用非同步任務模式 (`"asyncJob": true`) 搭配 Webhook，避免維持長連線 HTTP。
+- **退避與隨機抖動 (Exponential Backoff with Jitter)**：串接多爬蟲 Fallback 時，切勿在失敗時立即同時轉發，應加上隨機延遲（Jitter, 如 200ms ~ 800ms），打散請求洪峰。
+- **熔斷機制 (Circuit Breaker)**：若特定目標網站因停機或強烈反爬導致連續 Timeout，應觸發熔斷，避免源源不絕的請求衝垮最後的 Fallback 節點。
+
 ---
 
 ### 2. 即時 Web 搜尋 (Real-time Web Search)
@@ -440,6 +459,11 @@ curl -X POST 'https://create360.ai/v1/batch' \
 - `X-Target-Selector`: 指定 CSS Selector 提取特定 DOM 元素（如 `.article-body`）
 - `X-Remove-Selector`: 指定 CSS Selector 剔除不需要的元素（如 `nav, footer, .ads`）
 - `X-No-Cache: true`: 強制跳過快取重新抓取
+- `X-Timeout`: 指定渲染等待秒數（最大 180 秒，建議 15~30 秒以上，避免過短造成驚群效應）
+- `X-Content-Filter`: 內容過濾器（`pruning` 或 `bm25`）
+- `X-Content-Query`: 搭配 BM25 評分的關鍵詞搜尋字串
+- `X-Session-Id`: 跨請求共用 Cookie 會話 UUID
+- `X-Detach-Invisibles: true`: 產生 Markdown 前徹底剔除 `display:none` 隱形元素
 
 ---
 
@@ -773,6 +797,25 @@ For multi-page deep crawls or background tasks, enable `asyncJob: true` to avoid
 - **Session Cookie Continuity**: Pass `"sessionId": "my-session-uuid"` (or header `X-Session-Id`) to share and persist cookies across sequential requests.
 - **Virtual Scrolling**: Pass `"virtualScroll": true` (with optional `scrollCount` and `scrollWait`) to trigger lazy-loading and infinite-scroll web pages.
 
+### 1.10 Crawler Timeout Sizing & Multi-Crawler Fallback Architecture: Preventing the Thundering Herd Problem
+
+When architecting AI Agents, RAG ingestion pipelines, or LLM web tools, engineering teams often implement multi-tier crawler fallback cascades (e.g., `888-url2md` ➔ `Jina Reader` ➔ `Crawl4AI`, or vice versa).
+
+> [!WARNING]
+> **Never configure client-side timeouts too short!**
+> Setting overly aggressive timeouts (e.g. 3–5 seconds) on primary or intermediate scrapers triggers severe systemic instability:
+> 1. **Premature Aborts**: Modern dynamic web applications (heavy SPAs, React/Vue hydration, anti-bot verification challenges) legitimately require 8–20 seconds to fully render and extract. A 3–5s timeout prematurely aborts requests that were milliseconds away from completion.
+> 2. **The Thundering Herd Problem (驚群效應) & Cascading Failover Storm**: When multiple concurrent requests timeout simultaneously in the primary tier, they all fail over at the exact same millisecond into the next or final fallback crawler.
+> 3. **Fallback Collapse**: The final fallback tier suddenly receives an enormous surge of heavy, un-cached requests. This rapidly exhausts headless browser instance pools (Puppeteer/Playwright), spikes host memory/CPU, exhausts API rate limits or token budgets, and leads to cascading failure across the entire pipeline.
+> 4. **Duplicated Resource Drain**: The aborted scraper tier may continue background rendering in its browser pool, while the fallback tier begins duplicate rendering, multiplying infrastructure costs and load.
+
+#### **Recommended Budgets & Best Practices**:
+- **Standard Web Pages**: Set client HTTP timeout and header `X-Timeout` to **at least 15s – 30s** (e.g., `X-Timeout: 30`).
+- **Dynamic SPAs / Heavy JavaScript**: Set timeout to **30s – 45s** to allow DOM mutation and network idle settling.
+- **Large Documents / Bounded Deep Crawling**: Set timeout to **45s – 60s+**, or decouple via asynchronous background jobs (`"asyncJob": true`) with HTTPS webhooks.
+- **Exponential Backoff with Jitter**: When falling over between scrapers, introduce randomized jitter (e.g., 200ms – 800ms) rather than firing synchronized requests to the next tier.
+- **Circuit Breaker**: Implement domain-level circuit breakers when targets are down or rate-limiting to prevent stampeding downstream fallback nodes.
+
 ---
 
 ### 2. Real-time Web Search
@@ -829,6 +872,23 @@ Upload documents via `multipart/form-data` to `/v1/upload` or `/upload`:
 curl -X POST 'https://create360.ai/upload' \
   -F 'file=@/path/to/document.pdf'
 ```
+
+---
+
+## ⚙️ HTTP Headers & Customization
+
+Control crawler behavior via request headers:
+
+- `X-Respond-With`: `markdown` | `html` | `text` | `frontmatter` (default: `markdown`)
+- `X-Preset`: Preset mode (`reader`, `index`, `research`, `agent`, `spider`)
+- `X-Target-Selector`: CSS selector to extract specific DOM elements (e.g. `article`, `main`)
+- `X-Remove-Selector`: CSS selector to remove unwanted elements (e.g. `nav, footer, .ads`)
+- `X-No-Cache: true`: Force bypass of internal cache and re-crawl fresh content
+- `X-Timeout`: Browser rendering timeout in seconds (max 180s, recommended 15–30s+ to prevent cascading thundering herd)
+- `X-Content-Filter`: Filter noisy content (`pruning` or `bm25`)
+- `X-Content-Query`: Query string used for BM25 score ranking
+- `X-Session-Id`: Persistent session UUID to share cookies across sequential requests
+- `X-Detach-Invisibles: true`: Strip `display:none` and invisible DOM nodes prior to markdown generation
 
 ---
 

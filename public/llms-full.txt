@@ -102,6 +102,7 @@ Returns clean GitHub-Flavored Markdown. For batch requests, pages are separated 
 | `X-Target-Selector` | CSS Selector string (e.g. `article`, `main`) | Focus extraction on matching DOM elements |
 | `X-Remove-Selector` | CSS Selector string (e.g. `nav`, `footer`, `.ad`) | Remove unwanted elements from DOM before conversion |
 | `X-No-Cache` | `true` \| `false` | Bypass internal cache and force live fetch |
+| `X-Timeout` | Integer `1`–`180` | Browser rendering timeout in seconds (default: dynamic, recommended: `15`–`30`+) |
 | `X-With-Generated-Alt` | `true` \| `false` | Enable AI-generated image captions |
 | `X-With-Images-Summary` | `true` \| `false` | Include image metadata summaries |
 | `X-Content-Filter` | `pruning` \| `bm25` | Filter noisy DOM blocks or score relevance via BM25 |
@@ -215,3 +216,28 @@ document.modelContext.registerTool({
   }
 }
 ```
+
+---
+
+## 8. Crawler Timeout Sizing & Cascading Fallback Architecture (Thundering Herd Warning)
+
+### 8.1 The Risk: Premature Timeouts & The Thundering Herd Problem (驚群效應)
+When building AI Agent, LLM, or RAG search pipelines, architects frequently chain multiple web scrapers in a fallback cascade (e.g. `888-url2md` ➔ `Jina Reader` ➔ `Crawl4AI`, or vice versa).
+
+If the client or gateway router sets an overly aggressive timeout (such as 3–5 seconds) for the primary crawler:
+1. **Premature Abort**: Complex web pages (heavy React/Vue SPAs, dynamic client-side hydration, Cloudflare/anti-bot challenge verification, network latency) often legitimately require 8–20 seconds to load and parse. A 3–5s timeout will prematurely kill valid requests that were close to finishing.
+2. **Cascading Failover Storm**: When multiple concurrent requests timeout nearly simultaneously in the primary tier, they all immediately fail over to the subsequent tier at the exact same moment.
+3. **Thundering Herd Collapse**: The final fallback tier is suddenly inundated with a synchronized spike of heavy, slow-rendering requests. This exhausts its Puppeteer/Playwright browser pool, triggers rate limits or token budget exhaustion, spikes server load, and causes end-to-end failure across the entire pipeline.
+4. **Wasted Compute**: Earlier scraper tiers may continue headless rendering in the background for abandoned requests, multiplying server CPU and RAM consumption across all participating nodes.
+
+### 8.2 Recommended Timeout Budgets
+- **Standard HTML Web Pages**: Configure client HTTP timeout and `X-Timeout` header to at least **15s – 30s**.
+- **Dynamic JavaScript / Single Page Applications (SPAs)**: Set timeout to **30s – 45s** to allow DOM mutation and network idle settling.
+- **Deep Crawling / Document Uploads**: Set timeout to **45s – 60s+**, or decouple execution via `asyncJob: true` and poll `/jobs/{jobId}` or use HTTPS webhooks.
+
+### 8.3 Multi-Crawler Orchestration Best Practices
+- **Generous Primary Budget**: Give the primary crawler at least 20–30s before considering a fallback.
+- **Staggered Retries with Jitter**: When falling over to Jina, Crawl4AI, or 888-url2md, apply randomized exponential jitter (e.g. `base * 2^attempt + rand(100ms, 800ms)`) to de-synchronize request waves.
+- **Circuit Breaker**: If a domain consistently times out across multiple requests, trip a domain-level circuit breaker instead of flooding fallback engines.
+- **Explicit Timeout Header**: Pass `X-Timeout: <seconds>` (max 180) to inform 888-url2md of the intended server-side rendering budget.
+

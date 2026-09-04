@@ -2,6 +2,19 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.09.04.1] - 2026-09-04 - 爬蟲等待時間指引與驚群效應防護規範 (Crawler Timeout Sizing & Thundering Herd Prevention Guidelines)
+
+### 📚 Documentation & Architecture Best Practices
+- **爬蟲等待時間與防驚群效應指引 (Timeout Sizing & Thundering Herd Warning)**:
+  - Added explicit warnings and architectural guidelines across [`public/llms.txt`](file:///Users/david/Documents/git/tbdavid2019/888-url2md/public/llms.txt), [`public/llms-full.txt`](file:///Users/david/Documents/git/tbdavid2019/888-url2md/public/llms-full.txt), [`src/api/crawler.ts`](file:///Users/david/Documents/git/tbdavid2019/888-url2md/src/api/crawler.ts) (`generateLlmstxt`, `generateSkillMd`), and [`README.md`](file:///Users/david/Documents/git/tbdavid2019/888-url2md/README.md) (both Traditional Chinese and English sections).
+  - Addressed multi-crawler fallback cascades (e.g. `888-url2md` ➔ `Jina Reader` ➔ `Crawl4AI` or vice versa): explicitly warned against setting client timeouts too aggressively short (e.g. 3–5 seconds), which causes premature aborts on dynamic SPAs and triggers a cascading failover storm (Thundering Herd Problem / 驚群效應) collapsing the final fallback scraper.
+  - Specified recommended timeout budgets: standard web pages (15s–30s), dynamic SPAs/heavy JavaScript (30s–45s), and deep crawls/large documents (45s–60s+ or `asyncJob: true`).
+  - Documented resilience strategies: exponential backoff with randomized jitter (200ms–800ms) between failover tiers and domain-level circuit breakers.
+- **HTTP 標頭控制規格更新 (HTTP Headers Specification)**:
+  - Documented `X-Timeout` (max 180s) and advanced extraction headers (`X-Content-Filter`, `X-Content-Query`, `X-Session-Id`, `X-Detach-Invisibles`) in `README.md` and LLM discovery documents.
+
+---
+
 ## [2026.09.02.10] - 2026-09-02 - 全面安全審計漏洞修復與防護加固 (Comprehensive Security Audit Remediation & Hardening)
 
 ### 🛡️ Security Hardening & Remediation

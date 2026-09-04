@@ -349,6 +349,7 @@ If you are an LLM or AI Agent accessing this service for the first time:
 - \`X-Target-Selector\`: Extract specific CSS selector.
 - \`X-Remove-Selector\`: Remove specific CSS selector.
 - \`X-No-Cache: true\`: Bypass internal page cache.
+- \`X-Timeout\`: Specify rendering timeout in seconds (e.g. 15-30, max 180).
 - \`X-With-Generated-Alt: true\`: Generate AI alt text for images.
 - \`X-With-Images-Summary: true\`: Include image metadata summaries.
 - \`X-Content-Filter: pruning | bm25\`: Filter noisy DOM blocks or score relevance via BM25.
@@ -367,6 +368,12 @@ the following read-only tools through \`document.modelContext\`:
 
 The tools return clean Markdown and update the visible result panel. Browsers
 without \`document.modelContext\` continue to use the regular API and forms.
+
+### 10. Crawler Timeout Sizing & Cascading Fallback Advisory (Thundering Herd Warning)
+- **Avoid Overly Short Timeouts**: Dynamic web pages (SPAs, heavy JS hydration, Cloudflare/anti-bot challenges) legitimately require 10–25s. Do not configure client timeouts to 3–5s.
+- **Thundering Herd & Cascading Failover**: When chaining multi-tier crawler fallbacks (e.g. 888-url2md -> Jina -> Crawl4AI), premature timeouts cause all concurrent requests to cascade simultaneously into the final fallback crawler, exhausting browser pools, hitting rate limits, and spiking latency.
+- **Recommended Budgets**: Standard pages: 15–30s (\`X-Timeout: 30\`); Heavy SPAs: 30–45s; Large documents/deep crawl: 45–60s+ (or use \`asyncJob: true\`).
+- **Best Practices**: Use exponential backoff with randomized jitter between failovers; implement circuit breakers on upstream timeouts.
 
 ---
 
@@ -475,8 +482,22 @@ curl -s -X POST "${baseDomain}/v1/batch" \\
 - \`X-Target-Selector\`: CSS selector for targeted extraction (e.g. \`article\`, \`main\`, \`#content\`)
 - \`X-Remove-Selector\`: CSS selector to omit unwanted DOM nodes (e.g. \`nav\`, \`footer\`, \`.ads\`)
 - \`X-No-Cache\`: Set to \`true\` to bypass cache and force fresh fetching
+- \`X-Timeout\`: Specify rendering timeout in seconds (e.g. \`15\` to \`30\`, max \`180\`)
 - \`X-With-Generated-Alt\`: Set to \`true\` to enable AI image captioning
 - \`X-With-Images-Summary\`: Set to \`true\` to extract image summaries
+
+## ⚠️ Crawler Timeout & Fallback Architecture Advisory (Thundering Herd Warning)
+
+- **Do NOT set client timeouts too short**: Modern dynamic web pages (SPAs, heavy JavaScript hydration, anti-bot challenges) legitimately require 10–25 seconds to render and extract cleanly.
+- **Cascading Fallback Risk (Thundering Herd Problem / 驚群效應)**: When orchestrating multi-tier scraper fallbacks (e.g., combining 888-url2md, Jina Reader, and Crawl4AI), setting an overly aggressive timeout (e.g., 3–5 seconds) on earlier tiers will prematurely abort in-flight requests. This causes all concurrent requests to cascade simultaneously into the final fallback crawler, overwhelming its browser pool, triggering rate limits, and spiking latency.
+- **Recommended Timeout Budgets**:
+  - Standard Web Pages: **15s – 30s** (\`X-Timeout: 30\`)
+  - Complex SPAs / Dynamic JS: **30s – 45s**
+  - Document / PDF Parsing / Deep Crawls: **45s – 60s+** (or use \`asyncJob: true\`)
+- **Orchestration Best Practices**:
+  - Always allow each scraper tier sufficient time to complete before failing over.
+  - Implement exponential backoff with randomized jitter between failover hops.
+  - Use circuit breakers on upstream timeouts to prevent stampeding the fallback tier.
 
 ## WebMCP Browser Tools
 
