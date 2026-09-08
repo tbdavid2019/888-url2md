@@ -2,6 +2,12 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.09.08.1] - 2026-09-08 - Magika 本地模型整合基礎 (Magika Local Model Integration Foundation)
+
+### 🚀 Enhancements
+- Added the pinned `magika` JavaScript dependency and content-type routing helpers for supported document and text labels.
+- Preserved the existing extractor path for unknown or unsupported Magika labels.
+
 ## [2026.09.04.1] - 2026-09-04 - 爬蟲等待時間指引與驚群效應防護規範 (Crawler Timeout Sizing & Thundering Herd Prevention Guidelines)
 
 ### 📚 Documentation & Architecture Best Practices
@@ -250,4 +256,3 @@ All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888
 
 ## 2026-08-01 - Baseline Upstream Release
 - Upstream base release from Jina AI Reader (`jina-ai/reader`).
-
