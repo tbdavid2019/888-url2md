@@ -26,6 +26,19 @@ type MagikaClient = {
     }>;
 };
 
+type NodeUtilCompatibility = {
+    isNullOrUndefined?: (value: unknown) => boolean;
+};
+
+/**
+ * @tensorflow/tfjs-node@4.22.0 still calls this deprecated Node utility.
+ * Node 24 removed it, so restore only this compatibility function before the
+ * optional native binding is imported.
+ */
+export function ensureTfjsNodeUtilCompatibility(nodeUtil: NodeUtilCompatibility): void {
+    nodeUtil.isNullOrUndefined ??= (value) => value === null || value === undefined;
+}
+
 const MAGIKA_CONTENT_TYPES: Record<string, string> = {
     csv: 'text/csv',
     doc: 'application/msword',
@@ -92,6 +105,7 @@ export class MagikaService extends AsyncService {
         await access(this.modelPath);
         await access(this.modelConfigPath);
 
+        ensureTfjsNodeUtilCompatibility(require('node:util') as NodeUtilCompatibility);
         const { MagikaNode } = await import('magika/node');
         this.client = await MagikaNode.create({
             modelPath: this.modelPath,

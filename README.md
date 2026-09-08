@@ -33,10 +33,13 @@ Currently deployed at: [**create360.ai**](https://create360.ai) (or easily self-
   - 整合 Firecrawl 最新開源的 Rust 文檔解析引擎 `@firecrawl/anydoc`。
   - 支援 PDF, Word (.docx/.doc), Excel (.xlsx/.xls), PowerPoint (.pptx/.ppt), EPUB, RTF, OpenDocument (ODT/ODS/ODP), CSV 等 14+ 種文檔格式。
   - 提供 **&lt; 5ms 毫秒級解析超高速度**與統一高品質 GitHub-Flavored Markdown 輸出，大幅超越傳統 LibreOffice 轉換速度。
-7. **WebMCP 瀏覽器工具 (WebMCP Browser Tools)**
+7. **Magika 本地檔案格式辨識 (Local File-Type Detection)**
+  - 在 Docker build 階段內建固定版本的 Magika AI 模型，服務運行時從本地載入一次，不依賴模型下載網路。
+  - 在文字 / binary 分流前校正錯誤的 `Content-Type` 或副檔名，未知類型維持既有 fallback。
+8. **WebMCP 瀏覽器工具 (WebMCP Browser Tools)**
   - 在支援 WebMCP 的 Chrome 瀏覽器中，首頁會透過 `document.modelContext` 註冊 `search_web`、`read_web_page` 與 `read_web_pages` 唯讀工具。
   - 工具會回傳乾淨 Markdown，並同步更新首頁結果區；不支援 WebMCP 的瀏覽器維持原本表單功能。
-8. **進階爬取與資料抽取 (Advanced Crawling & Extraction)**
+9. **進階爬取與資料抽取 (Advanced Crawling & Extraction)**
   - 可用 CSS/XPath schema 直接抽取重複資料並回傳 `extracted` JSON。
   - 可選用 `contentFilter: "pruning"` 或 `"bm25"` 產生較精簡的 `fitMarkdown`。
   - 支援有上限的 BFS deep crawl、prefetch、session cookie 延續與 virtual scroll。
@@ -72,6 +75,7 @@ git clone https://github.com/tbdavid2019/888-url2md.git
 cd 888-url2md
 
 # 2. 構建 Docker 映像檔
+# Docker build 會下載並驗證固定版本的 Magika 模型，封裝在映像檔內
 docker build -t 888-url2md:latest .
 
 # 3. 啟動容器
@@ -109,6 +113,8 @@ services:
 | :--- | :--- | :--- |
 | `PUBLIC_DOMAIN` | 服務對外公開主機域名（用於產出連結與 SKILL.md 自動代入） | `https://create360.ai` |
 | `PORT` | 服務內部監聽 Port | `8081` (或 `8080`) |
+| `MAGIKA_ENABLED` | 是否啟用本地 Magika 檔案格式校正（Docker 預設啟用） | `false`（Docker 為 `true`） |
+| `MAGIKA_MODEL_DIR` | Magika 本地模型目錄 | `/app/assets/magika/standard_v3_3` |
 | `SERPER_SEARCH_API_KEY` | (可選) Serper.dev API 搜尋金鑰；若未設定則自動啟用免費 DuckDuckGo / Bing SERP 引擎 | 無 (預設免 Key) |
 | `REQUEST_LOG_ENABLED` | (SRE 選填) 是否啟用請求日誌與防濫用 SQLite WAL 記錄 | `false` (設為 `true` 啟用) |
 | `LOG_DB_PATH` | (SRE 選填) SQLite 日誌資料庫檔案路徑 | `/app/data/logs.sqlite` |
@@ -483,11 +489,16 @@ curl -X POST 'https://create360.ai/v1/batch' \
   ```bash
    npm run assets:download
   ```
-3. **專案編譯**：
+3. **（選用）下載本地 Magika 模型**：
+  ```bash
+   npm run assets:download:magika
+  ```
+  設定 `MAGIKA_ENABLED=true` 後，服務會從本地模型目錄載入 Magika。
+4. **專案編譯**：
   ```bash
    npm run build
   ```
-4. **啟動服務**：
+5. **啟動服務**：
   ```bash
    npm start
   ```
@@ -496,6 +507,8 @@ curl -X POST 'https://create360.ai/v1/batch' \
 
 - `PUBLIC_DOMAIN`: 設定服務公開域名（如 `https://create360.ai`）。若未設定將自動從 HTTP 請求標頭動態推導。
 - `PORT`: 指定伺服器監聽埠號（預設 3000）。
+- `MAGIKA_ENABLED`: Docker 映像預設啟用本地 Magika；本地開發若要啟用，先執行 `npm run assets:download:magika`，再設定 `MAGIKA_ENABLED=true`。
+- `MAGIKA_MODEL_DIR`: Magika 模型目錄；預設為 `/app/assets/magika/standard_v3_3`（本地執行時可使用專案內的 `assets/magika/standard_v3_3`）。
 
 ---
 
@@ -543,10 +556,13 @@ Currently deployed at: [**create360.ai**](https://create360.ai) (or easily self-
    - Integrated with Firecrawl's open-source Rust document parsing engine `@firecrawl/anydoc`.
    - Supports 14+ document formats including PDF, Word (.docx/.doc), Excel (.xlsx/.xls), PowerPoint (.pptx/.ppt), EPUB, RTF, OpenDocument (ODT/ODS/ODP), CSV, and TXT.
    - Ultra-fast **< 5ms parsing speed** with unified, clean GitHub-Flavored Markdown output.
-7. **WebMCP Browser Tools**
+7. **Magika Local File-Type Detection**
+   - The Docker build embeds a pinned Magika model. At runtime the service loads it once from local storage without downloading model files.
+   - Corrects mislabeled `Content-Type` values and file extensions before text/binary routing, while preserving the existing fallback for unknown types.
+8. **WebMCP Browser Tools**
    - On WebMCP-enabled Chrome browsers, the homepage registers the read-only `search_web`, `read_web_page`, and `read_web_pages` tools through `document.modelContext`.
    - Tool calls return clean Markdown and update the visible result panel. Browsers without WebMCP continue to use the existing forms and REST API.
-8. **Advanced Crawling & Structured Extraction**
+9. **Advanced Crawling & Structured Extraction**
    - Extract repeated records directly as `extracted` JSON with CSS/XPath schemas.
    - Opt into `contentFilter: "pruning"` or `"bm25"` for compact `fitMarkdown`.
    - Supports bounded BFS deep crawling, prefetch, session cookies, and virtual scrolling.
@@ -579,6 +595,7 @@ git clone https://github.com/tbdavid2019/888-url2md.git
 cd 888-url2md
 
 docker build -t 888-url2md:latest .
+# The Docker build downloads and verifies a pinned Magika model into the image.
 
 docker run -d \
   --name 888-url2md \
@@ -614,6 +631,8 @@ services:
 | :--- | :--- | :--- |
 | `PUBLIC_DOMAIN` | Public host domain for auto-generating links and `SKILL.md` instructions | `https://create360.ai` |
 | `PORT` | Internal server listening port | `8081` (or `3000`) |
+| `MAGIKA_ENABLED` | Enable local Magika file-type correction (enabled by default in Docker) | `false` (Docker: `true`) |
+| `MAGIKA_MODEL_DIR` | Local Magika model directory | `/app/assets/magika/standard_v3_3` |
 | `SERPER_SEARCH_API_KEY` | (Optional) Serper.dev API Search Key | Optional (Keyless by default) |
 | `REQUEST_LOG_ENABLED` | (SRE Optional) Enable request logging and SQLite WAL persistence | `false` (set `true` to enable) |
 | `LOG_DB_PATH` | (SRE Optional) SQLite log database file path | `/app/data/logs.sqlite` |

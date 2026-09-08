@@ -25,6 +25,7 @@ RUN useradd -g jina  -G audio,video -m jina
 USER jina
 WORKDIR /app
 COPY --chown=jina:jina . ./
+RUN bash ./scripts/download-magika-model.sh
 RUN npm ci
 RUN bash ./download-external-assets.sh || true
 RUN npm run build
@@ -32,6 +33,8 @@ RUN rm -rf ~/.config/chromium && mkdir -p ~/.config/chromium
 RUN NODE_COMPILE_CACHE=node_modules npm run dry-run
 ENV NODE_COMPILE_CACHE=node_modules
 ENV PORT=8080
+ENV MAGIKA_ENABLED=true
+ENV MAGIKA_MODEL_DIR=/app/assets/magika/standard_v3_3
 
 EXPOSE 8080 8081
 ENTRYPOINT ["node"]

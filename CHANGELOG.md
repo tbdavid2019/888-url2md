@@ -2,6 +2,14 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.09.08.3] - 2026-09-08 - Docker 內建 Magika 本地模型 (Embed Magika Model in Docker Images)
+
+### 🐳 Docker & Runtime
+- Added a pinned `standard_v3_3` Magika model download with SHA-256 verification during Docker build.
+- Enabled local Magika model loading in Docker by default through `MAGIKA_ENABLED` and `MAGIKA_MODEL_DIR`.
+- Added Node 24 compatibility for the current `@tensorflow/tfjs-node` runtime and npm overrides for its vulnerable archive dependencies.
+- Added bilingual deployment and local-development documentation for the model assets and environment variables.
+
 ## [2026.09.08.2] - 2026-09-08 - Magika 接入檔案辨識流程 (Wire Magika into File Detection Flow)
 
 ### 🚀 Enhancements

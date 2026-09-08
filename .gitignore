@@ -78,8 +78,8 @@ tests-build/
 *.local
 .secret.*
 licensed/
+assets/magika/
 .claude/
 local.md
 local*.md
 data/
-

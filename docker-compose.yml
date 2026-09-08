@@ -12,6 +12,8 @@ services:
       PUBLIC_DOMAIN: ${PUBLIC_DOMAIN:-}
       APP_PORT: ${APP_PORT:-8080}
       PORT: ${APP_PORT:-8080}
+      MAGIKA_ENABLED: ${MAGIKA_ENABLED:-true}
+      MAGIKA_MODEL_DIR: ${MAGIKA_MODEL_DIR:-/app/assets/magika/standard_v3_3}
       # --- SRE Logging & Anti-Abuse Controls (Opt-in) ---
       REQUEST_LOG_ENABLED: ${REQUEST_LOG_ENABLED:-false}
       LOG_DB_PATH: ${LOG_DB_PATH:-/app/data/logs.sqlite}

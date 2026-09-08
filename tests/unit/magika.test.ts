@@ -1,11 +1,22 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+    ensureTfjsNodeUtilCompatibility,
     magikaLabelToContentType,
     selectContentTypeFromMagika,
 } from '../../build/services/magika.js';
 
 describe('Magika content-type routing', () => {
+    it('restores the removed Node utility required by tfjs-node', () => {
+        const nodeUtil: { isNullOrUndefined?: (value: unknown) => boolean } = {};
+
+        ensureTfjsNodeUtilCompatibility(nodeUtil);
+
+        assert.equal(nodeUtil.isNullOrUndefined?.(null), true);
+        assert.equal(nodeUtil.isNullOrUndefined?.(undefined), true);
+        assert.equal(nodeUtil.isNullOrUndefined?.(0), false);
+    });
+
     it('maps supported document labels to existing extractors', () => {
         assert.equal(magikaLabelToContentType('pdf', false), 'application/pdf');
         assert.equal(

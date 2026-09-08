@@ -1,10 +1,11 @@
 {
   "name": "reader",
-  "version": "2026.09.08.2",
+  "version": "2026.09.08.3",
   "license": "AGPL-3.0-or-later",
   "scripts": {
     "lint": "eslint --ext .js,.ts .",
     "assets:download": "bash ./download-external-assets.sh",
+    "assets:download:magika": "bash ./scripts/download-magika-model.sh",
     "build": "node ./integrity-check.cjs && tsc -p .",
     "build:watch": "tsc --watch",
     "build:clean": "rm -rf ./build",
@@ -83,5 +84,9 @@
     "supertest": "^7.2.2",
     "typescript": "^5.5.4"
   },
-  "private": true
+  "private": true,
+  "overrides": {
+    "adm-zip": "0.6.0",
+    "tar": "7.5.22"
+  }
 }
