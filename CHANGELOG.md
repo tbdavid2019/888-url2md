@@ -2,6 +2,11 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.09.08.4] - 2026-09-08 - Docker Build 階段模型載入驗證 (Validate Model Loading During Docker Build)
+
+### 🐳 Docker & Runtime
+- Moved Magika runtime environment variables before the Docker build dry-run so image construction verifies local model loading.
+
 ## [2026.09.08.3] - 2026-09-08 - Docker 內建 Magika 本地模型 (Embed Magika Model in Docker Images)
 
 ### 🐳 Docker & Runtime
