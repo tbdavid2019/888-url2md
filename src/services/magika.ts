@@ -1,11 +1,12 @@
 import { singleton } from 'tsyringe';
-import { createReadStream } from 'fs';
-import { access, stat } from 'fs/promises';
+import { createServer } from 'http';
+import { access, open, readFile, stat } from 'fs/promises';
 import path from 'path';
 import { AsyncService } from 'civkit/async-service';
 import { GlobalLogger } from './logger';
 
 const DEFAULT_MODEL_DIR = path.resolve(process.cwd(), 'assets', 'magika', 'standard_v3_3');
+const MAGIKA_BLOCK_SIZE = 4096;
 
 export type MagikaDetection = {
     label: string;
@@ -14,7 +15,7 @@ export type MagikaDetection = {
 };
 
 type MagikaClient = {
-    identifyStream(stream: ReturnType<typeof createReadStream>, length: number): Promise<{
+    identifyBytes(fileBytes: Uint8Array): Promise<{
         status: string;
         prediction?: {
             output?: {
@@ -25,19 +26,6 @@ type MagikaClient = {
         };
     }>;
 };
-
-type NodeUtilCompatibility = {
-    isNullOrUndefined?: (value: unknown) => boolean;
-};
-
-/**
- * @tensorflow/tfjs-node@4.22.0 still calls this deprecated Node utility.
- * Node 24 removed it, so restore only this compatibility function before the
- * optional native binding is imported.
- */
-export function ensureTfjsNodeUtilCompatibility(nodeUtil: NodeUtilCompatibility): void {
-    nodeUtil.isNullOrUndefined ??= (value) => value === null || value === undefined;
-}
 
 const MAGIKA_CONTENT_TYPES: Record<string, string> = {
     csv: 'text/csv',
@@ -79,11 +67,25 @@ export function selectContentTypeFromMagika(
         || 'application/octet-stream';
 }
 
+export function shouldInspectContentType(
+    contentType: string | undefined,
+    enabled: boolean,
+    verifyDeclaredType: boolean,
+): boolean {
+    if (!enabled) {
+        return false;
+    }
+
+    const normalizedContentType = contentType?.split(';', 1)[0]?.trim().toLowerCase();
+    return verifyDeclaredType || !normalizedContentType || normalizedContentType === 'application/octet-stream';
+}
+
 @singleton()
 export class MagikaService extends AsyncService {
     logger = this.globalLogger.child({ service: this.constructor.name });
 
     readonly enabled = process.env.MAGIKA_ENABLED === 'true';
+    readonly verifyDeclaredType = process.env.MAGIKA_VERIFY_DECLARED_TYPE === 'true';
     readonly modelDir = process.env.MAGIKA_MODEL_DIR || DEFAULT_MODEL_DIR;
     readonly modelPath = process.env.MAGIKA_MODEL_PATH || path.join(this.modelDir, 'model.json');
     readonly modelConfigPath = process.env.MAGIKA_MODEL_CONFIG_PATH || path.join(this.modelDir, 'config.min.json');
@@ -92,6 +94,10 @@ export class MagikaService extends AsyncService {
 
     constructor(protected globalLogger: GlobalLogger) {
         super(...arguments);
+    }
+
+    shouldInspect(contentType?: string): boolean {
+        return shouldInspectContentType(contentType, this.enabled, this.verifyDeclaredType);
     }
 
     override async init() {
@@ -105,12 +111,47 @@ export class MagikaService extends AsyncService {
         await access(this.modelPath);
         await access(this.modelConfigPath);
 
-        ensureTfjsNodeUtilCompatibility(require('node:util') as NodeUtilCompatibility);
-        const { MagikaNode } = await import('magika/node');
-        this.client = await MagikaNode.create({
-            modelPath: this.modelPath,
-            modelConfigPath: this.modelConfigPath,
+        const modelServer = createServer(async (request, response) => {
+            const assetName = new URL(request.url || '/', 'http://127.0.0.1').pathname.slice(1);
+            if (!['model.json', 'config.min.json', 'group1-shard1of1.bin'].includes(assetName)) {
+                response.statusCode = 404;
+                response.end();
+                return;
+            }
+
+            try {
+                const body = await readFile(path.join(this.modelDir, assetName));
+                response.statusCode = 200;
+                response.setHeader('Content-Type', assetName.endsWith('.json') ? 'application/json' : 'application/octet-stream');
+                response.end(body);
+            } catch {
+                response.statusCode = 404;
+                response.end();
+            }
         });
+
+        await new Promise<void>((resolve, reject) => {
+            modelServer.once('error', reject);
+            modelServer.listen(0, '127.0.0.1', () => resolve());
+        });
+
+        try {
+            const address = modelServer.address();
+            if (!address || typeof address === 'string') {
+                throw new Error('Magika model server did not expose a TCP port');
+            }
+
+            const modelBaseUrl = `http://127.0.0.1:${address.port}`;
+            const { Magika } = await import('magika');
+            this.client = await Magika.create({
+                modelURL: `${modelBaseUrl}/model.json`,
+                modelConfigURL: `${modelBaseUrl}/config.min.json`,
+            });
+        } finally {
+            await new Promise<void>((resolve, reject) => {
+                modelServer.close((err) => err ? reject(err) : resolve());
+            });
+        }
         this.logger.info(`Magika model loaded from ${this.modelDir}`);
         this.emit('ready');
     }
@@ -121,7 +162,7 @@ export class MagikaService extends AsyncService {
         }
 
         const fileSize = (await stat(filePath)).size;
-        const result = await this.client.identifyStream(createReadStream(filePath), fileSize);
+        const result = await this.client.identifyBytes(await readMagikaSample(filePath, fileSize));
         const output = result.prediction?.output;
         const label = output?.label?.trim().toLowerCase();
         if (result.status !== 'ok' || !label) {
@@ -133,5 +174,22 @@ export class MagikaService extends AsyncService {
             isText: output?.is_text === true,
             score: result.prediction?.score || 0,
         };
+    }
+}
+
+async function readMagikaSample(filePath: string, fileSize: number): Promise<Buffer> {
+    if (fileSize <= MAGIKA_BLOCK_SIZE * 4) {
+        return await readFile(filePath);
+    }
+
+    const file = await open(filePath, 'r');
+    try {
+        const beginning = Buffer.alloc(MAGIKA_BLOCK_SIZE);
+        const ending = Buffer.alloc(MAGIKA_BLOCK_SIZE);
+        await file.read(beginning, 0, beginning.length, 0);
+        await file.read(ending, 0, ending.length, fileSize - ending.length);
+        return Buffer.concat([beginning, ending]);
+    } finally {
+        await file.close();
     }
 }

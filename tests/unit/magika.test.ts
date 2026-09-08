@@ -1,22 +1,12 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-    ensureTfjsNodeUtilCompatibility,
     magikaLabelToContentType,
     selectContentTypeFromMagika,
+    shouldInspectContentType,
 } from '../../build/services/magika.js';
 
 describe('Magika content-type routing', () => {
-    it('restores the removed Node utility required by tfjs-node', () => {
-        const nodeUtil: { isNullOrUndefined?: (value: unknown) => boolean } = {};
-
-        ensureTfjsNodeUtilCompatibility(nodeUtil);
-
-        assert.equal(nodeUtil.isNullOrUndefined?.(null), true);
-        assert.equal(nodeUtil.isNullOrUndefined?.(undefined), true);
-        assert.equal(nodeUtil.isNullOrUndefined?.(0), false);
-    });
-
     it('maps supported document labels to existing extractors', () => {
         assert.equal(magikaLabelToContentType('pdf', false), 'application/pdf');
         assert.equal(
@@ -26,6 +16,25 @@ describe('Magika content-type routing', () => {
         assert.equal(
             magikaLabelToContentType('xlsx', false),
             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        );
+    });
+
+    it('only inspects declared content types in strict mode', () => {
+        assert.equal(
+            shouldInspectContentType('text/html', false, false),
+            false,
+        );
+        assert.equal(
+            shouldInspectContentType('application/octet-stream', true, false),
+            true,
+        );
+        assert.equal(
+            shouldInspectContentType('text/html', true, false),
+            false,
+        );
+        assert.equal(
+            shouldInspectContentType('text/html', true, true),
+            true,
         );
     });
 

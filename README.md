@@ -35,7 +35,7 @@ Currently deployed at: [**create360.ai**](https://create360.ai) (or easily self-
   - 提供 **&lt; 5ms 毫秒級解析超高速度**與統一高品質 GitHub-Flavored Markdown 輸出，大幅超越傳統 LibreOffice 轉換速度。
 7. **Magika 本地檔案格式辨識 (Local File-Type Detection)**
   - 在 Docker build 階段內建固定版本的 Magika AI 模型，服務運行時從本地載入一次，不依賴模型下載網路。
-  - 在文字 / binary 分流前校正錯誤的 `Content-Type` 或副檔名，未知類型維持既有 fallback。
+  - 預設只對缺失或 generic `Content-Type` 的檔案校正類型；設定 `MAGIKA_VERIFY_DECLARED_TYPE=true` 可嚴格校驗所有宣告類型，未知類型維持既有 fallback。
 8. **WebMCP 瀏覽器工具 (WebMCP Browser Tools)**
   - 在支援 WebMCP 的 Chrome 瀏覽器中，首頁會透過 `document.modelContext` 註冊 `search_web`、`read_web_page` 與 `read_web_pages` 唯讀工具。
   - 工具會回傳乾淨 Markdown，並同步更新首頁結果區；不支援 WebMCP 的瀏覽器維持原本表單功能。
@@ -114,6 +114,7 @@ services:
 | `PUBLIC_DOMAIN` | 服務對外公開主機域名（用於產出連結與 SKILL.md 自動代入） | `https://create360.ai` |
 | `PORT` | 服務內部監聽 Port | `8081` (或 `8080`) |
 | `MAGIKA_ENABLED` | 是否啟用本地 Magika 檔案格式校正（Docker 預設啟用） | `false`（Docker 為 `true`） |
+| `MAGIKA_VERIFY_DECLARED_TYPE` | 是否嚴格重新校驗所有已宣告的 `Content-Type`（會增加每個檔案的 inference 成本） | `false` |
 | `MAGIKA_MODEL_DIR` | Magika 本地模型目錄 | `/app/assets/magika/standard_v3_3` |
 | `SERPER_SEARCH_API_KEY` | (可選) Serper.dev API 搜尋金鑰；若未設定則自動啟用免費 DuckDuckGo / Bing SERP 引擎 | 無 (預設免 Key) |
 | `REQUEST_LOG_ENABLED` | (SRE 選填) 是否啟用請求日誌與防濫用 SQLite WAL 記錄 | `false` (設為 `true` 啟用) |
@@ -558,7 +559,7 @@ Currently deployed at: [**create360.ai**](https://create360.ai) (or easily self-
    - Ultra-fast **< 5ms parsing speed** with unified, clean GitHub-Flavored Markdown output.
 7. **Magika Local File-Type Detection**
    - The Docker build embeds a pinned Magika model. At runtime the service loads it once from local storage without downloading model files.
-   - Corrects mislabeled `Content-Type` values and file extensions before text/binary routing, while preserving the existing fallback for unknown types.
+   - By default, corrects missing or generic `Content-Type` values before text/binary routing. Set `MAGIKA_VERIFY_DECLARED_TYPE=true` to verify every declared type, with additional inference cost.
 8. **WebMCP Browser Tools**
    - On WebMCP-enabled Chrome browsers, the homepage registers the read-only `search_web`, `read_web_page`, and `read_web_pages` tools through `document.modelContext`.
    - Tool calls return clean Markdown and update the visible result panel. Browsers without WebMCP continue to use the existing forms and REST API.
@@ -632,6 +633,7 @@ services:
 | `PUBLIC_DOMAIN` | Public host domain for auto-generating links and `SKILL.md` instructions | `https://create360.ai` |
 | `PORT` | Internal server listening port | `8081` (or `3000`) |
 | `MAGIKA_ENABLED` | Enable local Magika file-type correction (enabled by default in Docker) | `false` (Docker: `true`) |
+| `MAGIKA_VERIFY_DECLARED_TYPE` | Re-check every declared `Content-Type` (adds inference cost per file) | `false` |
 | `MAGIKA_MODEL_DIR` | Local Magika model directory | `/app/assets/magika/standard_v3_3` |
 | `SERPER_SEARCH_API_KEY` | (Optional) Serper.dev API Search Key | Optional (Keyless by default) |
 | `REQUEST_LOG_ENABLED` | (SRE Optional) Enable request logging and SQLite WAL persistence | `false` (set `true` to enable) |

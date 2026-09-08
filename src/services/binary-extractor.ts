@@ -75,7 +75,7 @@ export class BinaryExtractorService extends AsyncService {
             return filePath;
         };
 
-        if (this.magikaService.enabled && blob.size > 0) {
+        if (this.magikaService.shouldInspect(contentType) && blob.size > 0) {
             const detected = await this.magikaService.identifyFile(await ensureTempFile());
             if (detected) {
                 const detectedContentType = selectContentTypeFromMagika(contentType, detected.label, detected.isText);

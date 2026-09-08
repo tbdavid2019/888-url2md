@@ -2,6 +2,12 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.09.08.5] - 2026-09-08 - ARM64 純 JavaScript 推論與成本閘門 (ARM64 Pure-JS Inference and Cost Guard)
+
+### 🐛 Fixes & Runtime
+- Replaced the ARM64-incompatible native Magika path with the pure JavaScript binding and a loopback-only local model server.
+- Added conservative MIME inspection defaults and `MAGIKA_VERIFY_DECLARED_TYPE` for opt-in strict validation.
+
 ## [2026.09.08.4] - 2026-09-08 - Docker Build 階段模型載入驗證 (Validate Model Loading During Docker Build)
 
 ### 🐳 Docker & Runtime
