@@ -18,6 +18,7 @@ import { AltTextService } from './alt-text';
 import { stat } from 'fs/promises';
 import { JSDomControl } from './jsdom';
 import { AnyDocService } from './anydoc';
+import { MagikaService, selectContentTypeFromMagika } from './magika';
 
 @singleton()
 export class BinaryExtractorService extends AsyncService {
@@ -33,6 +34,7 @@ export class BinaryExtractorService extends AsyncService {
         protected altTextService: AltTextService,
         protected jsdomControl: JSDomControl,
         protected anyDocService: AnyDocService,
+        protected magikaService: MagikaService,
     ) {
         super(...arguments);
     }
@@ -48,7 +50,7 @@ export class BinaryExtractorService extends AsyncService {
             overrideContentType = undefined;
         }
 
-        const contentType: string = (overrideContentType || blob.type).toLowerCase();
+        let contentType: string = (overrideContentType || blob.type).toLowerCase();
         const fileName = overrideFileName || `${url.origin || ''}${url.pathname || '-'}`;
         const urlCopy = new URL(url.href);
         urlCopy.hash = '';
@@ -60,6 +62,34 @@ export class BinaryExtractorService extends AsyncService {
             text: '',
             traits: ['blob'],
         };
+
+        let filePath: string | undefined;
+        let dirPath: string | undefined;
+        const ensureTempFile = async () => {
+            if (!filePath) {
+                filePath = this.tempFileManager.alloc();
+                this.tempFileManager.bindPathTo(this.asyncLocalContext.ctx, filePath);
+                await writeFile(filePath, blob.stream() as any, { flush: true });
+            }
+
+            return filePath;
+        };
+
+        if (this.magikaService.enabled && blob.size > 0) {
+            const detected = await this.magikaService.identifyFile(await ensureTempFile());
+            if (detected) {
+                const detectedContentType = selectContentTypeFromMagika(contentType, detected.label, detected.isText);
+                if (detectedContentType !== contentType) {
+                    this.logger.debug(`Magika corrected content type`, {
+                        originalContentType: contentType,
+                        detectedContentType,
+                        label: detected.label,
+                        score: detected.score,
+                    });
+                    contentType = detectedContentType;
+                }
+            }
+        }
 
         // Text-based files
         try {
@@ -111,15 +141,15 @@ export class BinaryExtractorService extends AsyncService {
         }
 
         // Binary files
-        const filePath = this.tempFileManager.alloc();
-        this.tempFileManager.bindPathTo(this.asyncLocalContext.ctx, filePath);
-        await writeFile(filePath, blob.stream() as any, { flush: true });
-        const dirPath = this.tempFileManager.alloc();
-        this.tempFileManager.bindPathTo(this.asyncLocalContext.ctx, dirPath);
-        await mkdir(dirPath);
+        const binaryFilePath = await ensureTempFile();
+        if (!dirPath) {
+            dirPath = this.tempFileManager.alloc();
+            this.tempFileManager.bindPathTo(this.asyncLocalContext.ctx, dirPath);
+            await mkdir(dirPath);
+        }
 
         const snapshotFromBinary = await this.localFileToSnapshot({
-            filePath,
+            filePath: binaryFilePath,
             contentType,
             fileName,
             outPath: dirPath,

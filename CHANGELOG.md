@@ -2,6 +2,13 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.09.08.2] - 2026-09-08 - Magika 接入檔案辨識流程 (Wire Magika into File Detection Flow)
+
+### 🚀 Enhancements
+- Run the local Magika model before text and binary content routing when enabled.
+- Correct supported mislabeled document and text files while preserving the existing fallback for unknown labels.
+- Load the Magika model once through the DI singleton during service initialization.
+
 ## [2026.09.08.1] - 2026-09-08 - Magika 本地模型整合基礎 (Magika Local Model Integration Foundation)
 
 ### 🚀 Enhancements
