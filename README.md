@@ -250,6 +250,24 @@ curl -X POST 'https://create360.ai/' \
 
 - 回應的 `data.extracted` 欄位將直接包含結構化 JSON 物件陣列。
 
+若網站會改版，可明確啟用 adaptive selector。系統會將成功命中的 CSS 元素特徵以網域與識別名稱隔離保存；下次原 selector 找不到時，只有在候選信心度足夠且沒有相近歧義候選時才會重新定位：
+
+```json
+{
+  "url": "https://example.com/products",
+  "adaptive": true,
+  "adaptiveId": "product-card",
+  "adaptiveThreshold": 0.7,
+  "extraction": {
+    "type": "css",
+    "baseSelector": ".product-card",
+    "fields": [{"name": "title", "selector": "h3.title"}]
+  }
+}
+```
+
+- Adaptive extraction 目前只套用於 CSS 結構化抽取，預設關閉；不會自動改寫一般 `X-Target-Selector`。
+
 ### 1.6 Fit Markdown 與 BM25 關鍵詞過濾 (Token 成本縮減)
 
 針對巨型網頁、長文檔或 RAG 場景，可傳入 `contentFilter` 或 `contentQuery`（亦可透過 Header `X-Content-Filter: bm25` 與 `X-Content-Query: ...` 啟用）：
@@ -281,12 +299,17 @@ curl -X POST 'https://create360.ai/' \
       "maxDepth": 2,
       "maxPages": 10,
       "allowedDomains": ["docs.example.com"],
-      "includePatterns": ["*guide*", "*api*"]
+      "includePatterns": ["*guide*", "*api*"],
+      "concurrency": 3,
+      "concurrencyPerDomain": 2,
+      "autoThrottle": true
     }
   }'
 ```
 
 - 服務具備深度與頁數上限保護，避免無限制遞迴爬取整個網站。
+- `concurrency` 上限為 20，`concurrencyPerDomain` 上限為 10；未設定時仍以串行模式執行。
+- `autoThrottle: true` 會依回應延遲與 403/429 阻擋結果動態調整每網域間隔；可用 `startDelayMs`、`maxDelayMs` 與 `targetConcurrency` 調整。
 
 ### 1.8 非同步任務隊列與 Webhook (Async Job & HTTPS Webhook)
 
@@ -304,7 +327,7 @@ curl -X POST 'https://create360.ai/' \
   }'
 ```
 
-- **查詢與取消**：伺服器立即回傳 `jobId` 與專屬的 `accessToken`。後續以 `X-Job-Token: <accessToken>` Header 搭配 `GET /jobs/{jobId}` 查詢進度，或以 `POST /jobs/{jobId}/cancel` 取消任務。
+- **查詢、取消與恢復**：伺服器立即回傳 `jobId` 與專屬的 `accessToken`。後續以 `X-Job-Token: <accessToken>` Header 搭配 `GET /jobs/{jobId}` 查詢進度，以 `POST /jobs/{jobId}/cancel` 取消任務，或以 `POST /jobs/{jobId}/resume` 從最近 checkpoint 繼續已取消任務。
 - **Webhook 回調**：任務完成時自動發送 HTTPS POST 至指定的 Webhook 端點（內建 SSRF 內網安全防護）。
 
 ### 1.9 隱形元素過濾與 Cookie 延續 (Detach Invisibles & Session Continuity)
@@ -471,6 +494,9 @@ curl -X POST 'https://create360.ai/v1/batch' \
 - `X-Content-Query`: 搭配 BM25 評分的關鍵詞搜尋字串
 - `X-Session-Id`: 跨請求共用 Cookie 會話 UUID
 - `X-Detach-Invisibles: true`: 產生 Markdown 前徹底剔除 `display:none` 隱形元素
+- `X-Adaptive: true`: 啟用 CSS 結構化抽取的保守式 adaptive selector
+- `X-Adaptive-Id`: adaptive profile 識別名稱，只允許安全識別字元
+- `X-Adaptive-Threshold`: adaptive selector 信心門檻，範圍 `0.5`–`0.95`
 
 ---
 
@@ -766,6 +792,24 @@ Pass `extraction` in the JSON request body to extract deterministic structured J
 
 - The response includes `data.extracted` containing the structured JSON array.
 
+For sites that change their markup, enable adaptive selectors explicitly. The service stores successful CSS element signatures per origin and identifier, then relocates a missing selector only when the candidate confidence is sufficient and unambiguous:
+
+```json
+{
+  "url": "https://example.com/products",
+  "adaptive": true,
+  "adaptiveId": "product-card",
+  "adaptiveThreshold": 0.7,
+  "extraction": {
+    "type": "css",
+    "baseSelector": ".product-card",
+    "fields": [{"name": "title", "selector": "h3.title"}]
+  }
+}
+```
+
+- Adaptive extraction currently applies only to CSS structured extraction and is disabled by default. It does not rewrite ordinary `X-Target-Selector` requests.
+
 ### 1.6 Fit Markdown & BM25 Content Filtering (Prompt Token Cost Reduction)
 
 For large web pages, dense documentation, or RAG ingestion, pass `contentFilter` / `contentQuery` (or use headers `X-Content-Filter: bm25` and `X-Content-Query: ...`):
@@ -791,10 +835,16 @@ Crawl linked pages within the allowed domain with conservative limits:
     "maxDepth": 2,
     "maxPages": 10,
     "allowedDomains": ["docs.example.com"],
-    "includePatterns": ["*guide*", "*api*"]
+    "includePatterns": ["*guide*", "*api*"],
+    "concurrency": 3,
+    "concurrencyPerDomain": 2,
+    "autoThrottle": true
   }
 }
 ```
+
+- `concurrency` is capped at 20 and `concurrencyPerDomain` at 10; the default remains sequential processing.
+- With `autoThrottle: true`, per-domain delays adapt to response latency and 403/429 blocked responses. Tune with `startDelayMs`, `maxDelayMs`, and `targetConcurrency`.
 
 ### 1.8 Asynchronous Job Queue & HTTPS Webhooks
 
@@ -809,7 +859,7 @@ For multi-page deep crawls or background tasks, enable `asyncJob: true` to avoid
 }
 ```
 
-- **Polling & Cancellation**: The server returns a `jobId` and an `accessToken`. Use the `X-Job-Token: <accessToken>` header with `GET /jobs/{jobId}` to poll progress or `POST /jobs/{jobId}/cancel` to cancel.
+- **Polling, Cancellation & Resume**: The server returns a `jobId` and an `accessToken`. Use the `X-Job-Token: <accessToken>` header with `GET /jobs/{jobId}` to poll progress, `POST /jobs/{jobId}/cancel` to cancel, or `POST /jobs/{jobId}/resume` to resume a cancelled job from its latest checkpoint.
 - **Webhook Delivery**: Automated HTTPS POST webhook upon completion with built-in SSRF private-IP blocking.
 
 ### 1.9 Detach Invisible Elements & Session Continuity
@@ -910,6 +960,9 @@ Control crawler behavior via request headers:
 - `X-Content-Query`: Query string used for BM25 score ranking
 - `X-Session-Id`: Persistent session UUID to share cookies across sequential requests
 - `X-Detach-Invisibles: true`: Strip `display:none` and invisible DOM nodes prior to markdown generation
+- `X-Adaptive: true`: Enable conservative adaptive selectors for CSS structured extraction
+- `X-Adaptive-Id`: Adaptive profile identifier; only safe identifier characters are accepted
+- `X-Adaptive-Threshold`: Adaptive selector confidence threshold from `0.5` to `0.95`
 
 ---
 

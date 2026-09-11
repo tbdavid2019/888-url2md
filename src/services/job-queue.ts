@@ -27,7 +27,7 @@ export interface CrawlJob<T = unknown> {
     accessToken?: string;
 }
 
-type JobRunner<T> = (signal: AbortSignal, reportProgress: (progress: JobProgress) => void) => Promise<T>;
+type JobRunner<T> = (signal: AbortSignal, reportProgress: (progress: JobProgress) => void, jobId: string) => Promise<T>;
 
 interface StoredJob<T> extends CrawlJob<T> {
     controller: AbortController;
@@ -112,6 +112,19 @@ export class JobQueueService extends AsyncService {
         return true;
     }
 
+    resume(id: string, accessToken?: string) {
+        const job = this.jobs.get(id);
+        if (!job || accessToken !== job.accessToken || job.status !== 'cancelled') {
+            return false;
+        }
+        job.controller = new AbortController();
+        job.status = 'queued';
+        job.error = undefined;
+        job.updatedAt = new Date().toISOString();
+        void this.run(job);
+        return true;
+    }
+
     private publicJob<T>(job: StoredJob<T>, includeAccessToken = false, includeResult = true): CrawlJob<T> {
         const { controller: _controller, runner: _runner, webhook: _webhook, accessToken, result, ...publicJob } = job;
         return {
@@ -128,7 +141,7 @@ export class JobQueueService extends AsyncService {
             job.result = await job.runner(job.controller.signal, (progress) => {
                 job.progress = progress;
                 job.updatedAt = new Date().toISOString();
-            });
+            }, job.id);
             job.status = job.controller.signal.aborted ? 'cancelled' : 'completed';
         } catch (error: any) {
             job.status = job.controller.signal.aborted ? 'cancelled' : 'failed';

@@ -51,7 +51,10 @@ The main data endpoints are:
    - HTML uses Readability plus rule-based Markdown conversion.
    - PDF uses PDF.js.
    - Office documents use LibreOffice before entering the PDF/HTML path.
+   - Optional CSS structured extraction can persist bounded element signatures and relocate selectors after compatible markup changes.
 4. It returns Markdown, JSON, or server-sent events according to the request's `Accept` header.
+
+Deep crawls use the same fetch pipeline. They retain bounded BFS limits, and can opt into global/per-domain concurrency and per-domain AutoThrottle. Asynchronous jobs save JSON checkpoints through `StorageLayer` when cancelled and can resume with the job token. The adaptive crawling decision and trade-offs are recorded in [ADR-001](docs/decisions/ADR-001-adaptive-crawling.md).
 
 Search uses the built-in SERP integrations and fallbacks, so the browser UI does not need a separate search service.
 

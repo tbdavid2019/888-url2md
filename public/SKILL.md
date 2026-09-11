@@ -85,6 +85,9 @@ If you are an LLM or AI Agent accessing this service for the first time:
 - `X-Content-Query: ...`: Query used by the BM25 content filter.
 - `X-Session-Id: ...`: Reuse session cookies for related requests.
 - `X-Prefetch: true`: Discover links without formatting the page.
+- `X-Adaptive: true`: Enable conservative adaptive CSS structured extraction.
+- `X-Adaptive-Id`: Identify the persisted selector profile.
+- `X-Adaptive-Threshold`: Confidence threshold from `0.5` to `0.95`.
 
 ### 7. Advanced JSON Options
 
@@ -99,12 +102,21 @@ The POST body can also include:
   },
   "contentFilter": "bm25",
   "contentQuery": "product price",
-  "deepCrawl": {"maxDepth": 2, "maxPages": 20},
+  "adaptive": true,
+  "adaptiveId": "product-card",
+  "adaptiveThreshold": 0.7,
+  "deepCrawl": {
+    "maxDepth": 2,
+    "maxPages": 20,
+    "concurrency": 3,
+    "concurrencyPerDomain": 2,
+    "autoThrottle": true
+  },
   "virtualScroll": {"maxScrolls": 20}
 }
 ```
 
-Use `asyncJob: true` for a background deep crawl. Keep the returned `accessToken` private and send it as `X-Job-Token` when polling `GET /jobs/{jobId}` or cancelling with `POST /jobs/{jobId}/cancel`. Provide an HTTPS `webhook.url` when needed.
+Adaptive extraction is CSS-only, opt-in, and rejects ambiguous candidates. Deep-crawl concurrency is capped at 20 globally and 10 per domain; defaults remain sequential. With `asyncJob: true`, keep the returned `accessToken` private and send it as `X-Job-Token` when polling `GET /jobs/{jobId}`, cancelling with `POST /jobs/{jobId}/cancel`, or resuming with `POST /jobs/{jobId}/resume`. Provide an HTTPS `webhook.url` when needed.
 
 ### 8. WebMCP Browser Tools
 

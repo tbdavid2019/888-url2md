@@ -351,6 +351,22 @@ describe('CrawlerOptions.from() header parsing', () => {
         assert.strictEqual(opts.detachInvisibles, false);
     });
 
+    it('parses adaptive extraction controls as opt-in headers', () => {
+        const opts = fromWithHeaders({
+            'x-adaptive': 'true',
+            'x-adaptive-id': 'product-card',
+            'x-adaptive-threshold': '0.74',
+        });
+        assert.strictEqual(opts.adaptive, true);
+        assert.strictEqual(opts.adaptiveId, 'product-card');
+        assert.strictEqual(opts.adaptiveThreshold, 0.74);
+    });
+
+    it('does not create an adaptive threshold from an absent header', () => {
+        const opts = fromWithHeaders({});
+        assert.strictEqual(opts.adaptiveThreshold, undefined);
+    });
+
     it('parses X-Page header into integer page', () => {
         const opts = fromWithHeaders({ 'x-page': '3' });
         assert.strictEqual(opts.page, 3);
@@ -579,4 +595,3 @@ describe('CrawlerOptions.urls (batch parameters)', () => {
         assert.deepStrictEqual(opts.urls, ['https://example.com/1', 'https://example.com/2']);
     });
 });
-

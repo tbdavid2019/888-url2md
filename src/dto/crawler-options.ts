@@ -10,6 +10,7 @@ import {
     ContentFilterMode,
     DeepCrawlOptions,
     StructuredExtractionSchema,
+    validateAdaptiveExtractionOptions,
     validateDeepCrawlOptions,
     validateStructuredExtractionSchema,
     validateVirtualScrollOptions,
@@ -383,6 +384,21 @@ class Viewport extends Coercible {
                     in: 'header',
                     schema: { type: 'string' }
                 },
+                'X-Adaptive': {
+                    description: 'Enable conservative adaptive CSS structured extraction. Disabled by default.',
+                    in: 'header',
+                    schema: { type: 'string' }
+                },
+                'X-Adaptive-Id': {
+                    description: 'Identify the persisted adaptive selector profile.',
+                    in: 'header',
+                    schema: { type: 'string' }
+                },
+                'X-Adaptive-Threshold': {
+                    description: 'Set the adaptive selector confidence threshold from 0.5 to 0.95.',
+                    in: 'header',
+                    schema: { type: 'number', minimum: 0.5, maximum: 0.95 }
+                },
                 'X-Markdown-Chunking': {
                     description: `Opt-in markdown chunking.\n\nSupported values: \n${Object.values(CHUNKING_STRATEGY).map(x => `- ${x}`).join('\n')}\n\nNote if you are expecting text return, the chunking is done by injecting character \\u001D\n\n`,
                     in: 'header',
@@ -638,6 +654,16 @@ export class CrawlerOptions extends Coercible {
     @Prop()
     extraction?: StructuredExtractionSchema;
 
+    /** Enable conservative, persisted selector relocation for structured CSS extraction. */
+    @Prop({ type: PseudoBooleanLoose })
+    adaptive?: boolean;
+
+    @Prop()
+    adaptiveId?: string;
+
+    @Prop({ type: Number })
+    adaptiveThreshold?: number;
+
     @Prop()
     contentFilter?: ContentFilterMode;
 
@@ -668,6 +694,16 @@ export class CrawlerOptions extends Coercible {
     validateAdvancedOptions() {
         if (this.extraction) {
             this.extraction = validateStructuredExtractionSchema(this.extraction);
+        }
+        if (this.adaptive !== undefined || this.adaptiveId !== undefined || this.adaptiveThreshold !== undefined) {
+            const adaptive = validateAdaptiveExtractionOptions({
+                enabled: this.adaptive,
+                identifier: this.adaptiveId,
+                threshold: this.adaptiveThreshold,
+            });
+            this.adaptive = adaptive.enabled;
+            this.adaptiveId = adaptive.identifier || undefined;
+            this.adaptiveThreshold = adaptive.threshold;
         }
         if (this.contentFilter && !['pruning', 'bm25'].includes(this.contentFilter)) {
             throw new ParamValidationError({ message: 'contentFilter must be pruning or bm25', path: 'contentFilter' });
@@ -898,6 +934,19 @@ export class CrawlerOptions extends Coercible {
         const contentQuery = ctx?.get('x-content-query');
         if (contentQuery) {
             instance.contentQuery ??= contentQuery;
+        }
+        const adaptive = ctx?.get('x-adaptive');
+        if (adaptive) {
+            instance.adaptive ??= PseudoBooleanLoose.from(adaptive);
+        }
+        const adaptiveId = ctx?.get('x-adaptive-id');
+        if (adaptiveId) {
+            instance.adaptiveId ??= adaptiveId;
+        }
+        const adaptiveThresholdHeader = ctx?.get('x-adaptive-threshold');
+        const adaptiveThreshold = Number(adaptiveThresholdHeader);
+        if (adaptiveThresholdHeader?.trim() && Number.isFinite(adaptiveThreshold)) {
+            instance.adaptiveThreshold ??= adaptiveThreshold;
         }
         const prefetch = ctx?.get('x-prefetch');
         if (prefetch) {

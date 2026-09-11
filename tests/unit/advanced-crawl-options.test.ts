@@ -29,7 +29,12 @@ describe('advanced crawl option validation', () => {
     it('bounds deep crawl resource usage', () => {
         const result = validateDeepCrawlOptions({ maxDepth: 2, maxPages: 10 });
         assert.equal(result.maxDurationMs, 60_000);
+        assert.equal(result.concurrency, 1);
+        assert.equal(validateDeepCrawlOptions({ concurrency: 4, concurrencyPerDomain: 2 }).concurrencyPerDomain, 2);
         assert.throws(() => validateDeepCrawlOptions({ maxPages: 501 }), /between/);
+        assert.throws(() => validateDeepCrawlOptions({ concurrency: 21 }), /between/);
+        assert.throws(() => validateDeepCrawlOptions({ maxDelayMs: 1, startDelayMs: 2 }), /between/);
+        assert.throws(() => validateDeepCrawlOptions({ autoThrottle: 'false' as any }), /boolean/);
     });
 
     it('bounds virtual scrolling', () => {

@@ -2,6 +2,18 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.09.11.1] - 2026-09-11 - Scrapling 自適應抽取與可恢復深度爬取 (Scrapling-Inspired Adaptive Extraction & Resumable Deep Crawling)
+
+### 🚀 Enhancements
+- Added opt-in adaptive CSS structured extraction with bounded, origin-scoped selector profiles and ambiguity rejection.
+- Added bounded global/per-domain deep-crawl concurrency and optional per-domain AutoThrottle using response latency and blocked responses.
+- Added JSON checkpoint persistence for asynchronous deep crawls; cancelled jobs can resume through `POST /jobs/{jobId}/resume` with the existing job token.
+- Added `X-Adaptive`, `X-Adaptive-Id`, and `X-Adaptive-Threshold` controls and documented the new deep-crawl options in Traditional Chinese and English.
+
+### 🛡️ Security
+- Validated and size-limited adaptive profiles and crawl checkpoints before loading them.
+- Kept adaptive matching disabled by default and rejected ambiguous element candidates instead of silently selecting one.
+
 ## [2026.09.08.5] - 2026-09-08 - ARM64 純 JavaScript 推論與成本閘門 (ARM64 Pure-JS Inference and Cost Guard)
 
 ### 🐛 Fixes & Runtime

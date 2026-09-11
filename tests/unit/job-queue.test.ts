@@ -48,6 +48,25 @@ describe('job queue', () => {
         assert.equal(result.status, 'cancelled');
     });
 
+    it('resumes a cancelled job with the same access token', async () => {
+        const queue = makeQueue();
+        let runs = 0;
+        const job = queue.submit(async (signal) => {
+            runs += 1;
+            await new Promise((resolve) => setTimeout(resolve, 10));
+            if (signal.aborted) throw new Error('cancelled');
+            return { runs };
+        });
+        assert.equal(queue.cancel(job.id, job.accessToken), true);
+        const cancelled = await waitFor(queue, job.id, job.accessToken!);
+        assert.equal(cancelled.status, 'cancelled');
+
+        assert.equal(queue.resume(job.id, job.accessToken), true);
+        const resumed = await waitFor(queue, job.id, job.accessToken!);
+        assert.equal(resumed.status, 'completed');
+        assert.equal(runs, 2);
+    });
+
     it('reports queue statistics without exposing runners or webhooks', () => {
         const queue = makeQueue();
         const job = queue.submit(async () => 'done');

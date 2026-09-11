@@ -8,6 +8,9 @@ export const ADVANCED_CRAWL_LIMITS = {
     maxFields: 50,
     maxSelectorLength: 500,
     maxScrolls: 100,
+    maxConcurrency: 20,
+    maxConcurrencyPerDomain: 10,
+    maxThrottleDelayMs: 60_000,
 } as const;
 
 export type ExtractionFieldType = 'text' | 'html' | 'attribute' | 'number' | 'boolean';
@@ -25,6 +28,12 @@ export interface StructuredExtractionSchema {
     fields: StructuredExtractionField[];
 }
 
+export interface AdaptiveExtractionOptions {
+    enabled?: boolean;
+    identifier?: string;
+    threshold?: number;
+}
+
 export type ContentFilterMode = 'pruning' | 'bm25';
 
 export interface DeepCrawlOptions {
@@ -36,6 +45,12 @@ export interface DeepCrawlOptions {
     includePatterns?: string[];
     excludePatterns?: string[];
     query?: string;
+    concurrency?: number;
+    concurrencyPerDomain?: number;
+    autoThrottle?: boolean;
+    startDelayMs?: number;
+    maxDelayMs?: number;
+    targetConcurrency?: number;
 }
 
 export interface VirtualScrollOptions {
@@ -104,6 +119,23 @@ export function validateStructuredExtractionSchema(schema: StructuredExtractionS
     return { ...schema, type };
 }
 
+export function validateAdaptiveExtractionOptions(options: AdaptiveExtractionOptions = {}) {
+    const normalized = {
+        enabled: options.enabled === true,
+        identifier: options.identifier || '',
+        threshold: options.threshold ?? 0.62,
+    };
+    if (typeof normalized.identifier !== 'string' || normalized.identifier.length > 128 ||
+        (normalized.identifier && !/^[A-Za-z0-9._:-]+$/.test(normalized.identifier))) {
+        throw new TypeError('adaptiveId must contain only safe identifier characters and be at most 128 characters');
+    }
+    if (typeof normalized.threshold !== 'number' || !Number.isFinite(normalized.threshold) ||
+        normalized.threshold < 0.5 || normalized.threshold > 0.95) {
+        throw new TypeError('adaptiveThreshold must be a number between 0.5 and 0.95');
+    }
+    return normalized;
+}
+
 export function validateDeepCrawlOptions(options: DeepCrawlOptions) {
     if (!options || typeof options !== 'object') {
         throw new TypeError('deepCrawl must be an object');
@@ -117,6 +149,12 @@ export function validateDeepCrawlOptions(options: DeepCrawlOptions) {
         includePatterns: options.includePatterns || [],
         excludePatterns: options.excludePatterns || [],
         query: options.query,
+        concurrency: options.concurrency ?? 1,
+        concurrencyPerDomain: options.concurrencyPerDomain ?? options.concurrency ?? 1,
+        autoThrottle: options.autoThrottle ?? false,
+        startDelayMs: options.startDelayMs ?? 250,
+        maxDelayMs: options.maxDelayMs ?? 60_000,
+        targetConcurrency: options.targetConcurrency ?? 1,
     };
     assertBoundedInteger(normalized.maxDepth, 'deepCrawl.maxDepth', 0, ADVANCED_CRAWL_LIMITS.maxDepth);
     assertBoundedInteger(normalized.maxPages, 'deepCrawl.maxPages', 1, ADVANCED_CRAWL_LIMITS.maxPages);
@@ -126,6 +164,19 @@ export function validateDeepCrawlOptions(options: DeepCrawlOptions) {
     assertStringArray(normalized.excludePatterns, 'deepCrawl.excludePatterns', 50);
     if (normalized.query !== undefined) {
         assertString(normalized.query, 'deepCrawl.query', 500);
+    }
+    assertBoundedInteger(normalized.concurrency, 'deepCrawl.concurrency', 1, ADVANCED_CRAWL_LIMITS.maxConcurrency);
+    assertBoundedInteger(normalized.concurrencyPerDomain, 'deepCrawl.concurrencyPerDomain', 1, ADVANCED_CRAWL_LIMITS.maxConcurrencyPerDomain);
+    if (normalized.concurrencyPerDomain > normalized.concurrency) {
+        normalized.concurrencyPerDomain = normalized.concurrency;
+    }
+    if (typeof normalized.autoThrottle !== 'boolean') {
+        throw new TypeError('deepCrawl.autoThrottle must be a boolean');
+    }
+    assertBoundedInteger(normalized.startDelayMs, 'deepCrawl.startDelayMs', 0, ADVANCED_CRAWL_LIMITS.maxThrottleDelayMs);
+    assertBoundedInteger(normalized.maxDelayMs, 'deepCrawl.maxDelayMs', normalized.startDelayMs, ADVANCED_CRAWL_LIMITS.maxThrottleDelayMs);
+    if (typeof normalized.targetConcurrency !== 'number' || !Number.isFinite(normalized.targetConcurrency) || normalized.targetConcurrency <= 0 || normalized.targetConcurrency > normalized.concurrencyPerDomain) {
+        throw new TypeError('deepCrawl.targetConcurrency must be greater than 0 and no greater than concurrencyPerDomain');
     }
     return normalized;
 }

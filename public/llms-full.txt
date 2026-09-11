@@ -12,6 +12,8 @@
 4. **Multi-URL Batch Crawling**: Fetch, scrape, and convert multiple web pages concurrently in a single HTTP request with isolated fault tolerance.
 5. **Flexible Response Formats**: Supports clean GitHub-Flavored Markdown (`Accept: text/plain` or default), structured JSON (`Accept: application/json`), or SSE event streaming (`Accept: text/event-stream`).
 6. **WebMCP Browser Tools**: For Chrome browsers supporting WebMCP (`document.modelContext`), automatically registers `search_web`, `read_web_page`, and `read_web_pages` client tools.
+7. **Adaptive Structured Extraction**: Opt-in CSS selector relocation with bounded, origin-scoped profiles and ambiguity rejection.
+8. **Resumable Deep Crawling**: Bounded concurrency, optional per-domain AutoThrottle, and checkpoint resume for asynchronous jobs.
 
 ---
 
@@ -109,6 +111,9 @@ Returns clean GitHub-Flavored Markdown. For batch requests, pages are separated 
 | `X-Content-Query` | String query | Search query string used with BM25 filter |
 | `X-Session-Id` | String UUID/ID | Persist and reuse browser session cookies across requests |
 | `X-Detach-Invisibles` | `true` \| `false` | Detach display:none elements from DOM snapshot |
+| `X-Adaptive` | `true` \| `false` | Enable conservative adaptive CSS structured extraction |
+| `X-Adaptive-Id` | Safe identifier | Select the persisted adaptive profile |
+| `X-Adaptive-Threshold` | `0.5`–`0.95` | Set the minimum adaptive candidate confidence |
 
 ---
 
@@ -134,6 +139,22 @@ Extract deterministic JSON fields directly without LLM inference:
 ```
 The response returns `data.extracted` containing the structured JSON array.
 
+Adaptive relocation is CSS-only and opt-in. The first successful extraction stores bounded element signatures per origin and identifier; later requests can relocate missing selectors only when the candidate is sufficiently confident and unambiguous:
+
+```json
+{
+  "url": "https://example.com/products",
+  "adaptive": true,
+  "adaptiveId": "product-card",
+  "adaptiveThreshold": 0.7,
+  "extraction": {
+    "type": "css",
+    "baseSelector": ".product-card",
+    "fields": [{ "name": "title", "selector": "h2" }]
+  }
+}
+```
+
 ### B. Fit Markdown / BM25 Content Filtering
 Reduce LLM prompt token costs on large documents by filtering irrelevant boilerplate or scoring relevance:
 ```json
@@ -154,10 +175,15 @@ Crawl linked pages within the same domain with conservative limits:
     "maxDepth": 2,
     "maxPages": 10,
     "maxDurationMs": 30000,
-    "includePatterns": ["https://docs.example.com/*"]
+    "includePatterns": ["https://docs.example.com/*"],
+    "concurrency": 3,
+    "concurrencyPerDomain": 2,
+    "autoThrottle": true
   }
 }
 ```
+
+`concurrency` is capped at 20 and `concurrencyPerDomain` at 10. The default remains sequential. `autoThrottle` adjusts per-domain delay from response latency and 403/429 blocked responses.
 
 ### D. Asynchronous Job Queue & HTTPS Webhooks
 For long-running deep crawls or background processing:
@@ -171,7 +197,7 @@ For long-running deep crawls or background processing:
   }
 }
 ```
-Returns a `jobId` and `accessToken`. Poll progress with `GET /jobs/{jobId}` using the `X-Job-Token: <accessToken>` header, or cancel via `POST /jobs/{jobId}/cancel`.
+Returns a `jobId` and `accessToken`. Poll progress with `GET /jobs/{jobId}` using the `X-Job-Token: <accessToken>` header, cancel via `POST /jobs/{jobId}/cancel`, or resume a cancelled job via `POST /jobs/{jobId}/resume`.
 
 ---
 
@@ -240,4 +266,3 @@ If the client or gateway router sets an overly aggressive timeout (such as 3–5
 - **Staggered Retries with Jitter**: When falling over to Jina, Crawl4AI, or 888-url2md, apply randomized exponential jitter (e.g. `base * 2^attempt + rand(100ms, 800ms)`) to de-synchronize request waves.
 - **Circuit Breaker**: If a domain consistently times out across multiple requests, trip a domain-level circuit breaker instead of flooding fallback engines.
 - **Explicit Timeout Header**: Pass `X-Timeout: <seconds>` (max 180) to inform 888-url2md of the intended server-side rendering budget.
-

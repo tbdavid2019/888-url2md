@@ -63,9 +63,9 @@ import { detectBuff, extOfMime, mimeOfExt } from 'civkit/mime';
 import { STATUS_CODES } from 'http';
 import { fileURLToPath } from 'url';
 import { BogoSitesControl } from '../services/bogo-sites';
-import { extractStructuredData } from '../services/structured-extractor';
-import { deepCrawl } from '../services/deep-crawler';
+import { deepCrawl, DeepCrawlCheckpointState, DeepCrawlCheckpointStore } from '../services/deep-crawler';
 import { JobQueueService } from '../services/job-queue';
+import { AdaptiveSelectorService } from '../services/adaptive-selector-service';
 
 
 export const sha256Hasher = new HashManager('sha256', 'hex');
@@ -133,6 +133,7 @@ export class CrawlerHost extends RPCHost {
         protected binaryExtractorService: BinaryExtractorService,
         protected bogoSitesControl: BogoSitesControl,
         protected jobQueue: JobQueueService,
+        protected adaptiveSelectorService: AdaptiveSelectorService,
     ) {
         super(...arguments);
 
@@ -334,13 +335,14 @@ If you are an LLM or AI Agent accessing this service for the first time:
 
 ### 6. Advanced Crawl and Extraction
 - Add \`extraction\` with \`type\`, \`baseSelector\`, and \`fields\` to return deterministic \`extracted\` JSON records.
+- Add \`adaptive: true\` to CSS structured extraction to persist safe element signatures and relocate selectors after compatible markup changes. Matching is conservative and disabled by default.
 - Add \`contentFilter: "pruning"\` or \`"bm25"\` and optional \`contentQuery\` to return compact \`fitMarkdown\` while preserving \`rawMarkdown\`.
-- Add \`deepCrawl: { "maxDepth": 2, "maxPages": 20 }\` for bounded BFS exploration, or \`prefetch: true\` to return discovered links.
+- Add \`deepCrawl: { "maxDepth": 2, "maxPages": 20 }\` for bounded BFS exploration. Optional \`concurrency\`, \`concurrencyPerDomain\`, and \`autoThrottle\` control crawl pressure.
 - Add \`sessionId\` to reuse session cookies, or \`virtualScroll: { "maxScrolls": 20 }\` for bounded infinite-scroll content.
 
 ### 7. Async Jobs
 - Add \`asyncJob: true\` to run a deep crawl in the background.
-- Poll \`GET ${baseDomain}/jobs/{jobId}\`, cancel with \`POST ${baseDomain}/jobs/{jobId}/cancel\`, or list metrics with \`GET ${baseDomain}/jobs\`.
+- Poll \`GET ${baseDomain}/jobs/{jobId}\`, cancel with \`POST ${baseDomain}/jobs/{jobId}/cancel\`, resume with \`POST ${baseDomain}/jobs/{jobId}/resume\`, or list metrics with \`GET ${baseDomain}/jobs\`.
 - Optional \`webhook: { "url": "https://..." }\` receives the final job status. Webhook URLs must use HTTPS.
 
 ### 8. Optional Headers
@@ -350,6 +352,8 @@ If you are an LLM or AI Agent accessing this service for the first time:
 - \`X-Remove-Selector\`: Remove specific CSS selector.
 - \`X-No-Cache: true\`: Bypass internal page cache.
 - \`X-Timeout\`: Specify rendering timeout in seconds (e.g. 15-30, max 180).
+- \`X-Adaptive\`: Enable conservative adaptive CSS extraction.
+- \`X-Adaptive-Id\` / \`X-Adaptive-Threshold\`: Identify an adaptive profile and set its confidence threshold.
 - \`X-With-Generated-Alt: true\`: Generate AI alt text for images.
 - \`X-With-Images-Summary: true\`: Include image metadata summaries.
 - \`X-Content-Filter: pruning | bm25\`: Filter noisy DOM blocks or score relevance via BM25.
@@ -428,8 +432,9 @@ without \`document.modelContext\` continue to use the regular API and forms.
 - **High-Speed Document & PDF Parsing (AnyDoc Engine)**: Extract and convert local document files (PDF, DOCX, DOC, XLSX, XLS, PPTX, PPT, EPUB, RTF, ODT, ODS, ODP, CSV) into clean Markdown with sub-5ms latency via \`POST ${baseDomain}/\` using multipart form-data (\`file=@document.pdf\` or \`pdf=@document.pdf\`), or by providing direct remote PDF/document URLs.
 - **Real-Time Live Web Search (SERP)**: Execute zero-config live web searches and get structured Markdown snippets by calling \`GET ${baseDomain}/s/<QUERY>\` or \`GET ${baseDomain}/search?q=<QUERY>\`. Powered by DuckDuckGo with multi-engine fallback.
 - **Multi-URL Batch Crawling**: Fetch, scrape, and convert multiple web pages concurrently in a single HTTP request by calling \`POST ${baseDomain}/v1/batch\` (or \`POST ${baseDomain}/\`) with \`{"urls": ["...", "..."]}\`. Features isolated fault tolerance where individual failures do not disrupt the entire batch.
-- **Advanced Extraction and Deep Crawl**: Use CSS/XPath schemas for deterministic JSON extraction, Pruning/BM25 filters for compact Fit Markdown, or bounded BFS crawling with \`maxDepth\` and \`maxPages\`.
-- **Async Crawl Jobs**: Submit long-running deep crawls with \`asyncJob: true\`, then poll \`/jobs/{jobId}\`, cancel with \`POST /jobs/{jobId}/cancel\`, or receive an HTTPS webhook.
+- **Advanced Extraction and Deep Crawl**: Use CSS/XPath schemas for deterministic JSON extraction, Pruning/BM25 filters for compact Fit Markdown, or bounded BFS crawling with \`maxDepth\` and \`maxPages\`. Deep crawls optionally support bounded concurrency and per-domain AutoThrottle.
+- **Adaptive Extraction**: Add \`adaptive: true\` to CSS structured extraction to persist safe element signatures and relocate selectors after compatible markup changes. Matching is conservative and disabled by default.
+- **Async Crawl Jobs**: Submit long-running deep crawls with \`asyncJob: true\`, then poll \`/jobs/{jobId}\`, cancel with \`POST /jobs/{jobId}/cancel\`, resume with \`POST /jobs/{jobId}/resume\`, or receive an HTTPS webhook.
 - **Flexible Response Formats**: Supports clean GitHub-Flavored Markdown (\`Accept: text/plain\` or default), structured JSON (\`Accept: application/json\`), or SSE event streaming (\`Accept: text/event-stream\`).
 - **WebMCP Browser Tools**: For Chrome browsers supporting WebMCP (\`document.modelContext\`), the web UI automatically registers \`search_web\`, \`read_web_page\`, and \`read_web_pages\` client tools.
 
@@ -483,6 +488,8 @@ curl -s -X POST "${baseDomain}/v1/batch" \\
 - \`X-Remove-Selector\`: CSS selector to omit unwanted DOM nodes (e.g. \`nav\`, \`footer\`, \`.ads\`)
 - \`X-No-Cache\`: Set to \`true\` to bypass cache and force fresh fetching
 - \`X-Timeout\`: Specify rendering timeout in seconds (e.g. \`15\` to \`30\`, max \`180\`)
+- \`X-Adaptive\`: Set to \`true\` to enable conservative adaptive CSS extraction
+- \`X-Adaptive-Id\` / \`X-Adaptive-Threshold\`: Identify an adaptive profile and set its confidence threshold
 - \`X-With-Generated-Alt\`: Set to \`true\` to enable AI image captioning
 - \`X-With-Images-Summary\`: Set to \`true\` to extract image summaries
 
@@ -989,7 +996,7 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
         if (crawlerOptions.deepCrawl || crawlerOptions.prefetch) {
             if (crawlerOptions.asyncJob) {
                 const job = this.jobQueue.submit(
-                    (signal, reportProgress) => this.runDeepCrawl(
+                    (signal, reportProgress, jobId) => this.runDeepCrawl(
                         { signal } as RPCReflection,
                         crawlerOptions,
                         crawlOpts,
@@ -997,6 +1004,7 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
                         'data',
                         signal,
                         reportProgress,
+                        jobId,
                     ),
                     crawlerOptions.webhook,
                 );
@@ -2277,7 +2285,16 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
 
         const formatted = await this.snapshotFormatter.formatSnapshot(respondWith, snapshot, presumedURL, urlValidMs);
         if (crawlerOptions.extraction && snapshot.html) {
-            formatted.extracted = await extractStructuredData(snapshot.html, crawlerOptions.extraction);
+            formatted.extracted = await this.adaptiveSelectorService.extract(
+                snapshot.html,
+                /^https?:\/\//i.test(snapshot.href) ? snapshot.href : presumedURL.href,
+                crawlerOptions.extraction,
+                {
+                    enabled: crawlerOptions.adaptive,
+                    identifier: crawlerOptions.adaptiveId,
+                    threshold: crawlerOptions.adaptiveThreshold,
+                },
+            );
         }
         return formatted;
     }
@@ -2290,6 +2307,7 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
         outputMode: 'response' | 'data' = 'response',
         signal: AbortSignal = rpcReflect.signal,
         onProgress?: (progress: { visited: number; queued: number; completed: number; url: string; depth: number }) => void,
+        checkpointId?: string,
     ) {
         const options = {
             ...(crawlerOptions.deepCrawl || {}),
@@ -2321,13 +2339,14 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
             const inferred = await this.jsdomControl.inferSnapshot(snapshot);
             const links = inferred.snapshot.links?.map(([, href]) => href) || [];
             if (context.prefetch) {
-                return { links };
+                return { links, blocked: [403, 429].includes(snapshot.status || 0) };
             }
             return {
                 links,
+                blocked: [403, 429].includes(snapshot.status || 0),
                 value: await this.formatSnapshot(pageOptions, snapshot, new URL(url), this.urlValidMs),
             };
-        }, signal, onProgress);
+        }, signal, onProgress, checkpointId ? { checkpoint: this.createDeepCrawlCheckpointStore(checkpointId) } : undefined);
 
         const data = {
             pages: pages.map((page) => ({
@@ -2360,6 +2379,43 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
             return pages.map((page) => `URL: ${page.url}\nDepth: ${page.depth}\nLinks: ${page.links.join('\n')}`).join('\n\n---\n\n');
         }
         return pages.map((page) => page.error ? `URL: ${page.url}\nError: ${page.error}` : page.value?.content || '').filter(Boolean).join('\n\n---\n\n');
+    }
+
+    private createDeepCrawlCheckpointStore(checkpointId: string): DeepCrawlCheckpointStore<FormattedPage> {
+        const path = `crawl-checkpoints/${sha256Hasher.hash(checkpointId)}`;
+        const isState = (value: unknown): value is DeepCrawlCheckpointState<FormattedPage> => {
+            if (!value || typeof value !== 'object') return false;
+            const state = value as Partial<DeepCrawlCheckpointState<FormattedPage>>;
+            return state.version === 1 && Array.isArray(state.queue) && state.queue.length <= 5_000 &&
+                state.queue.every((entry) => entry && typeof entry.url === 'string' && entry.url.length <= 4_096 && Number.isInteger(entry.depth)) &&
+                Array.isArray(state.visited) && state.visited.length <= 10_000 && state.visited.every((url) => typeof url === 'string' && url.length <= 4_096) &&
+                Array.isArray(state.pages) && state.pages.length <= 500 && state.pages.every((page) =>
+                    page && typeof page.url === 'string' && page.url.length <= 4_096 && Number.isInteger(page.depth) &&
+                    Array.isArray(page.links) && page.links.every((url) => typeof url === 'string' && url.length <= 4_096));
+        };
+        return {
+            load: async () => {
+                const raw = await this.storageLayer.readFile(path).catch(() => undefined);
+                if (!raw || raw.byteLength > 4 * 1024 * 1024) return undefined;
+                try {
+                    const parsed = JSON.parse(raw.toString('utf8')) as { completed?: boolean; state?: unknown };
+                    return parsed.completed || !isState(parsed.state) ? undefined : parsed.state;
+                } catch {
+                    return undefined;
+                }
+            },
+            save: async (state) => {
+                const body = Buffer.from(JSON.stringify({ version: 1, state }));
+                if (body.byteLength <= 4 * 1024 * 1024) {
+                    await this.storageLayer.storeFile(path, body, { 'Content-Type': 'application/json' });
+                }
+            },
+            clear: async () => {
+                await this.storageLayer.storeFile(path, Buffer.from(JSON.stringify({ version: 1, completed: true })), {
+                    'Content-Type': 'application/json',
+                });
+            },
+        };
     }
 
     @Method({
@@ -2404,6 +2460,23 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
             throw new AssertionFailureError(`Crawl job ${id} was not found or the X-Job-Token is invalid`);
         }
         return { id, cancelled };
+    }
+
+    @Method({
+        name: 'resumeCrawlJob',
+        description: 'Resume a cancelled asynchronous crawl job from its last checkpoint',
+        proto: { http: { action: 'POST', path: '/jobs/::id/resume' } },
+        tags: ['crawl', 'jobs'],
+        returnType: Object,
+    })
+    async resumeCrawlJob(@Ctx() ctx: Context) {
+        const id = ctx.path.replace(/^\/jobs\//i, '').replace(/\/resume\/?$/i, '');
+        const token = ctx.get('x-job-token');
+        const resumed = this.jobQueue.resume(id, token);
+        if (!resumed && !this.jobQueue.get(id, token)) {
+            throw new AssertionFailureError(`Crawl job ${id} was not found or the X-Job-Token is invalid`);
+        }
+        return { id, resumed };
     }
 
     async getFinalSnapshot(url: URL, opts?: ExtraScrappingOptions, crawlerOptions?: CrawlerOptions): Promise<PageSnapshot | undefined> {

@@ -86,3 +86,27 @@ describe('output determinism', () => {
         assert.strictEqual(r1.body.data.content, r2.body.data.content);
     });
 });
+
+describe('adaptive structured extraction through the HTTP API', () => {
+    it('relocates extraction records after an inline HTML redesign', async () => {
+        const extraction = {
+            type: 'css',
+            baseSelector: '.product',
+            fields: [{ name: 'title', selector: 'h2' }],
+        };
+        const first = await crawlHtml('<article class="product" id="one"><h2>One</h2></article>', {
+            adaptive: true,
+            adaptiveId: 'html-product',
+            extraction,
+        });
+        const second = await crawlHtml('<div class="card" data-id="one"><h2>One</h2></div>', {
+            adaptive: true,
+            adaptiveId: 'html-product',
+            extraction,
+        });
+
+        assert.strictEqual(first.status, 200);
+        assert.strictEqual(second.status, 200);
+        assert.deepStrictEqual(second.body.data.extracted, [{ title: 'One' }]);
+    });
+});
