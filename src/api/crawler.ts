@@ -345,6 +345,12 @@ If you are an LLM or AI Agent accessing this service for the first time:
 - Poll \`GET ${baseDomain}/jobs/{jobId}\`, cancel with \`POST ${baseDomain}/jobs/{jobId}/cancel\`, resume with \`POST ${baseDomain}/jobs/{jobId}/resume\`, or list metrics with \`GET ${baseDomain}/jobs\`.
 - Optional \`webhook: { "url": "https://..." }\` receives the final job status. Webhook URLs must use HTTPS.
 
+#### LLM Wait and Polling Contract
+- Synchronous timeout budgets: normal pages 15–30s; dynamic pages 30–45s; deep crawls/documents 45–60s+.
+- Submit one async request and read the returned identifiers from \`data.id\` and \`data.accessToken\`.
+- Poll \`GET ${baseDomain}/jobs/{data.id}\` every 2–5s with \`X-Job-Token: {data.accessToken}\`; read state from \`data.status\` and results from \`data.result\`.
+- Stop at \`completed\`, \`failed\`, or \`cancelled\`. Cancel and resume both require \`POST\`; after cancel, poll until \`data.status=cancelled\` before resuming. Never put the token in the URL or submit duplicate jobs.
+
 ### 8. Optional Headers
 - \`X-Respond-With\`: \`markdown\` | \`html\` | \`text\` | \`frontmatter\`
 - \`X-Preset\`: \`reader\` | \`index\` | \`research\` | \`agent\` | \`spider\`
@@ -435,6 +441,7 @@ without \`document.modelContext\` continue to use the regular API and forms.
 - **Advanced Extraction and Deep Crawl**: Use CSS/XPath schemas for deterministic JSON extraction, Pruning/BM25 filters for compact Fit Markdown, or bounded BFS crawling with \`maxDepth\` and \`maxPages\`. Deep crawls optionally support bounded concurrency and per-domain AutoThrottle.
 - **Adaptive Extraction**: Add \`adaptive: true\` to CSS structured extraction to persist safe element signatures and relocate selectors after compatible markup changes. Matching is conservative and disabled by default.
 - **Async Crawl Jobs**: Submit long-running deep crawls with \`asyncJob: true\`, then poll \`/jobs/{jobId}\`, cancel with \`POST /jobs/{jobId}/cancel\`, resume with \`POST /jobs/{jobId}/resume\`, or receive an HTTPS webhook.
+- **LLM Wait Contract**: Read async identifiers from \`data.id\` and \`data.accessToken\`; poll every 2–5s with \`X-Job-Token\`, and stop at \`completed\`, \`failed\`, or \`cancelled\`. Cancel/resume require \`POST\`; after cancel, wait for \`data.status=cancelled\` before resuming.
 - **Flexible Response Formats**: Supports clean GitHub-Flavored Markdown (\`Accept: text/plain\` or default), structured JSON (\`Accept: application/json\`), or SSE event streaming (\`Accept: text/event-stream\`).
 - **WebMCP Browser Tools**: For Chrome browsers supporting WebMCP (\`document.modelContext\`), the web UI automatically registers \`search_web\`, \`read_web_page\`, and \`read_web_pages\` client tools.
 
@@ -2421,7 +2428,7 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
     @Method({
         name: 'getCrawlJob',
         description: 'Get the status and result of an asynchronous crawl job',
-        proto: { http: { action: 'GET', path: '/jobs/::id' } },
+        proto: { http: { action: 'get', path: '/jobs/:id' } },
         tags: ['crawl', 'jobs'],
         returnType: Object,
     })
@@ -2437,7 +2444,7 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
     @Method({
         name: 'listCrawlJobs',
         description: 'List recent asynchronous crawl jobs and queue statistics',
-        proto: { http: { action: 'GET', path: '/jobs' } },
+        proto: { http: { action: 'get', path: '/jobs' } },
         tags: ['crawl', 'jobs'],
         returnType: Object,
     })
@@ -2448,7 +2455,7 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
     @Method({
         name: 'cancelCrawlJob',
         description: 'Cancel an asynchronous crawl job',
-        proto: { http: { action: 'POST', path: '/jobs/::id/cancel' } },
+        proto: { http: { action: 'post', path: '/jobs/:id/cancel' } },
         tags: ['crawl', 'jobs'],
         returnType: Object,
     })
@@ -2465,7 +2472,7 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
     @Method({
         name: 'resumeCrawlJob',
         description: 'Resume a cancelled asynchronous crawl job from its last checkpoint',
-        proto: { http: { action: 'POST', path: '/jobs/::id/resume' } },
+        proto: { http: { action: 'post', path: '/jobs/:id/resume' } },
         tags: ['crawl', 'jobs'],
         returnType: Object,
     })

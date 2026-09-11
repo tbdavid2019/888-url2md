@@ -118,6 +118,30 @@ The POST body can also include:
 
 Adaptive extraction is CSS-only, opt-in, and rejects ambiguous candidates. Deep-crawl concurrency is capped at 20 globally and 10 per domain; defaults remain sequential. With `asyncJob: true`, keep the returned `accessToken` private and send it as `X-Job-Token` when polling `GET /jobs/{jobId}`, cancelling with `POST /jobs/{jobId}/cancel`, or resuming with `POST /jobs/{jobId}/resume`. Provide an HTTPS `webhook.url` when needed.
 
+### 7.1 LLM Wait and Async Job Rules
+
+- For a normal page, allow a client timeout of **15–30 seconds**.
+- For a JavaScript-heavy page or anti-bot challenge, allow **30–45 seconds**.
+- For a deep crawl or document conversion, allow **45–60 seconds or more**. Use `asyncJob: true` when the task may exceed the client timeout.
+- Do not start a fallback crawler or submit the same POST again before the timeout. A premature retry can duplicate browser work and create a thundering-herd spike.
+- With `asyncJob: true`, wait only for the initial job acceptance response, keep `accessToken` private, then poll `GET /jobs/{jobId}` every **2–5 seconds**. Stop at `completed`, `failed`, or `cancelled`.
+- Use the HTTPS webhook for long jobs when polling is not suitable. Treat webhook delivery as a notification and keep polling available for recovery.
+
+#### Exact Async Job Contract
+
+1. Submit **one** `POST /` request with `asyncJob: true` and `deepCrawl`.
+2. Read the job fields from the JSON envelope at `data.id` and `data.accessToken`:
+
+   ```json
+   {"code":200,"status":20000,"data":{"id":"crawl_...","status":"running","accessToken":"...","statusUrl":"/jobs/crawl_..."}}
+   ```
+
+3. Poll `GET /jobs/{data.id}` with `X-Job-Token: {data.accessToken}`. Read the current state from `data.status`.
+4. Stop at `completed`, `failed`, or `cancelled`. Read the crawl result from `data.result`.
+5. To stop work, call `POST /jobs/{data.id}/cancel` with the same token. Poll until `data.status` becomes `cancelled`, then call `POST /jobs/{data.id}/resume` with the same token to continue.
+
+Pitfalls: `GET` is only for polling; cancel and resume require `POST`. Cancel acknowledgement can arrive while the job is still `running`, so do not resume until polling reports `cancelled`. Do not put the access token in the URL, do not use `job.id` as the token, and do not submit a second crawl while the first job is still running.
+
 ### 8. WebMCP Browser Tools
 
 When the homepage is opened in a WebMCP-enabled Chrome browser, it registers

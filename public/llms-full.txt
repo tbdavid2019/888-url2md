@@ -14,6 +14,7 @@
 6. **WebMCP Browser Tools**: For Chrome browsers supporting WebMCP (`document.modelContext`), automatically registers `search_web`, `read_web_page`, and `read_web_pages` client tools.
 7. **Adaptive Structured Extraction**: Opt-in CSS selector relocation with bounded, origin-scoped profiles and ambiguity rejection.
 8. **Resumable Deep Crawling**: Bounded concurrency, optional per-domain AutoThrottle, and checkpoint resume for asynchronous jobs.
+9. **LLM-Friendly Waiting**: Explicit synchronous timeout budgets and async job polling guidance prevent duplicate crawler work.
 
 ---
 
@@ -185,6 +186,15 @@ Crawl linked pages within the same domain with conservative limits:
 
 `concurrency` is capped at 20 and `concurrencyPerDomain` at 10. The default remains sequential. `autoThrottle` adjusts per-domain delay from response latency and 403/429 blocked responses.
 
+### C.1 LLM Wait and Polling Contract
+
+- Normal synchronous pages: client timeout **15–30 seconds**.
+- Dynamic JavaScript or anti-bot pages: client timeout **30–45 seconds**.
+- Deep crawls and document conversion: client timeout **45–60 seconds or more**; use `asyncJob: true` when the task can exceed the client budget.
+- Do not submit duplicate POST requests before the timeout expires. A client-side retry can create duplicate browser sessions and a thundering-herd load spike.
+- For an async job, wait for the initial acceptance response, save the `jobId` and private `accessToken`, then poll `GET /jobs/{jobId}` every **2–5 seconds** with `X-Job-Token`.
+- End polling at `completed`, `failed`, or `cancelled`. An HTTPS webhook can notify completion, but polling remains the recovery path if delivery fails.
+
 ### D. Asynchronous Job Queue & HTTPS Webhooks
 For long-running deep crawls or background processing:
 ```json
@@ -198,6 +208,31 @@ For long-running deep crawls or background processing:
 }
 ```
 Returns a `jobId` and `accessToken`. Poll progress with `GET /jobs/{jobId}` using the `X-Job-Token: <accessToken>` header, cancel via `POST /jobs/{jobId}/cancel`, or resume a cancelled job via `POST /jobs/{jobId}/resume`.
+
+The response is wrapped in the standard envelope. The identifiers are at `data.id` and `data.accessToken`:
+
+```json
+{
+  "code": 200,
+  "status": 20000,
+  "data": {
+    "id": "crawl_...",
+    "status": "running",
+    "accessToken": "...",
+    "statusUrl": "/jobs/crawl_..."
+  }
+}
+```
+
+Use this exact sequence:
+
+1. Send one `POST /` with `asyncJob: true` and `deepCrawl`.
+2. Poll `GET /jobs/{data.id}` every 2–5 seconds with `X-Job-Token: {data.accessToken}`.
+3. Read state from `data.status` and the completed crawl from `data.result`.
+4. Stop at `completed`, `failed`, or `cancelled`.
+5. Use `POST /jobs/{data.id}/cancel` to cancel, poll until `data.status` is `cancelled`, then use `POST /jobs/{data.id}/resume` to resume, with the same token.
+
+Avoid these errors: cancel/resume are not `GET`; cancel acknowledgement may precede the `cancelled` state; the token is not the job ID; the token must not be placed in the URL; and the original POST must not be duplicated while the job is running.
 
 ---
 

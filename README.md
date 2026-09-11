@@ -330,6 +330,14 @@ curl -X POST 'https://create360.ai/' \
 - **查詢、取消與恢復**：伺服器立即回傳 `jobId` 與專屬的 `accessToken`。後續以 `X-Job-Token: <accessToken>` Header 搭配 `GET /jobs/{jobId}` 查詢進度，以 `POST /jobs/{jobId}/cancel` 取消任務，或以 `POST /jobs/{jobId}/resume` 從最近 checkpoint 繼續已取消任務。
 - **Webhook 回調**：任務完成時自動發送 HTTPS POST 至指定的 Webhook 端點（內建 SSRF 內網安全防護）。
 
+非同步回應的欄位位於 `data` 內：
+
+```json
+{"code":200,"status":20000,"data":{"id":"crawl_...","status":"running","accessToken":"...","statusUrl":"/jobs/crawl_..."}}
+```
+
+LLM 應每 2–5 秒以 `GET /jobs/{data.id}` 搭配 `X-Job-Token: {data.accessToken}` 輪詢，讀取 `data.status` 與完成後的 `data.result`。`cancel` 和 `resume` 都必須使用 `POST`；不要把 token 放進 URL，也不要在原工作仍執行時重送原始 POST。
+
 ### 1.9 隱形元素過濾與 Cookie 延續 (Detach Invisibles & Session Continuity)
 
 - **過濾隱形節點**：傳入 `"detachInvisibles": true`（或帶入 Header `X-Detach-Invisibles: true`）可在產生 Markdown 與 DOM 快照前徹底剔除 `display:none` 及隱藏節點。
@@ -863,6 +871,14 @@ For multi-page deep crawls or background tasks, enable `asyncJob: true` to avoid
 
 - **Polling, Cancellation & Resume**: The server returns a `jobId` and an `accessToken`. Use the `X-Job-Token: <accessToken>` header with `GET /jobs/{jobId}` to poll progress, `POST /jobs/{jobId}/cancel` to cancel, or `POST /jobs/{jobId}/resume` to resume a cancelled job from its latest checkpoint.
 - **Webhook Delivery**: Automated HTTPS POST webhook upon completion with built-in SSRF private-IP blocking.
+
+Async responses place the identifiers inside `data`:
+
+```json
+{"code":200,"status":20000,"data":{"id":"crawl_...","status":"running","accessToken":"...","statusUrl":"/jobs/crawl_..."}}
+```
+
+LLMs should poll `GET /jobs/{data.id}` every 2–5 seconds with `X-Job-Token: {data.accessToken}`, then read `data.status` and `data.result`. Both `cancel` and `resume` require `POST`; never put the token in the URL or resubmit the original POST while it is running.
 
 ### 1.9 Detach Invisible Elements & Session Continuity
 

@@ -10,6 +10,7 @@
 - **Multi-URL Batch Crawling**: Fetch, scrape, and convert multiple web pages concurrently in a single HTTP request by calling `POST /v1/batch` (or `POST /`) with `{"urls": ["...", "..."]}`. Features isolated fault tolerance where individual failures do not disrupt the entire batch.
 - **Adaptive CSS Extraction**: Set `adaptive: true` with structured extraction to persist bounded, origin-scoped element signatures and relocate selectors after compatible markup changes. Matching is conservative and disabled by default.
 - **Bounded Deep Crawl Controls**: `deepCrawl` supports capped global/per-domain concurrency and optional per-domain AutoThrottle; asynchronous jobs checkpoint on cancellation and can resume with the job token.
+- **LLM Wait Rules**: Allow 15–30s for normal pages, 30–45s for dynamic pages, and 45–60s+ for deep crawls/documents. For longer work, use `asyncJob: true`, then poll every 2–5s without resubmitting the POST.
 - **Flexible Response Formats**: Supports clean GitHub-Flavored Markdown (`Accept: text/plain` or default), structured JSON (`Accept: application/json`), or SSE event streaming (`Accept: text/event-stream`).
 - **WebMCP Browser Tools**: For Chrome browsers supporting WebMCP (`document.modelContext`), the web UI automatically registers `search_web`, `read_web_page`, and `read_web_pages` client tools.
 
@@ -78,6 +79,28 @@ curl -s -X POST "https://<HOST>/v1/batch" \
 ```
 
 For asynchronous jobs, use `POST /jobs/{jobId}/resume` with the same `X-Job-Token` after cancellation.
+
+### Exact Async Job Contract
+
+1. Submit one `POST /` request with `asyncJob: true` and `deepCrawl`.
+2. Read `data.id` and `data.accessToken` from the JSON response, not from the response root:
+
+   ```json
+   {"code":200,"status":20000,"data":{"id":"crawl_...","status":"running","accessToken":"...","statusUrl":"/jobs/crawl_..."}}
+   ```
+
+3. Poll `GET /jobs/{data.id}` every 2–5 seconds with `X-Job-Token: {data.accessToken}`. Read the current state from `data.status` and the result from `data.result`.
+4. Stop at `completed`, `failed`, or `cancelled`.
+5. Cancel with `POST /jobs/{data.id}/cancel`; poll until `data.status` is `cancelled`, then resume with `POST /jobs/{data.id}/resume`, using the same token.
+
+Pitfalls: polling is `GET`, but cancel and resume are `POST`; cancel acknowledgement may precede the `cancelled` state; never put the token in the URL, use the job ID as the token, or resubmit the original POST while it is still running.
+
+### LLM Waiting and Polling
+
+- Keep synchronous requests open for 15–30s on normal pages, 30–45s on dynamic pages, and 45–60s+ on deep crawls or document conversion.
+- Use `asyncJob: true` when the operation may exceed the client timeout. The initial response only acknowledges the job.
+- Poll `GET /jobs/{jobId}` every 2–5s with `X-Job-Token`. Stop when the status is `completed`, `failed`, or `cancelled`.
+- Do not resubmit the original POST while it is still within its timeout window. This can duplicate work and overload target sites.
 
 ## Optional Customization Headers
 

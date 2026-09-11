@@ -2,6 +2,13 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.09.11.3] - 2026-09-11 - LLM 非同步任務契約與路由修正 (Clarify LLM Async Job Contract & Routes)
+
+### 🐛 Fixes & Documentation
+- Fixed job route matching for `GET /jobs/{id}`, `POST /jobs/{id}/cancel`, and `POST /jobs/{id}/resume`.
+- Documented the response envelope paths (`data.id`, `data.accessToken`, `data.status`, and `data.result`) and the required polling step after cancellation.
+- Synchronized the LLM skill and discovery documents with exact wait, polling, retry, and HTTP method rules.
+
 ## [2026.09.11.2] - 2026-09-11 - Watchtower 自動更新可靠性修正 (Harden Watchtower Auto-Update Reliability)
 
 ### 🛠️ Deployment & Operations
