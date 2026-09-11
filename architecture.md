@@ -89,6 +89,8 @@ docker compose --profile dev up -d
 
 GitHub Actions tests the project and builds multi-architecture container images for GHCR and, when configured, Docker Hub. The workflows and their JavaScript actions use the Node 24 runtime. Production can be updated directly from the host with `git pull` followed by Docker Compose build/up; it does not depend on a GitHub Actions deployment job.
 
+For a CI/CD smoke deployment, a push to `main` must produce a new GHCR digest; the three production Watchtower instances then converge on that digest within their 60-second polling interval.
+
 ## Operational Notes
 
 - Headless Chrome and LibreOffice are resource-intensive. Size the host for concurrent browser and document-conversion work.

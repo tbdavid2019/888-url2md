@@ -2,6 +2,11 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.09.12.1] - 2026-09-12 - Docker CI/CD Smoke Deployment Note (Docker CI/CD Smoke Deployment Note)
+
+### 📝 Documentation
+- Added the expected GHCR digest and three-host Watchtower convergence checks for CI/CD smoke deployments.
+
 ## [2026.09.11.3] - 2026-09-11 - LLM 非同步任務契約與路由修正 (Clarify LLM Async Job Contract & Routes)
 
 ### 🐛 Fixes & Documentation
