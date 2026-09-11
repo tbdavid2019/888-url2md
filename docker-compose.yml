@@ -35,6 +35,7 @@ services:
       S3_LOG_PREFIX: ${S3_LOG_PREFIX:-url2md-logs/}
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
+      - "com.centurylinklabs.watchtower.scope=url2md"
     security_opt:
       - seccomp=unconfined
     restart: always
@@ -47,10 +48,12 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - DOCKER_API_VERSION=1.44
-      - WATCHTOWER_POLL_INTERVAL=300
+      - WATCHTOWER_POLL_INTERVAL=60
       - WATCHTOWER_CLEANUP=true
       - WATCHTOWER_LABEL_ENABLE=true
-    command: --label-enable
+      - WATCHTOWER_SCOPE=url2md
+      - WATCHTOWER_WARN_ON_HEAD_FAILURE=always
+    command: --label-enable --scope url2md
 
   # Optional local dependency for development. It is excluded from the default
   # production deployment so its ports do not conflict with other services.

@@ -49,7 +49,7 @@ Currently deployed at: [**create360.ai**](https://create360.ai) (or easily self-
 
 ## 🐳 Docker 安裝與部署 (Docker Deployment)
 
-本專案提供多種 Docker 安裝與部署方式，可直接使用 GHCR (GitHub Container Registry) 預建映像檔或自原始碼構建：
+本專案提供多種 Docker 安裝與部署方式，可直接使用 GHCR (GitHub Container Registry) 預建映像檔或自原始碼構建。Production Compose 會由 Watchtower 每 60 秒檢查 `url2md` scope 的 image 更新。
 
 ### 1. 使用 GHCR 預建映像檔 (Quickstart via GHCR)
 
@@ -598,6 +598,8 @@ Currently deployed at: [**create360.ai**](https://create360.ai) (or easily self-
 ---
 
 ## 🐳 Docker Installation & Deployment
+
+The production Compose configuration uses Watchtower to check the `url2md` image scope every 60 seconds.
 
 ### 1. Quickstart via GHCR
 

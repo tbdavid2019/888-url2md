@@ -66,7 +66,8 @@ Search uses the built-in SERP integrations and fallbacks, so the browser UI does
 - **Container:** `888-url2md` runs the Node application. Its HTTP/1.1 compatibility listener is container port `8082`; the application h2c listener is port `8081`.
 - **Runtime:** Node 24, Google Chrome, LibreOffice, and required fonts are packaged by the project Dockerfile.
 - **Container hardening:** `seccomp=unconfined` is required for the headless-browser runtime.
-- **CI/CD Auto Update:** Watchtower monitors `ghcr.io/tbdavid2019/888-url2md:latest` and auto-updates on new image pushes.
+- **CI/CD Auto Update:** Watchtower monitors the `url2md` label scope for `ghcr.io/tbdavid2019/888-url2md:latest`, polls every 60 seconds, and warns when registry HEAD checks fail.
+- **Image Cleanup:** Host-level cron runs daily at 03:30 and removes only unused 888-url2md images older than 7 days.
 
 ### Docker Compose
 

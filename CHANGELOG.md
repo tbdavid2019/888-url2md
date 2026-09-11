@@ -2,6 +2,15 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.09.11.2] - 2026-09-11 - Watchtower 自動更新可靠性修正 (Harden Watchtower Auto-Update Reliability)
+
+### 🛠️ Deployment & Operations
+- Switched the production Watchtower target to explicit `url2md` labels and scope instead of a container-name-only command.
+- Reduced the production polling interval from 300 seconds to 60 seconds.
+- Enabled warnings when registry HEAD checks fail, making GHCR update detection failures observable.
+- Added a daily scoped Docker image cleanup schedule for unused 888-url2md images older than 7 days.
+- Applied the configuration to the `2md.aiurl.tw` production host and verified the Watchtower container health.
+
 ## [2026.09.11.1] - 2026-09-11 - Scrapling 自適應抽取與可恢復深度爬取 (Scrapling-Inspired Adaptive Extraction & Resumable Deep Crawling)
 
 ### 🚀 Enhancements
