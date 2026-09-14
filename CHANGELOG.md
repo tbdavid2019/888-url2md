@@ -2,6 +2,15 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.09.14.5] - 2026-09-14 - 前端介面現代化向量圖示重構 (Modernize Web UI with Cohesive Lucide Vector Icons)
+
+### 🎨 UI & Design Enhancements
+- **替換傳統 Emoji 圖示為現代化 Lucide 向量 SVG**：
+  - **功能頁籤（Tabs Nav）**：全數更換為俐落一致的向量圖示（`Live SERP` 搜尋、`URL` 全球網址、`AnyDoc` 文件結構、`OCR` 觀景窗文字掃描）。
+  - **拖曳上傳區（Dropzones）**：文檔解析與圖片 OCR 區塊統一升級為高解析向量圖示，加入懸浮（Hover/Dragover）流暢縮放微互動效果。
+  - **動作按鈕（Actions）**：送出按鈕、複製 Markdown（`Copy`）及下載檔案（`Download`）更換為現代化向量圖示，提升介面精緻度與專業視覺體驗。
+- **三台生產環境節點即時熱更新**：已透過 `docker cp` 即時同步更新至 Host 1 (`2md.aiurl.tw`)、Host 2 (`create360.ai`)、Host 3 (`2md.glsoft.ai`)。
+
 ## [2026.09.14.4] - 2026-09-14 - PaddleOCR 升級 PP-OCRv4 旗艦中英文雙向模型與 CPU AVX 相容性修補 (PaddleOCR PP-OCRv4 Chinese/English Upgrade & CPU AVX Compatibility Patch)
 
 ### 🚀 Enhancements & Operations

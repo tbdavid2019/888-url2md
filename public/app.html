@@ -150,9 +150,19 @@
         transition: all 0.2s ease;
       }
 
+      .tab-btn svg {
+        flex-shrink: 0;
+        vertical-align: middle;
+        transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
       .tab-btn:hover {
         color: var(--text);
         background: #f1f5f9;
+      }
+
+      .tab-btn:hover svg {
+        transform: translateY(-1px) scale(1.08);
       }
 
       .tab-btn.active {
@@ -220,8 +230,17 @@
       }
 
       .dropzone-icon {
-        font-size: 2.5rem;
+        display: flex;
+        justify-content: center;
+        align-items: center;
         margin-bottom: 12px;
+        color: var(--primary);
+        transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), color 0.25s ease;
+      }
+
+      .dropzone:hover .dropzone-icon, .dropzone.dragover .dropzone-icon {
+        transform: translateY(-2px) scale(1.08);
+        color: #4338ca;
       }
 
       .dropzone-text {
@@ -298,10 +317,18 @@
         border-radius: 10px;
         cursor: pointer;
         transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+      }
+
+      button.secondary-btn svg {
+        flex-shrink: 0;
       }
 
       button.secondary-btn:hover {
         background: #f1f5f9;
+        border-color: #cbd5e1;
       }
 
       /* Status Display */
@@ -406,16 +433,20 @@
       <!-- Navigation Tabs -->
       <nav class="tabs-nav" role="tablist">
         <button class="tab-btn" id="tab-search-btn" data-tab="tab-search" role="tab">
-          <span>🔍</span> <span data-i18n="searchTab">網頁搜尋 (Live SERP)</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <span data-i18n="searchTab">網頁搜尋 (Live SERP)</span>
         </button>
         <button class="tab-btn active" id="tab-urls-btn" data-tab="tab-urls" role="tab">
-          <span>🌐</span> <span data-i18n="urlsTab">網址轉換 (URL)</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20M2 12h20"></path></svg>
+          <span data-i18n="urlsTab">網址轉換 (URL)</span>
         </button>
         <button class="tab-btn" id="tab-upload-btn" data-tab="tab-upload" role="tab">
-          <span>📄</span> <span data-i18n="uploadTab">文檔解析 (AnyDoc)</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          <span data-i18n="uploadTab">文檔解析 (AnyDoc)</span>
         </button>
         <button class="tab-btn" id="tab-ocr-btn" data-tab="tab-ocr" role="tab" style="display: none;">
-          <span>🖼️</span> <span data-i18n="ocrTab">圖片辨識 (OCR)</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2m10 0h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2m4-9h8m-8 4h10M7 16h6"/></svg>
+          <span data-i18n="ocrTab">圖片辨識 (OCR)</span>
         </button>
       </nav>
 
@@ -431,7 +462,8 @@
             </div>
             <div class="actions">
               <button class="primary-btn" id="search-btn" type="submit">
-                <span>🔍</span> <span data-i18n="searchAction">搜尋並轉成 Markdown</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <span data-i18n="searchAction">搜尋並轉成 Markdown</span>
               </button>
             </div>
           </form>
@@ -448,7 +480,8 @@
             </div>
             <div class="actions">
               <button class="primary-btn" id="convert-btn" type="submit">
-                <span>🌐</span> <span data-i18n="convertAction">轉換成 Markdown</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20M2 12h20"></path></svg>
+                <span data-i18n="convertAction">轉換成 Markdown</span>
               </button>
             </div>
           </form>
@@ -460,13 +493,16 @@
             <label for="file-input" data-i18n="uploadLabel">文件檔案解析 (AnyDoc 超極速引擎)</label>
             <div id="dropzone" class="dropzone" tabindex="0">
               <input type="file" id="file-input" name="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.epub,.rtf,.odt,.ods,.odp,.csv,.txt" style="display: none">
-              <div class="dropzone-icon">📁</div>
+              <div class="dropzone-icon">
+                <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"></path><path d="M12 12v9"></path><path d="m16 16-4-4-4 4"></path></svg>
+              </div>
               <div class="dropzone-text" id="file-name-display" data-i18n="dropzonePrompt">拖曳檔案至此，或點擊選擇檔案上傳</div>
               <div class="file-types-hint" data-i18n="dropzoneHint">支援 PDF, Word (.docx/.doc), Excel (.xlsx/.xls), PowerPoint (.pptx/.ppt), EPUB, RTF, CSV, ODT...</div>
             </div>
             <div class="actions" style="margin-top: 18px">
               <button class="primary-btn" id="upload-btn" type="submit">
-                <span>⚡</span> <span data-i18n="uploadAction">上傳文檔並轉成 Markdown</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                <span data-i18n="uploadAction">上傳文檔並轉成 Markdown</span>
               </button>
             </div>
           </form>
@@ -478,13 +514,16 @@
             <label for="ocr-file-input" data-i18n="ocrLabel">圖片文字辨識 (PaddleOCR 繁中 & 表格引擎)</label>
             <div id="ocr-dropzone" class="dropzone" tabindex="0">
               <input type="file" id="ocr-file-input" name="file" accept=".png,.jpg,.jpeg,.webp,.bmp,.gif" style="display: none">
-              <div class="dropzone-icon">🖼️</div>
+              <div class="dropzone-icon">
+                <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2m10 0h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2m4-9h8m-8 4h10M7 16h6"/></svg>
+              </div>
               <div class="dropzone-text" id="ocr-file-name-display" data-i18n="ocrDropzonePrompt">拖曳圖片至此，點擊選擇檔案，或直接 Ctrl+V / Cmd+V 貼上截圖</div>
               <div class="file-types-hint" data-i18n="ocrDropzoneHint">支援 PNG, JPG, JPEG, WEBP, BMP，以及剪貼簿截圖直接貼上...</div>
             </div>
             <div class="actions" style="margin-top: 18px">
               <button class="primary-btn" id="ocr-btn" type="submit">
-                <span>⚡</span> <span data-i18n="ocrAction">辨識圖片並轉成 Markdown</span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2m10 0h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2m4-9h8m-8 4h10M7 16h6"/></svg>
+                <span data-i18n="ocrAction">辨識圖片並轉成 Markdown</span>
               </button>
             </div>
           </form>
@@ -502,8 +541,14 @@
             <span class="stats-badge" id="stats-badge">0 字</span>
           </div>
           <div class="actions">
-            <button class="secondary-btn" id="copy-btn" type="button" data-i18n="copyBtn">📋 複製內容</button>
-            <button class="secondary-btn" id="download-btn" type="button" data-i18n="downloadBtn">⬇️ 下載 .md</button>
+            <button class="secondary-btn" id="copy-btn" type="button">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              <span data-i18n="copyBtn">複製內容</span>
+            </button>
+            <button class="secondary-btn" id="download-btn" type="button">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              <span data-i18n="downloadBtn">下載 .md</span>
+            </button>
           </div>
         </div>
         <pre id="result"></pre>
@@ -576,8 +621,8 @@
             ocrDropzoneHint: '支援 PNG, JPG, JPEG, WEBP, BMP，以及剪貼簿截圖直接貼上...',
             ocrAction: '辨識圖片並轉成 Markdown',
             resultTitle: '轉換結果 (Markdown)',
-            copyBtn: '📋 複製內容',
-            downloadBtn: '⬇️ 下載 .md',
+            copyBtn: '複製內容',
+            downloadBtn: '下載 .md',
             footerPrefix: '給 AI Agent / LLM 使用的標準 API 說明請見 ',
             switchLanguage: 'English',
             queryRequired: '請輸入搜尋關鍵字。',
@@ -618,8 +663,8 @@
             ocrDropzoneHint: 'Supports PNG, JPG, JPEG, WEBP, BMP, and clipboard screenshot pasting...',
             ocrAction: 'OCR & Convert to Markdown',
             resultTitle: 'Conversion Result (Markdown)',
-            copyBtn: '📋 Copy Markdown',
-            downloadBtn: '⬇️ Download .md',
+            copyBtn: 'Copy Markdown',
+            downloadBtn: 'Download .md',
             footerPrefix: 'Instructions for AI Agents and LLMs: ',
             switchLanguage: '中文',
             queryRequired: 'Please enter a search query.',
