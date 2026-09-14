@@ -47,7 +47,13 @@ export class BinaryExtractorService extends AsyncService {
         this.emit('ready');
     }
 
-    async createSnapshotFromBlob(url: URL, blob: Blob, overrideContentType?: string, overrideFileName?: string) {
+    async createSnapshotFromBlob(
+        url: URL,
+        blob: Blob,
+        overrideContentType?: string,
+        overrideFileName?: string,
+        options?: { withOcr?: boolean }
+    ) {
         if (overrideContentType === 'application/octet-stream') {
             overrideContentType = undefined;
         }
@@ -150,12 +156,15 @@ export class BinaryExtractorService extends AsyncService {
             await mkdir(dirPath);
         }
 
+        const withOcr = Boolean(options?.withOcr || this.asyncLocalContext.get('withOcr') || this.asyncLocalContext.get('ocr'));
+
         const snapshotFromBinary = await this.localFileToSnapshot({
             filePath: binaryFilePath,
             contentType,
             fileName,
             outPath: dirPath,
             url,
+            withOcr,
         });
 
         Object.assign(snapshot, snapshotFromBinary);
@@ -227,8 +236,9 @@ export class BinaryExtractorService extends AsyncService {
         fileName: string;
         outPath: string;
         url: URL;
+        withOcr?: boolean;
     }) {
-        const { filePath, contentType: initialContentType, fileName, url, outPath } = options;
+        const { filePath, contentType: initialContentType, fileName, url, outPath, withOcr } = options;
         const contentType = this.argumentContentType(fileName, initialContentType);
         const pageNumber = url.hash ? parseInt(url.hash.slice(1), 10) : undefined;
         const urlCopy = new URL(url.href);
@@ -243,7 +253,46 @@ export class BinaryExtractorService extends AsyncService {
 
         if (this.anyDocService.supports(contentType, fileName)) {
             try {
-                const markdown = await this.anyDocService.convertFile(filePath);
+                let markdown = await this.anyDocService.convertFile(filePath);
+                const isPdf = contentType.startsWith('application/pdf');
+                const isSparseOrEmpty = !markdown || markdown.trim().length < 50;
+                let ocrApplied = false;
+
+                // Optical Character Recognition (OCR) opt-in or smart fallback for scanned PDFs
+                if ((withOcr || isSparseOrEmpty) && isPdf && this.ocrClientService.isAvailable()) {
+                    try {
+                        const pagesToRender = pageNumber ? [pageNumber, pageNumber + 1, pageNumber + 2] : [1, 2, 3];
+                        const extracted = await this.pdfExtractor.extractRendered(filePath, outPath, pagesToRender);
+                        const ocrResults: string[] = [];
+
+                        for (const page of extracted.pages) {
+                            if (page.pngPath) {
+                                try {
+                                    const pageBuf = await readFile(page.pngPath);
+                                    const pageOcr = await this.ocrClientService.predict(pageBuf, `${fileName}#${page.page}.png`);
+                                    if (pageOcr.markdown && pageOcr.markdown.trim()) {
+                                        page.text = pageOcr.text;
+                                        page.content = pageOcr.markdown;
+                                        ocrResults.push(pageOcr.markdown.trim());
+                                    }
+                                } catch (pageOcrErr) {
+                                    this.logger.warn(`OCR extraction failed for PDF page ${page.page}`, { pageOcrErr, fileName });
+                                }
+                            }
+                        }
+
+                        if (ocrResults.length > 0) {
+                            const ocrMarkdown = ocrResults.join('\n\n---\n\n');
+                            if (isSparseOrEmpty || withOcr) {
+                                markdown = ocrMarkdown;
+                            }
+                            ocrApplied = true;
+                        }
+                    } catch (pdfOcrErr) {
+                        this.logger.warn(`PDF OCR processing encountered an error, preserving AnyDoc output`, { pdfOcrErr, fileName });
+                    }
+                }
+
                 if (markdown && markdown.trim()) {
                     snapshot.title = fileName;
                     snapshot.text = markdown;
@@ -252,6 +301,9 @@ export class BinaryExtractorService extends AsyncService {
                         title: fileName,
                     };
                     snapshot.traits!.push('anydoc');
+                    if (ocrApplied) {
+                        snapshot.traits!.push('ocr');
+                    }
 
                     if (contentType.startsWith('application/pdf')) {
                         try {
@@ -295,8 +347,37 @@ export class BinaryExtractorService extends AsyncService {
         if (contentType.startsWith('application/pdf')) {
             const pagesToRender = pageNumber ? [pageNumber, pageNumber + 1, pageNumber + 2] : [1, 2, 3];
             const extracted = await this.pdfExtractor.extractRendered(filePath, outPath, pagesToRender);
+            const isSparseOrEmpty = !extracted.content || extracted.content.trim().length < 50;
 
-            snapshot.title = extracted.meta.title || fileName;
+            if ((withOcr || isSparseOrEmpty) && this.ocrClientService.isAvailable()) {
+                try {
+                    const ocrResults: string[] = [];
+                    for (const page of extracted.pages) {
+                        if (page.pngPath) {
+                            try {
+                                const pageBuf = await readFile(page.pngPath);
+                                const pageOcr = await this.ocrClientService.predict(pageBuf, `${fileName}#${page.page}.png`);
+                                if (pageOcr.markdown && pageOcr.markdown.trim()) {
+                                    page.text = pageOcr.text;
+                                    page.content = pageOcr.markdown;
+                                    ocrResults.push(pageOcr.markdown.trim());
+                                }
+                            } catch (pageOcrErr) {
+                                this.logger.warn(`Legacy PDF OCR failed for page ${page.page}`, { pageOcrErr });
+                            }
+                        }
+                    }
+                    if (ocrResults.length > 0) {
+                        extracted.content = ocrResults.join('\n\n---\n\n');
+                        extracted.text = ocrResults.join('\n\n');
+                        snapshot.traits!.push('ocr');
+                    }
+                } catch (pdfOcrErr) {
+                    this.logger.warn(`Legacy PDF OCR error`, { pdfOcrErr });
+                }
+            }
+
+            snapshot.title = extracted.meta?.title || fileName;
 
             snapshot.text = extracted.text;
             snapshot.parsed = {

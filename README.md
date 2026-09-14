@@ -47,6 +47,8 @@ Currently deployed at: [**create360.ai**](https://create360.ai) (or easily self-
 10. **PaddleOCR 繁簡中英圖片辨識與高可用容錯叢集 (PaddleOCR PP-OCRv4 & Failover Cluster)**
   - 支援 `POST /api/ocr` 與首頁第 4 個專屬頁籤 `[ 圖片辨識 (OCR) ]`，支援直接上傳圖片或貼上截圖（Ctrl+V / Cmd+V）。
   - **PP-OCRv4 旗艦雙向引擎**：預設採用中英文雙向增強模型，精準辨識繁體中文、簡體中文、大小寫英文字母、數字與表格結構，並支援動態語系快取。
+  - **二維幾何表格重建 (GFM Markdown Table Reconstruction)**：內建 2D 空間邊界分析與縱向通道（Gutters）偵測算法，自動將圖片與掃描文檔中的多欄多列數據精準轉換為標準 GitHub-Flavored Markdown 表格，告別單純逐行堆疊。
+  - **AnyDoc + OCR 協同整合與 Opt-in 機制**：支援透過 Header `X-With-Ocr: true`、`X-Ocr: true` 或 Query `ocr=true` 顯式開啟光學字符識別；針對無文字圖層的純圖片型掃描 PDF（Scanned PDF，抽取字元 < 50），系統會自動平滑降級調用 OCR 引擎逐頁抽取並重構 Markdown 表格。
   - **高可用備援池（Failover Pool）**：支援以逗號分隔多個節點（`OCR_SERVICE_URLS`，如 `https://ocr.aiurl.tw,https://ocr2.aiurl.tw`），主節點異常自動平滑故障轉移。
   - **防驚群效應（Anti-Thundering Herd）**：內建 Single-Flight 請求合併、隨機抖動背景輪詢（Jittered Probing）與熔斷冷卻期（Circuit Breaker Cooldown）。
   - **動態特性探測**：節點在線時自動點亮前端頁籤，全部離線時乾淨隱藏。
@@ -639,6 +641,8 @@ Currently deployed at: [**create360.ai**](https://create360.ai) (or easily self-
    - Long-running crawls support `asyncJob`, progress polling, cancellation, and HTTPS webhooks.
 10. **PaddleOCR Chinese & English Image/Table Extraction (PP-OCRv4 Failover Cluster)**
    - High-accuracy OCR engine powered by official flagship `PP-OCRv4` (`ch`) with support for Traditional Chinese (`chinese_cht`), English, numbers, symbols, and table structures via `POST /api/ocr` and Web UI Tab 4.
+   - **2D Spatial Markdown Table Reconstruction**: Built-in 2D bounding-box spatial clustering and vertical gutter detection automatically format tabular cells into clean GitHub-Flavored Markdown (GFM) tables rather than naive vertical line dumps.
+   - **AnyDoc + OCR Opt-in Integration & Scanned PDF Fallback**: Explicitly opt into OCR via `X-With-Ocr: true`, `X-Ocr: true`, or query parameter `ocr=true`. For scanned PDFs lacking text layers (extracting < 50 characters), the pipeline automatically renders pages and performs multi-page OCR table extraction with full metadata enrichment.
    - **Multi-Node Failover Pool**: Define fallback endpoints with `OCR_SERVICE_URLS` (e.g. `https://ocr.aiurl.tw,https://ocr2.aiurl.tw`) with seamless in-flight retry.
    - **Anti-Thundering-Herd Architecture**: Single-Flight promise coalescing, jittered background health probes, and 30-second circuit breaker cooldown.
    - **Dynamic Feature Flagging**: The Web UI automatically shows Tab 4 when healthy OCR nodes exist, and hides it cleanly when offline.

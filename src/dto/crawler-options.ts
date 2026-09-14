@@ -253,6 +253,17 @@ class Viewport extends Coercible {
                     in: 'header',
                     schema: { type: 'string' }
                 },
+                'X-With-Ocr': {
+                    description: `Opt-in OCR extraction for scanned documents, PDF pages, or embedded images using PaddleOCR PP-OCRv4 microservice.\n\n` +
+                        `Formats complex tables into GFM Markdown tables.`,
+                    in: 'header',
+                    schema: { type: 'string' }
+                },
+                'X-Ocr': {
+                    description: `Alias for X-With-Ocr.`,
+                    in: 'header',
+                    schema: { type: 'string' }
+                },
                 'X-With-Images-Summary': {
                     description: `Enable dedicated summary section for images on the page.`,
                     in: 'header',
@@ -501,6 +512,16 @@ export class CrawlerOptions extends Coercible {
         type: PseudoBoolean,
     })
     withGeneratedAlt?: boolean;
+
+    @Prop({
+        type: PseudoBoolean,
+    })
+    withOcr?: boolean;
+
+    @Prop({
+        type: PseudoBoolean,
+    })
+    ocr?: boolean;
 
     @Prop({ default: 'all', type: IMAGE_RETENTION_MODE_VALUES })
     retainImages?: typeof IMAGE_RETENTION_MODES[number];
@@ -786,6 +807,14 @@ export class CrawlerOptions extends Coercible {
         const withGeneratedAlt = ctx?.get('x-with-generated-alt');
         if (withGeneratedAlt) {
             instance.withGeneratedAlt = Boolean(withGeneratedAlt);
+        }
+
+        const withOcr = ctx?.get('x-with-ocr') ?? ctx?.get('x-ocr');
+        if (withOcr !== undefined) {
+            instance.withOcr = Boolean(withOcr);
+        }
+        if (instance.ocr && instance.withOcr === undefined) {
+            instance.withOcr = Boolean(instance.ocr);
         }
         const withLinksSummary = ctx?.get('x-with-links-summary');
         if (withLinksSummary) {

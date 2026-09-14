@@ -74,6 +74,184 @@ async def health_check():
     }
 
 
+def reconstruct_markdown(extracted_lines: List[Dict[str, Any]]) -> str:
+    """
+    Intelligently converts extracted bounding box lines into clean Markdown.
+    Detects table structures (rows and columns) and formats them as GitHub Flavored Markdown (GFM) tables.
+    Non-tabular text is formatted into coherent paragraphs.
+    """
+    if not extracted_lines:
+        return ""
+
+    items = []
+    for line in extracted_lines:
+        box = line.get("box")
+        text = (line.get("text") or "").strip()
+        if not text:
+            continue
+        if box and len(box) >= 4:
+            xs = [p[0] for p in box]
+            ys = [p[1] for p in box]
+            items.append({
+                "text": text,
+                "x_min": min(xs),
+                "x_max": max(xs),
+                "y_min": min(ys),
+                "y_max": max(ys),
+                "x_center": (min(xs) + max(xs)) / 2.0,
+                "y_center": (min(ys) + max(ys)) / 2.0,
+                "height": max(ys) - min(ys),
+                "width": max(xs) - min(xs),
+            })
+        else:
+            items.append({
+                "text": text,
+                "x_min": 0,
+                "x_max": 100,
+                "y_min": 0,
+                "y_max": 20,
+                "x_center": 50,
+                "y_center": 10,
+                "height": 20,
+                "width": 100,
+            })
+
+    if not items:
+        return ""
+
+    # 1. Cluster items into horizontal rows based on vertical overlap
+    items.sort(key=lambda it: it["y_center"])
+    rows: List[List[Dict[str, Any]]] = []
+    for it in items:
+        placed = False
+        for r in rows:
+            r_ymin = min(x["y_min"] for x in r)
+            r_ymax = max(x["y_max"] for x in r)
+            r_h = max(1.0, r_ymax - r_ymin)
+            overlap = max(0.0, min(r_ymax, it["y_max"]) - max(r_ymin, it["y_min"]))
+            if overlap > 0.25 * min(r_h, max(1.0, it["height"])) or abs(it["y_center"] - (r_ymin + r_ymax) / 2.0) < 0.6 * max(r_h, it["height"]):
+                r.append(it)
+                placed = True
+                break
+        if not placed:
+            rows.append([it])
+
+    rows.sort(key=lambda r: min(it["y_min"] for it in r))
+
+    def is_multi_column_row(r: List[Dict[str, Any]]) -> bool:
+        if len(r) < 2:
+            return False
+        r_sorted = sorted(r, key=lambda x: x["x_min"])
+        for i in range(len(r_sorted) - 1):
+            gap = r_sorted[i+1]["x_min"] - r_sorted[i]["x_max"]
+            if gap > 12:
+                return True
+        return False
+
+    # 2. Partition rows into contiguous blocks: "table" vs "text"
+    blocks: List[tuple[str, List[List[Dict[str, Any]]]]] = []
+    curr_block: List[List[Dict[str, Any]]] = []
+    curr_type = None
+
+    for r in rows:
+        is_table = is_multi_column_row(r)
+        if is_table:
+            if curr_type == "table":
+                curr_block.append(r)
+            else:
+                if curr_block and curr_type:
+                    blocks.append((curr_type, curr_block))
+                curr_type = "table"
+                curr_block = [r]
+        else:
+            if curr_type == "text":
+                curr_block.append(r)
+            else:
+                if curr_block and curr_type:
+                    blocks.append((curr_type, curr_block))
+                curr_type = "text"
+                curr_block = [r]
+
+    if curr_block and curr_type:
+        blocks.append((curr_type, curr_block))
+
+    # 3. Format each block into Markdown
+    md_outputs: List[str] = []
+    for b_type, b_rows in blocks:
+        if b_type == "table" and len(b_rows) >= 2:
+            block_items = [it for r in b_rows for it in r]
+            min_x = min(it["x_min"] for it in block_items)
+            max_x = max(it["x_max"] for it in block_items)
+
+            occupancy_len = int(max_x) + 2
+            occupancy = [0] * occupancy_len
+            for it in block_items:
+                start_x = max(0, int(it["x_min"]))
+                end_x = min(occupancy_len - 1, int(it["x_max"]))
+                for x in range(start_x, end_x + 1):
+                    occupancy[x] += 1
+
+            gutters = []
+            in_gap = False
+            gap_start = 0
+            for x in range(int(min_x), int(max_x) + 1):
+                if occupancy[x] == 0:
+                    if not in_gap:
+                        in_gap = True
+                        gap_start = x
+                else:
+                    if in_gap:
+                        in_gap = False
+                        if x - gap_start >= 6:
+                            gutters.append((gap_start + x) / 2.0)
+
+            if gutters:
+                cutoffs = [-1e9] + gutters + [1e9]
+                num_cols = len(cutoffs) - 1
+
+                grid = []
+                for r in b_rows:
+                    cells = [[] for _ in range(num_cols)]
+                    for it in r:
+                        col_idx = 0
+                        for i in range(num_cols):
+                            if cutoffs[i] <= it["x_center"] < cutoffs[i+1]:
+                                col_idx = i
+                                break
+                        cells[col_idx].append(it)
+
+                    row_texts = []
+                    for c in cells:
+                        c.sort(key=lambda x: (x["y_min"], x["x_min"]))
+                        if len(c) > 1:
+                            joined_txt = " / ".join([x["text"].replace("|", "\\|") for x in c])
+                        elif len(c) == 1:
+                            joined_txt = c[0]["text"].replace("|", "\\|")
+                        else:
+                            joined_txt = ""
+                        row_texts.append(joined_txt)
+                    grid.append(row_texts)
+
+                header = grid[0]
+                sep = [":---" for _ in header]
+                table_lines = [
+                    "| " + " | ".join(header) + " |",
+                    "| " + " | ".join(sep) + " |"
+                ]
+                for gr in grid[1:]:
+                    table_lines.append("| " + " | ".join(gr) + " |")
+                md_outputs.append("\n".join(table_lines))
+                continue
+
+        # Non-table rows
+        for r in b_rows:
+            r_sorted = sorted(r, key=lambda x: x["x_min"])
+            line_text = " ".join([x["text"] for x in r_sorted])
+            md_outputs.append(line_text)
+
+    return "\n\n".join(md_outputs)
+
+
 @app.post("/ocr")
 async def perform_ocr(
     file: UploadFile = File(...),
@@ -112,14 +290,9 @@ async def perform_ocr(
                         "box": [[int(coord[0]), int(coord[1])] for coord in box] if box else None
                     })
 
+
         raw_text = "\n".join([line["text"] for line in extracted_lines])
-
-        # Convert to readable Markdown paragraphs
-        markdown_blocks = []
-        for line in extracted_lines:
-            markdown_blocks.append(line["text"])
-
-        markdown = "\n\n".join(markdown_blocks) if markdown_blocks else ""
+        markdown = reconstruct_markdown(extracted_lines)
 
         duration_ms = int((time.time() - t0) * 1000)
 

@@ -87,6 +87,8 @@ export interface ExtraScrappingOptions extends ScrappingOptions {
     prefetch?: boolean;
     sessionId?: string;
     virtualScroll?: CrawlerOptions['virtualScroll'];
+    withOcr?: boolean;
+    ocr?: boolean;
 }
 
 const indexProto = {
@@ -2837,7 +2839,9 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
     }
 
     async createSnapshotFromBlob(scrappingOptions: ExtraScrappingOptions, url: URL, blob: Blob, contentType?: string, fileName?: string) {
-        const rawSnapshot = await this.binaryExtractorService.createSnapshotFromBlob(url, blob, contentType, fileName);
+        const rawSnapshot = await this.binaryExtractorService.createSnapshotFromBlob(url, blob, contentType, fileName, {
+            withOcr: Boolean(scrappingOptions?.withOcr || scrappingOptions?.ocr)
+        });
 
         process.nextTick(
             this.threadLocal.bridged(

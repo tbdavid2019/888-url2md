@@ -2,6 +2,23 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.09.14.7] - 2026-09-14 - OCR 二維空間表格重構與 AnyDoc 掃描文件 Opt-in 協同整合 (2D Spatial Table Reconstruction & AnyDoc OCR Opt-in Integration)
+
+### 🚀 Features & Enhancements
+- **PaddleOCR 微服務智慧二維表格重構 (`reconstruct_markdown`)**：
+  - 在 `deploy/ocr/main.py` 實作幾何空間邊界聚類（Bounding-Box Clustering）與一維 X 軸投影通道（Gutters）偵測算法。
+  - 自動判斷多欄多列的表格區塊，將原本逐行平鋪的離散文字轉換為結構化的 GitHub Flavored Markdown (GFM) 表格（`| ... | ... |\n| :--- | :--- |`）。
+  - 對斜線表頭與多行儲存格（如 `貿易對象 / 年分`）自動進行單一儲存格融合與管道符號（`\|`）安全轉義。
+  - 對頁面中的標題、段落與附註保持乾淨的 Markdown 段落格式，不產生誤判。
+- **AnyDoc + OCR 協同整合與 Opt-in 彈性機制**：
+  - **顯式 Opt-in 參數**：在 `CrawlerOptions` 與 OpenAPI 文件中註冊 `X-With-Ocr: true`、`X-Ocr: true` 與 query 參數 `withOcr=true` / `ocr=true`。
+  - **無文字圖層掃描 PDF 自動平滑降級**：當 AnyDoc 解析純圖片掃描 PDF 產出空字串或少於 50 字元時，若 OCR 叢集可用，系統自動調用 `pdfExtractor.extractRendered` 逐頁渲染並調用 `ocrClientService` 辨識，自動補齊多頁 Markdown 與表格，並於 `traits` 標註 `ocr`。
+  - **零額外負載保證**：一般包含文字圖層的 PDF 預設仍走 AnyDoc 毫秒級極速 Rust 解析，完全不增加 OCR 算力負擔。
+
+### 📚 Documentation & Compatibility
+- **`README.md`**：同步更新 Traditional Chinese 與 English 區塊之 Feature 10 與 AnyDoc 整合說明。
+- **`package.json`**：版本號遞增至 `2026.09.14.7`。
+
 ## [2026.09.14.6] - 2026-09-14 - 全量同步 AI Agent / LLM 規格文件包含 PaddleOCR 端點 (Comprehensive OCR Documentation Sync across llms.txt, SKILL.md & README)
 
 ### 📚 Documentation & Developer Experience
