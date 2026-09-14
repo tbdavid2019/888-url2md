@@ -2,6 +2,17 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.09.14.9] - 2026-09-14 - 全面同步純前端 CORS 支援、2D 表格重構與 BlockNote 編輯器整合規格至 SKILL.md 與 llms.txt (Pure Frontend CORS, 2D Table Reconstruction & BlockNote Integration Documentation Sync)
+
+### 📚 Documentation & Developer Experience
+- **純前端 SPA 與 BlockNote 編輯器整合指引**：
+  - 在 `src/api/crawler.ts`、`public/SKILL.md`、`public/llms.txt` 與 `public/llms-full.txt` 完整增補純前端（Pure Frontend SPA，如 React, Vue, Vite, Next.js client components）直接透過瀏覽器 `fetch` 調用 `POST /api/ocr` 之說明。
+  - 明確記載 CORS 支援狀態（全域已啟用 `Access-Control-Allow-Origin: *`、`Access-Control-Allow-Credentials: true` 及 OPTIONS Preflight 回應），前端無需自建後端代理轉發。
+  - 增補 BlockNote 富文本編輯器即插即用 TypeScript 範例：利用 `editor.tryParseMarkdownToBlocks(data.markdown)` 將後端 2D 空間邊界聚類重構後的 GFM 表格無縫插入編輯器。
+- **2D 幾何邊界表格重構說明與 AnyDoc `X-With-Ocr` 標頭同步**：
+  - 在 `SKILL.md` 與 `llms.txt` 標頭清單正式納入 `X-With-Ocr: true` 參數，說明 AnyDoc 對純掃描 PDF（< 50 字元）自動調用 OCR 降級的機制。
+- **`package.json`**：版本號遞增至 `2026.09.14.9`。
+
 ## [2026.09.14.8] - 2026-09-14 - PaddleOCR 微服務新主機部署指南與架構文件完善 (PaddleOCR New Host Deployment Guide & Architecture Documentation)
 
 ### 📚 Documentation & Developer Experience

@@ -321,7 +321,7 @@ If you are an LLM or AI Agent accessing this service for the first time:
   *Supported Formats*: PDF, Word (.docx/.doc), Excel (.xlsx/.xls), PowerPoint (.pptx/.ppt), EPUB, RTF, OpenDocument (.odt/.ods/.odp), CSV.
   *Latency*: Sub-5ms conversion via Firecrawl AnyDoc engine.
 
-### 5. Image OCR (PaddleOCR PP-OCRv4 Engine)
+### 5. Image OCR & Table Reconstruction (PaddleOCR PP-OCRv4 Engine)
 - **POST Request**: \`${baseDomain}/api/ocr\` or \`${baseDomain}/v1/ocr\`
   *Multipart Form-Data*: Attach image in form-data parameter \`file\` or \`image\`:
   \`curl -X POST '${baseDomain}/api/ocr' -H 'Accept: text/plain' -F "file=@screenshot.png"\`
@@ -339,32 +339,48 @@ If you are an LLM or AI Agent accessing this service for the first time:
     - \`GET ${baseDomain}/api/capabilities\`: Probe dynamic OCR cluster status (\`data.ocr.available\`).
     - \`GET ${baseDomain}/api/ocr/status\`: Inspect active node and cluster health.
 
-### 6. Response Formats
-- **Markdown / Plain Text (Default / \`Accept: text/plain\`)**:
-  Returns clean Markdown content. Batch requests separate pages with \`---\`.
-- **JSON (\`Accept: application/json\`)**:
-  Returns structured JSON object with data array:
-  \`\`\`json
-  {
-    "code": 200,
-    "status": 20000,
-    "data": [
-      { "url": "https://podcast.david888.com/", "title": "...", "content": "..." },
-      { "url": "https://podcast.david888.com/post/2026-08-08", "title": "...", "content": "..." },
-      { "url": "https://podcast.david888.com/post/2026-08-09", "title": "...", "content": "..." },
-      { "url": "https://podcast.david888.com/post/2026-08-06", "title": "...", "content": "..." }
-    ]
-  }
-  \`\`\`
+#### 5.1 2D Spatial Table Reconstruction & GFM Markdown Output
+The OCR engine automatically performs 2D bounding-box spatial clustering and horizontal gutter detection on tabular images. Instead of dumping disjoint text lines, it outputs ready-to-render GitHub-Flavored Markdown (GFM) tables:
+\`\`\`markdown
+| 貿易對象 / 年分 | 甲 | 乙 | 丙 | 丁 |
+| :--- | :--- | :--- | :--- | :--- |
+| 1980年 | 0 | 173,581 | 76,995 | 69,448 |
+\`\`\`
 
-### 6. Advanced Crawl and Extraction
+#### 5.2 Pure Frontend (SPA) Direct Access & BlockNote / WebGPU Hybrid Architecture
+This service fully supports browser CORS (\`Access-Control-Allow-Origin: *\`, credentials, preflight OPTIONS). Pure frontend applications (React, Vue, Vite, Next.js client components) can call this API directly from the browser without a backend proxy:
+\`\`\`typescript
+// Pure frontend: Upload image and insert reconstructed table into BlockNote editor
+async function insertOcrTableIntoBlockNote(editor: BlockNoteEditor, imageBlob: Blob) {
+  const formData = new FormData();
+  formData.append('file', imageBlob, 'table.png');
+
+  const res = await fetch(\`${baseDomain}/api/ocr\`, {
+    method: 'POST',
+    headers: { 'Accept': 'application/json' },
+    body: formData
+  }).then(r => r.json());
+
+  const markdownTable = res?.data?.markdown || res.markdown;
+  const blocks = await editor.tryParseMarkdownToBlocks(markdownTable);
+  editor.insertBlocks(blocks, editor.getTextCursorPosition().block, 'after');
+}
+\`\`\`
+
+### 6. Response Formats
+- **Markdown / Plain Text (Default / \`Accept: text/plain\` or \`Accept: text/markdown\`)**:
+  Returns clean Markdown content directly. Batch requests separate pages with \`---\`.
+- **JSON (\`Accept: application/json\`)**:
+  Returns structured JSON object with \`data.text\`, \`data.markdown\` (reconstructed GFM table), and \`data.lines\` (bounding boxes \`[[x1,y1],[x2,y2],[x3,y3],[x4,y4]]\` and confidence scores).
+
+### 7. Advanced Crawl and Extraction
 - Add \`extraction\` with \`type\`, \`baseSelector\`, and \`fields\` to return deterministic \`extracted\` JSON records.
 - Add \`adaptive: true\` to CSS structured extraction to persist safe element signatures and relocate selectors after compatible markup changes. Matching is conservative and disabled by default.
 - Add \`contentFilter: "pruning"\` or \`"bm25"\` and optional \`contentQuery\` to return compact \`fitMarkdown\` while preserving \`rawMarkdown\`.
 - Add \`deepCrawl: { "maxDepth": 2, "maxPages": 20 }\` for bounded BFS exploration. Optional \`concurrency\`, \`concurrencyPerDomain\`, and \`autoThrottle\` control crawl pressure.
 - Add \`sessionId\` to reuse session cookies, or \`virtualScroll: { "maxScrolls": 20 }\` for bounded infinite-scroll content.
 
-### 7. Async Jobs
+### 8. Async Jobs
 - Add \`asyncJob: true\` to run a deep crawl in the background.
 - Poll \`GET ${baseDomain}/jobs/{jobId}\`, cancel with \`POST ${baseDomain}/jobs/{jobId}/cancel\`, resume with \`POST ${baseDomain}/jobs/{jobId}/resume\`, or list metrics with \`GET ${baseDomain}/jobs\`.
 - Optional \`webhook: { "url": "https://..." }\` receives the final job status. Webhook URLs must use HTTPS.
@@ -375,7 +391,8 @@ If you are an LLM or AI Agent accessing this service for the first time:
 - Poll \`GET ${baseDomain}/jobs/{data.id}\` every 2–5s with \`X-Job-Token: {data.accessToken}\`; read state from \`data.status\` and results from \`data.result\`.
 - Stop at \`completed\`, \`failed\`, or \`cancelled\`. Cancel and resume both require \`POST\`; after cancel, poll until \`data.status=cancelled\` before resuming. Never put the token in the URL or submit duplicate jobs.
 
-### 8. Optional Headers
+### 9. Optional Headers
+- \`X-With-Ocr: true\` (or \`X-Ocr: true\"): Explicitly opt-in to OCR extraction for documents and scanned PDFs. Pure image scanned PDFs (with < 50 characters) automatically fall back to OCR.
 - \`X-Respond-With\`: \`markdown\` | \`html\` | \`text\` | \`frontmatter\`
 - \`X-Preset\`: \`reader\` | \`index\` | \`research\` | \`agent\` | \`spider\`
 - \`X-Target-Selector\`: Extract specific CSS selector.
@@ -516,17 +533,22 @@ curl -s -X POST "${baseDomain}/v1/batch" \\
   -d '{"urls": ["https://example.com/page1", "https://example.com/page2"]}'
 \`\`\`
 
-### 5. Image OCR (PaddleOCR PP-OCRv4 Engine)
+### 5. Image OCR & 2D Table Reconstruction (PaddleOCR PP-OCRv4 Engine)
 \`\`\`bash
-# Extract text & tables from image to Markdown
+# Extract text & tables from image to GFM Markdown table
 curl -s -X POST "${baseDomain}/api/ocr" -H "Accept: text/plain" -F "file=@screenshot.png"
 
-# Get structured JSON with bounding boxes and line coordinates
+# Get structured JSON with bounding boxes, line coordinates, and reconstructed markdown
 curl -s -X POST "${baseDomain}/api/ocr" -H "Accept: application/json" -F "file=@screenshot.png"
+
+# Pure Frontend / SPA Direct Access (CORS Enabled):
+# Pure browser applications (React, Vue, Vite, Next.js, BlockNote editors) can fetch('${baseDomain}/api/ocr')
+# directly without a backend proxy, receiving ready-to-render Markdown tables or cell coordinate JSON.
 \`\`\`
 
 ## Optional Customization Headers
 
+- \`X-With-Ocr\`: Set to \`true\` (or \`X-Ocr: true\`) to opt into OCR text/table extraction for documents. Scanned PDFs (< 50 chars) automatically fall back to OCR.
 - \`X-Respond-With\`: \`markdown\` (default) | \`html\` | \`text\` | \`frontmatter\`
 - \`X-Preset\`: \`reader\` (default) | \`index\` | \`research\` | \`agent\` | \`spider\`
 - \`X-Target-Selector\`: CSS selector for targeted extraction (e.g. \`article\`, \`main\`, \`#content\`)

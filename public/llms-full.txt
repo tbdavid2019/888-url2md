@@ -91,6 +91,24 @@
 - **Optional Query Parameters**:
   - `lang`: `ch` (default, PP-OCRv4 bilingual Chinese & English) or `chinese_cht` (Traditional Chinese).
   - `use_angle_cls`: `true` (default) / `false` (orientation angle auto-detection).
+- **2D Spatial Table Reconstruction**:
+  The OCR engine clusters 2D bounding boxes and detects horizontal and vertical gutters in tabular data, outputting clean, ready-to-render GitHub-Flavored Markdown (GFM) tables directly (`| Header 1 | Header 2 |...`).
+- **Pure Frontend (SPA) Direct Access (CORS)**:
+  Full browser CORS is enabled (`Access-Control-Allow-Origin: *`, credentials, preflight OPTIONS). Client-side SPAs (React, Vue, Vite) can invoke `/api/ocr` directly from the browser:
+  ```typescript
+  // Upload table image and insert into BlockNote editor
+  async function insertOcrTable(editor: BlockNoteEditor, imageBlob: Blob) {
+    const fd = new FormData();
+    fd.append('file', imageBlob, 'table.png');
+    const res = await fetch('https://<HOST>/api/ocr', {
+      method: 'POST',
+      headers: { 'Accept': 'application/json' },
+      body: fd
+    }).then(r => r.json());
+    const blocks = await editor.tryParseMarkdownToBlocks(res?.data?.markdown || res.markdown);
+    editor.insertBlocks(blocks, editor.getTextCursorPosition().block, 'after');
+  }
+  ```
 - **Service Capabilities & Health Check**:
   - `GET https://<HOST>/api/capabilities`: Probe dynamic OCR cluster status (`data.ocr.available`, latency, nodes).
   - `GET https://<HOST>/api/ocr/status`: Inspect active node and cluster health.
@@ -131,6 +149,7 @@ Returns clean GitHub-Flavored Markdown. For batch requests, pages are separated 
 | `X-Timeout` | Integer `1`–`180` | Browser rendering timeout in seconds (default: dynamic, recommended: `15`–`30`+) |
 | `X-With-Generated-Alt` | `true` \| `false` | Enable AI-generated image captions |
 | `X-With-Images-Summary` | `true` \| `false` | Include image metadata summaries |
+| `X-With-Ocr` | `true` \| `false` | Opt into OCR text & table extraction for documents (auto for scanned PDFs) |
 | `X-Content-Filter` | `pruning` \| `bm25` | Filter noisy DOM blocks or score relevance via BM25 |
 | `X-Content-Query` | String query | Search query string used with BM25 filter |
 | `X-Session-Id` | String UUID/ID | Persist and reuse browser session cookies across requests |

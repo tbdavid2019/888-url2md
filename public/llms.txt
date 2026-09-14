@@ -59,13 +59,17 @@ curl -s -X POST "https://<HOST>/v1/batch" \
   -d '{"urls": ["https://example.com/page1", "https://example.com/page2"]}'
 ```
 
-### 5. Image OCR (PaddleOCR PP-OCRv4 Engine)
+### 5. Image OCR & 2D Table Reconstruction (PaddleOCR PP-OCRv4 Engine)
 ```bash
-# Extract text & tables from image to Markdown
+# Extract text & tables from image to GFM Markdown table
 curl -s -X POST "https://<HOST>/api/ocr" -H "Accept: text/plain" -F "file=@screenshot.png"
 
-# Get structured JSON with bounding boxes and line coordinates
+# Get structured JSON with bounding boxes, line coordinates, and reconstructed markdown
 curl -s -X POST "https://<HOST>/api/ocr" -H "Accept: application/json" -F "file=@screenshot.png"
+
+# Pure Frontend / SPA Direct Access (CORS Enabled):
+# Pure browser applications (React, Vue, Vite, Next.js, BlockNote editors) can fetch('https://<HOST>/api/ocr')
+# directly without a backend proxy, receiving ready-to-render Markdown tables or cell coordinate JSON.
 ```
 
 ### 5. Adaptive Structured Extraction and Deep Crawl
@@ -124,6 +128,7 @@ Pitfalls: polling is `GET`, but cancel and resume are `POST`; cancel acknowledge
 - `X-Timeout`: Specify rendering timeout in seconds (e.g. `15` to `30`, max `180`)
 - `X-With-Generated-Alt`: Set to `true` to enable AI image captioning
 - `X-With-Images-Summary`: Set to `true` to extract image summaries
+- `X-With-Ocr`: Set to `true` to opt into OCR text/table extraction for documents. Scanned PDFs (< 50 chars) automatically fall back to OCR.
 - `X-Adaptive: true`: Enable conservative adaptive selectors for CSS structured extraction
 - `X-Adaptive-Id`: Adaptive profile identifier
 - `X-Adaptive-Threshold`: Adaptive confidence threshold from `0.5` to `0.95`

@@ -58,7 +58,7 @@ If you are an LLM or AI Agent accessing this service for the first time:
   *Supported Formats*: PDF, Word (.docx/.doc), Excel (.xlsx/.xls), PowerPoint (.pptx/.ppt), EPUB, RTF, OpenDocument (.odt/.ods/.odp), CSV.
   *Latency*: Sub-5ms conversion via Firecrawl AnyDoc engine.
 
-### 5. Image OCR (PaddleOCR PP-OCRv4 Engine)
+### 5. Image OCR & Table Reconstruction (PaddleOCR PP-OCRv4 Engine)
 - **POST Request**: `/api/ocr` or `/v1/ocr`
   *Multipart Form-Data*: Attach image in form-data parameter `file` or `image`:
   `curl -X POST 'https://<HOST>/api/ocr' -H 'Accept: text/plain' -F "file=@screenshot.png"`
@@ -76,9 +76,37 @@ If you are an LLM or AI Agent accessing this service for the first time:
     - `GET https://<HOST>/api/capabilities`: Probe dynamic OCR cluster readiness and node health (`data.ocr.available`).
     - `GET https://<HOST>/api/ocr/status`: Inspect active node and cluster health.
 
+#### 5.1 2D Spatial Table Reconstruction & GFM Markdown Output
+The OCR engine automatically performs 2D bounding-box spatial clustering and horizontal gutter detection on tabular images. Instead of dumping disjoint text lines, it outputs ready-to-render GitHub-Flavored Markdown (GFM) tables:
+```markdown
+| 貿易對象 / 年分 | 甲 | 乙 | 丙 | 丁 |
+| :--- | :--- | :--- | :--- | :--- |
+| 1980年 | 0 | 173,581 | 76,995 | 69,448 |
+```
+
+#### 5.2 Pure Frontend (SPA) Direct Access & BlockNote Integration
+This service fully supports browser CORS (`Access-Control-Allow-Origin: *`, credentials, preflight OPTIONS). Pure frontend applications (React, Vue, Vite, Next.js client components) can call this API directly from the browser without a backend proxy:
+```typescript
+// Pure frontend: Upload image and insert reconstructed table into BlockNote editor
+async function insertOcrTableIntoBlockNote(editor: BlockNoteEditor, imageBlob: Blob) {
+  const formData = new FormData();
+  formData.append('file', imageBlob, 'table.png');
+
+  const res = await fetch('https://<HOST>/api/ocr', {
+    method: 'POST',
+    headers: { 'Accept': 'application/json' },
+    body: formData
+  }).then(r => r.json());
+
+  const markdownTable = res?.data?.markdown || res.markdown;
+  const blocks = await editor.tryParseMarkdownToBlocks(markdownTable);
+  editor.insertBlocks(blocks, editor.getTextCursorPosition().block, 'after');
+}
+```
+
 ### 6. Response Formats
-- **Markdown / Plain Text (Default / `Accept: text/plain`)**:
-  Returns clean Markdown content. Batch requests separate pages with `---`.
+- **Markdown / Plain Text (Default / `Accept: text/plain` or `Accept: text/markdown`)**:
+  Returns clean Markdown content directly. Batch requests separate pages with `---`.
 - **JSON (`Accept: application/json`)**:
   Returns structured JSON object with data array:
   ```json
@@ -92,7 +120,8 @@ If you are an LLM or AI Agent accessing this service for the first time:
   }
   ```
 
-### 6. Optional Headers
+### 7. Optional Headers
+- `X-With-Ocr: true` (or `X-Ocr: true`): Explicitly opt-in to OCR extraction for documents and scanned PDFs. Pure image scanned PDFs (with < 50 characters) automatically fall back to OCR.
 - `X-Respond-With`: `markdown` | `html` | `text` | `frontmatter`
 - `X-Preset`: `reader` | `index` | `research` | `agent` | `spider`
 - `X-Target-Selector`: Extract specific CSS selector.
