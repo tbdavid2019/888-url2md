@@ -109,6 +109,39 @@ export class RPCRegistry extends KoaRPCRegistry {
         this.emit('ready');
     }
 
+    override __CORSAllowAllMiddleware(ctx: Context, next: Next) {
+        const requestOrigin = ctx.request.header.origin;
+        if (!requestOrigin) {
+            return next();
+        }
+        ctx.response.set('Access-Control-Allow-Origin', requestOrigin);
+        ctx.response.set('Access-Control-Max-Age', '25200');
+
+        // Only grant Access-Control-Allow-Credentials to trusted first-party or local origins.
+        // Arbitrary origins (e.g. evil.example) do not receive allow-credentials.
+        const isTrustedOrigin = Boolean(
+            requestOrigin.match(/^(https?:\/\/)?(localhost|127\.0\.0\.1|(\w+\.)*(david888\.com|aiurl\.tw|create360\.ai|glsoft\.ai))(:\d+)?$/i)
+        );
+        if (isTrustedOrigin) {
+            ctx.response.set('Access-Control-Allow-Credentials', 'true');
+        }
+
+        if (ctx.method.toUpperCase() !== 'OPTIONS') {
+            return next();
+        }
+        ctx.status = 200;
+        const customMethod = ctx.request.header['access-control-request-method'];
+        const customHeaders = ctx.request.header['access-control-request-headers'];
+        if (customMethod) {
+            ctx.response.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, HEAD, PUT, DELETE, PATCH');
+        }
+        if (customHeaders) {
+            ctx.response.set('Access-Control-Allow-Headers', customHeaders as string);
+        }
+
+        return next();
+    }
+
     __commonKoaHeaders(ctx: Context, next: Next) {
         ctx.set('Vary', '*');
 

@@ -2,6 +2,23 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.09.14.11] - 2026-09-14 - OCR 表格連通空間聚類品質重構、CORS 安全憑證隔離與內部節點防洩漏 (OCR Table Spatial Clustering Quality Upgrade, Secure CORS Credentials Isolation & Node URL Masking)
+
+### 🚀 Features & Quality Enhancements
+- **PaddleOCR 表格二維幾何連通分量（Connected Components）聚類算法升級**：
+  - 在 `deploy/ocr/main.py` 引進圖論空間連通分量分析（距離門檻水平 160px、垂直 80px），徹底將表格區域與外圍編輯器外框、側邊欄預覽、頁面標題（如 `許厝學童尿液研究比较`）及底部狀態列（如 `尚未發布`、`總長度`）物理隔離。
+  - 欄位邊界精準投影：僅針對多欄表格區塊進行橫向 Gutters 計算，消除了外圍長文字或底部按鈕對投影通道的污染，精準切分 3 欄式比較表。
+  - 儲存格文字純淨化：移除儲存格內多行文字生硬拼接的 `" / "` 分隔符，改以乾淨空格銜接，避免欄位錯位與文字污染。
+
+### 🔒 Security & Privacy Hardening
+- **CORS 憑證安全隔離 (Credentials Isolation)**：
+  - 改寫 `RPCRegistry.__CORSAllowAllMiddleware`，對任意第三方來源（如 `https://evil.example`）不再反射回傳 `Access-Control-Allow-Credentials: true`。
+  - 僅對可信的第一方網域（`david888.com`、`aiurl.tw`、`create360.ai`、`glsoft.ai` 及 `localhost` / `127.0.0.1`）授予憑證存取權限。
+- **後端節點資訊與錯誤防洩漏 (Node URL & Error Masking)**：
+  - 在 `src/services/ocr-client.ts` 與 `src/api/crawler.ts` 移除公開 API 回應中的 `nodeUrl` 內部微服務位址。
+  - 遮蔽內部上游連線失敗訊息與 Python 堆疊資訊，客戶端僅回傳通用的安全錯誤提示，內部異常僅記錄於 Winston 伺服器日誌中。
+- **`package.json`**：版本號遞增至 `2026.09.14.11`。
+
 ## [2026.09.14.10] - 2026-09-14 - 修復 Nginx 反向代理上傳限制 (HTTP 413) 擴充至 50MB 並同步全量文件規格 (Fix Nginx 413 Upload Limit to 50MB and Sync Documentation Across All Endpoints)
 
 ### 🐛 Bug Fixes & Infrastructure

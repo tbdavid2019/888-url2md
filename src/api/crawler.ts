@@ -2647,7 +2647,6 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
                 text: result.text,
                 markdown: result.markdown,
                 lines: result.lines,
-                nodeUrl: result.nodeUrl,
                 durationMs: result.durationMs,
             };
         }

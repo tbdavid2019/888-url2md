@@ -311,8 +311,9 @@ export class OcrClientService extends AsyncService {
             }
         }
 
+        this.logger.error('All OCR nodes failed to process the image', { lastError: lastError?.message || lastError });
         throw new AssertionFailureError({
-            message: `All OCR nodes failed to process the image. Last error: ${lastError?.message || lastError}`,
+            message: 'Failed to process OCR request. Please check the image format or try again later.',
             cause: lastError,
         });
     }
@@ -359,7 +360,8 @@ export class OcrClientService extends AsyncService {
 
         if (!resp.ok) {
             const errBody = await resp.text().catch(() => '');
-            throw new Error(`Node ${node.url} returned HTTP ${resp.status}: ${errBody.slice(0, 200)}`);
+            this.logger.warn(`OCR node ${node.url} returned HTTP ${resp.status}`, { status: resp.status, body: errBody.slice(0, 200) });
+            throw new Error(`Upstream OCR engine returned HTTP ${resp.status}`);
         }
 
         const contentType = resp.headers.get('content-type') || '';

@@ -119,79 +119,100 @@ def reconstruct_markdown(extracted_lines: List[Dict[str, Any]]) -> str:
     if not items:
         return ""
 
-    # 1. Cluster items into horizontal rows based on vertical overlap
-    items.sort(key=lambda it: it["y_center"])
-    rows: List[List[Dict[str, Any]]] = []
-    for it in items:
-        placed = False
-        for r in rows:
-            r_ymin = min(x["y_min"] for x in r)
-            r_ymax = max(x["y_max"] for x in r)
-            r_h = max(1.0, r_ymax - r_ymin)
-            overlap = max(0.0, min(r_ymax, it["y_max"]) - max(r_ymin, it["y_min"]))
-            if overlap > 0.25 * min(r_h, max(1.0, it["height"])) or abs(it["y_center"] - (r_ymin + r_ymax) / 2.0) < 0.6 * max(r_h, it["height"]):
-                r.append(it)
-                placed = True
-                break
-        if not placed:
-            rows.append([it])
+    # 1. Cluster items into spatial blocks (Connected Components) to separate
+    # tables from external editor chrome, sidebars, titles, and toolbars.
+    n = len(items)
+    adj: Dict[int, List[int]] = {i: [] for i in range(n)}
+    for i in range(n):
+        for j in range(i + 1, n):
+            dx = max(0.0, max(items[i]["x_min"], items[j]["x_min"]) - min(items[i]["x_max"], items[j]["x_max"]))
+            dy = max(0.0, max(items[i]["y_min"], items[j]["y_min"]) - min(items[i]["y_max"], items[j]["y_max"]))
+            # Proximity threshold: within 160px horizontal, 80px vertical
+            if dx <= 160 and dy <= 80:
+                adj[i].append(j)
+                adj[j].append(i)
 
-    rows.sort(key=lambda r: min(it["y_min"] for it in r))
+    visited = set()
+    components: List[List[Dict[str, Any]]] = []
+    for i in range(n):
+        if i not in visited:
+            comp: List[Dict[str, Any]] = []
+            queue = [i]
+            visited.add(i)
+            while queue:
+                curr = queue.pop(0)
+                comp.append(items[curr])
+                for neighbor in adj[curr]:
+                    if neighbor not in visited:
+                        visited.add(neighbor)
+                        queue.append(neighbor)
+            components.append(comp)
 
-    def is_multi_column_row(r: List[Dict[str, Any]]) -> bool:
-        if len(r) < 2:
+    # Sort components top-to-bottom, left-to-right
+    components.sort(key=lambda c: (min(it["y_min"] for it in c), min(it["x_min"] for it in c)))
+
+    md_blocks: List[str] = []
+
+    for comp in components:
+        # Group items within component into horizontal rows
+        rows: List[List[Dict[str, Any]]] = []
+        for it in sorted(comp, key=lambda x: (x["y_min"], x["x_min"])):
+            placed = False
+            for r in rows:
+                r_ymin = min(x["y_min"] for x in r)
+                r_ymax = max(x["y_max"] for x in r)
+                r_h = max(1.0, r_ymax - r_ymin)
+                overlap = max(0.0, min(r_ymax, it["y_max"]) - max(r_ymin, it["y_min"]))
+                if overlap > 0.3 * min(r_h, it["height"]):
+                    r.append(it)
+                    placed = True
+                    break
+            if not placed:
+                rows.append([it])
+
+        rows.sort(key=lambda r: min(it["y_min"] for it in r))
+
+        # Check for multi-column table rows
+        def is_multi_col(r: List[Dict[str, Any]]) -> bool:
+            if len(r) < 2:
+                return False
+            rs = sorted(r, key=lambda x: x["x_min"])
+            for i in range(len(rs) - 1):
+                if rs[i + 1]["x_min"] - rs[i]["x_max"] > 12:
+                    return True
             return False
-        r_sorted = sorted(r, key=lambda x: x["x_min"])
-        for i in range(len(r_sorted) - 1):
-            gap = r_sorted[i+1]["x_min"] - r_sorted[i]["x_max"]
-            if gap > 12:
-                return True
-        return False
 
-    # 2. Partition rows into contiguous blocks: "table" vs "text"
-    blocks: List[tuple[str, List[List[Dict[str, Any]]]]] = []
-    curr_block: List[List[Dict[str, Any]]] = []
-    curr_type = None
+        multi_indices = [idx for idx, r in enumerate(rows) if is_multi_col(r)]
+        table_rows: List[List[Dict[str, Any]]] = []
+        lead_rows: List[List[Dict[str, Any]]] = []
+        trail_rows: List[List[Dict[str, Any]]] = []
+        is_table = False
 
-    for r in rows:
-        is_table = is_multi_column_row(r)
-        if is_table:
-            if curr_type == "table":
-                curr_block.append(r)
-            else:
-                if curr_block and curr_type:
-                    blocks.append((curr_type, curr_block))
-                curr_type = "table"
-                curr_block = [r]
+        if len(multi_indices) >= 2:
+            start_idx = multi_indices[0]
+            end_idx = multi_indices[-1] + 1
+            lead_rows = rows[:start_idx]
+            table_rows = rows[start_idx:end_idx]
+            trail_rows = rows[end_idx:]
+            is_table = True
         else:
-            if curr_type == "text":
-                curr_block.append(r)
-            else:
-                if curr_block and curr_type:
-                    blocks.append((curr_type, curr_block))
-                curr_type = "text"
-                curr_block = [r]
+            lead_rows = rows
 
-    if curr_block and curr_type:
-        blocks.append((curr_type, curr_block))
+        for lr in lead_rows:
+            txt = " ".join(x["text"] for x in sorted(lr, key=lambda x: x["x_min"]))
+            if txt:
+                md_blocks.append(txt)
 
-    # 3. Format each block into Markdown
-    md_outputs: List[str] = []
-    for b_type, b_rows in blocks:
-        if b_type == "table" and len(b_rows) >= 2:
-            block_items = [it for r in b_rows for it in r]
-            min_x = min(it["x_min"] for it in block_items)
-            max_x = max(it["x_max"] for it in block_items)
-
-            occupancy_len = int(max_x) + 2
-            occupancy = [0] * occupancy_len
-            for it in block_items:
-                start_x = max(0, int(it["x_min"]))
-                end_x = min(occupancy_len - 1, int(it["x_max"]))
-                for x in range(start_x, end_x + 1):
+        if is_table and len(table_rows) >= 2:
+            t_items = [it for r in table_rows for it in r]
+            min_x = min(it["x_min"] for it in t_items)
+            max_x = max(it["x_max"] for it in t_items)
+            occupancy = [0] * (int(max_x) + 2)
+            for it in t_items:
+                for x in range(int(it["x_min"]), int(it["x_max"]) + 1):
                     occupancy[x] += 1
 
-            gutters = []
+            gutters: List[float] = []
             in_gap = False
             gap_start = 0
             for x in range(int(min_x), int(max_x) + 1):
@@ -202,54 +223,44 @@ def reconstruct_markdown(extracted_lines: List[Dict[str, Any]]) -> str:
                 else:
                     if in_gap:
                         in_gap = False
-                        if x - gap_start >= 6:
+                        if x - gap_start >= 8:
                             gutters.append((gap_start + x) / 2.0)
 
             if gutters:
                 cutoffs = [-1e9] + gutters + [1e9]
-                num_cols = len(cutoffs) - 1
-
-                grid = []
-                for r in b_rows:
-                    cells = [[] for _ in range(num_cols)]
+                ncols = len(cutoffs) - 1
+                grid: List[List[str]] = []
+                for r in table_rows:
+                    cells: List[List[Dict[str, Any]]] = [[] for _ in range(ncols)]
                     for it in r:
-                        col_idx = 0
-                        for i in range(num_cols):
-                            if cutoffs[i] <= it["x_center"] < cutoffs[i+1]:
-                                col_idx = i
+                        for i in range(ncols):
+                            if cutoffs[i] <= it["x_center"] < cutoffs[i + 1]:
+                                cells[i].append(it)
                                 break
-                        cells[col_idx].append(it)
-
-                    row_texts = []
+                    row_txts: List[str] = []
                     for c in cells:
                         c.sort(key=lambda x: (x["y_min"], x["x_min"]))
-                        if len(c) > 1:
-                            joined_txt = " / ".join([x["text"].replace("|", "\\|") for x in c])
-                        elif len(c) == 1:
-                            joined_txt = c[0]["text"].replace("|", "\\|")
-                        else:
-                            joined_txt = ""
-                        row_texts.append(joined_txt)
-                    grid.append(row_texts)
+                        # Clean cell text join without redundant separators
+                        clean_cell = " ".join(x["text"].replace("|", "\\|") for x in c)
+                        row_txts.append(clean_cell)
+                    grid.append(row_txts)
 
-                header = grid[0]
-                sep = [":---" for _ in header]
-                table_lines = [
-                    "| " + " | ".join(header) + " |",
-                    "| " + " | ".join(sep) + " |"
-                ]
+                hdr = grid[0]
+                sep = [":---" for _ in hdr]
+                t_lines = ["| " + " | ".join(hdr) + " |", "| " + " | ".join(sep) + " |"]
                 for gr in grid[1:]:
-                    table_lines.append("| " + " | ".join(gr) + " |")
-                md_outputs.append("\n".join(table_lines))
-                continue
+                    t_lines.append("| " + " | ".join(gr) + " |")
+                md_blocks.append("\n".join(t_lines))
+            else:
+                for r in table_rows:
+                    md_blocks.append(" ".join(x["text"] for x in sorted(r, key=lambda x: x["x_min"])))
 
-        # Non-table rows
-        for r in b_rows:
-            r_sorted = sorted(r, key=lambda x: x["x_min"])
-            line_text = " ".join([x["text"] for x in r_sorted])
-            md_outputs.append(line_text)
+        for tr in trail_rows:
+            txt = " ".join(x["text"] for x in sorted(tr, key=lambda x: x["x_min"]))
+            if txt:
+                md_blocks.append(txt)
 
-    return "\n\n".join(md_outputs)
+    return "\n\n".join(md_blocks)
 
 
 @app.post("/ocr")
