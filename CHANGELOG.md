@@ -2,6 +2,23 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.09.14.13] - 2026-09-14 - OCR 回應結構新增 tableMarkdown 欄位直通純淨 Markdown 表格 (OCR JSON Response tableMarkdown Field for Seamless Editor Direct Consumption)
+
+### 🚀 Features & Frontend Integration Enhancements
+- **新增 `data.tableMarkdown` 欄位**：
+  - 在 `POST /api/ocr` 與 `POST /v1/ocr` 的 JSON 回應頂層新增 `data.tableMarkdown: string | null` 欄位。
+  - 當圖片中含有表格時，`tableMarkdown` 直接提供最純淨的 GFM Markdown 表格字串（例如 `| 國衛院 |  | 國健署 |\n...`），完全不含前後文的標題、圖片連結或狀態列雜訊。
+  - 前端筆記編輯器（如 `cf-notepad`、BlockNote、Milkdown、TipTap）可直接以 `res.data.tableMarkdown` 直通取用，無須前端猜測或正則擷取：
+    ```json
+    {
+      "markdown": "...完整全文 OCR（含外圍文字）...",
+      "tableMarkdown": "| 國衛院 |  | 國健署 |\n| :--- | :--- | :--- |\n..."
+    }
+    ```
+- **同步支援 `data.tables: string[]`**：
+  - 保留 `data.tables` 陣列，若單圖中存在多個表格，可依序讀取各表格字串。
+- **`package.json`**：版本號遞增至 `2026.09.14.13`。
+
 ## [2026.09.14.12] - 2026-09-14 - OCR 表格專用模式 (mode=table) 與獨立表格陣列 (data.tables) 徹底隔離截圖雜訊 (OCR Dedicated Table Mode and Clean Tables Array for Editor Integration)
 
 ### 🚀 Features & Quality Enhancements

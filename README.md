@@ -390,7 +390,7 @@ curl -X POST "https://create360.ai/api/ocr" \
   -H "Accept: text/plain" \
   -F "file=@screenshot.png"
 
-# 取得包含每一行座標 (box)、信心度、重建 Markdown 與獨立表格陣列 (data.tables) 之 JSON 結果 (Accept: application/json)
+# 取得包含每一行座標 (box)、信心度、完整 Markdown、純淨表格 (data.tableMarkdown) 與獨立表格陣列 (data.tables) 之 JSON 結果 (Accept: application/json)
 curl -X POST "https://create360.ai/api/ocr" \
   -H "Accept: application/json" \
   -F "file=@invoice.jpg"
@@ -976,7 +976,7 @@ curl -X POST "https://create360.ai/api/ocr" \
   -H "Accept: text/plain" \
   -F "file=@screenshot.png"
 
-# Return structured JSON with bounding boxes, confidence scores, reconstructed Markdown, and isolated tables (data.tables)
+# Return structured JSON with bounding boxes, confidence scores, full Markdown, clean isolated table (data.tableMarkdown), and tables array (data.tables)
 curl -X POST "https://create360.ai/api/ocr" \
   -H "Accept: application/json" \
   -F "file=@invoice.jpg"

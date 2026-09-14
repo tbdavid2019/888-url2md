@@ -100,8 +100,8 @@ async function insertOcrTableIntoBlockNote(editor: BlockNoteEditor, imageBlob: B
     body: formData
   }).then(r => r.json());
 
-  // res.data.tables[0] or res.data.markdown contains the isolated GFM table
-  const markdownTable = res?.data?.tables?.[0] || res?.data?.markdown || res.markdown;
+  // res.data.tableMarkdown or res.data.tables[0] contains the isolated GFM table
+  const markdownTable = res?.data?.tableMarkdown || res?.data?.tables?.[0] || res?.data?.markdown || res.markdown;
   const blocks = await editor.tryParseMarkdownToBlocks(markdownTable);
   editor.insertBlocks(blocks, editor.getTextCursorPosition().block, 'after');
 }
@@ -113,7 +113,7 @@ async function insertOcrTableIntoBlockNote(editor: BlockNoteEditor, imageBlob: B
 - **JSON (`Accept: application/json`)**:
   Returns structured JSON object:
   - For standard crawler: `data` array with extracted pages.
-  - For `/api/ocr`: `data.markdown`, `data.tables` (isolated tables array), `data.text`, and `data.lines`.
+  - For `/api/ocr`: `data.markdown` (full document), `data.tableMarkdown` (isolated clean GFM table), `data.tables` (isolated tables array), `data.text`, and `data.lines`.
   ```json
   {
     "code": 200,

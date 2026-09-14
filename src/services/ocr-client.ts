@@ -23,6 +23,7 @@ export interface OcrLineItem {
 export interface OcrPredictionResult {
     text: string;
     markdown: string;
+    tableMarkdown?: string | null;
     tables?: string[];
     lines: OcrLineItem[];
     nodeUrl?: string;
@@ -399,6 +400,9 @@ export class OcrClientService extends AsyncService {
      */
     formatOcrResponse(data: any, nodeUrl?: string): OcrPredictionResult {
         const tables: string[] = Array.isArray(data.tables) ? data.tables : [];
+        const tableMarkdown: string | null = typeof data.tableMarkdown === 'string'
+            ? data.tableMarkdown
+            : (tables.length > 0 ? tables[0] : null);
 
         // If the service already provides markdown or text directly
         if (typeof data.markdown === 'string' && data.markdown.trim()) {
@@ -406,6 +410,7 @@ export class OcrClientService extends AsyncService {
             return {
                 text: data.text || data.markdown,
                 markdown: data.markdown,
+                tableMarkdown,
                 tables,
                 lines,
                 nodeUrl,
@@ -417,6 +422,7 @@ export class OcrClientService extends AsyncService {
             return {
                 text: data.text,
                 markdown: data.text,
+                tableMarkdown,
                 tables,
                 lines,
                 nodeUrl,
@@ -480,6 +486,8 @@ export class OcrClientService extends AsyncService {
         return {
             text,
             markdown,
+            tableMarkdown: tableMarkdown || (tables.length > 0 ? tables[0] : null),
+            tables,
             lines: validLines,
             nodeUrl,
         };

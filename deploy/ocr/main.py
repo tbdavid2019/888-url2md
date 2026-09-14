@@ -320,12 +320,14 @@ async def perform_ocr(
         is_table_mode = bool(req_table_only or (req_mode == "table"))
 
         markdown, tables = reconstruct_markdown(extracted_lines, table_only=is_table_mode)
+        table_markdown = "\n\n".join(tables) if tables else None
 
         duration_ms = int((time.time() - t0) * 1000)
 
         return {
             "text": raw_text,
             "markdown": markdown,
+            "tableMarkdown": table_markdown,
             "tables": tables,
             "lines": extracted_lines,
             "durationMs": duration_ms

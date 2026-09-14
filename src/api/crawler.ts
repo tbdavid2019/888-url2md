@@ -363,7 +363,7 @@ async function insertOcrTableIntoBlockNote(editor: BlockNoteEditor, imageBlob: B
     body: formData
   }).then(r => r.json());
 
-  const markdownTable = res?.data?.tables?.[0] || res?.data?.markdown || res.markdown;
+  const markdownTable = res?.data?.tableMarkdown || res?.data?.tables?.[0] || res?.data?.markdown || res.markdown;
   const blocks = await editor.tryParseMarkdownToBlocks(markdownTable);
   editor.insertBlocks(blocks, editor.getTextCursorPosition().block, 'after');
 }
@@ -373,7 +373,7 @@ async function insertOcrTableIntoBlockNote(editor: BlockNoteEditor, imageBlob: B
 - **Markdown / Plain Text (Default / \`Accept: text/plain\` or \`Accept: text/markdown\`)**:
   Returns clean Markdown content directly. If \`mode=table\` is specified, returns only the isolated GFM table. Batch requests separate pages with \`---\`.
 - **JSON (\`Accept: application/json\`)**:
-  Returns structured JSON object with \`data.text\`, \`data.markdown\`, \`data.tables\` (array of isolated clean GFM tables), and \`data.lines\` (bounding boxes and confidence scores).
+  Returns structured JSON object with \`data.text\`, \`data.markdown\`, \`data.tableMarkdown\` (isolated clean GFM table string, e.g. \`| ... |\`), \`data.tables\` (array of isolated clean GFM tables), and \`data.lines\` (bounding boxes and confidence scores).
 
 ### 7. Advanced Crawl and Extraction
 - Add \`extraction\` with \`type\`, \`baseSelector\`, and \`fields\` to return deterministic \`extracted\` JSON records.
@@ -2654,17 +2654,22 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
             extractTables: true,
         });
 
+        const tables = result.tables || [];
+        const tableMarkdown = result.tableMarkdown || (tables.length > 0 ? tables[0] : null);
+
         if (!ctx.accepts('text/plain') && (ctx.accepts('text/json') || ctx.accepts('application/json'))) {
             return {
                 text: result.text,
                 markdown: result.markdown,
-                tables: result.tables || [],
+                tableMarkdown,
+                tables,
                 lines: result.lines,
                 durationMs: result.durationMs,
             };
         }
 
-        return assignTransferProtocolMeta(result.markdown, {
+        const responseMarkdown = (isTableMode && tableMarkdown) ? tableMarkdown : result.markdown;
+        return assignTransferProtocolMeta(responseMarkdown, {
             contentType: 'text/markdown; charset=utf-8',
             envelope: null,
         });
