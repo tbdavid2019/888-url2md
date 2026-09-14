@@ -23,6 +23,7 @@ export interface OcrLineItem {
 export interface OcrPredictionResult {
     text: string;
     markdown: string;
+    tables?: string[];
     lines: OcrLineItem[];
     nodeUrl?: string;
     durationMs?: number;
@@ -32,6 +33,8 @@ export interface OcrPredictOptions {
     lang?: string;
     useAngleCls?: boolean;
     extractTables?: boolean;
+    tableOnly?: boolean;
+    mode?: string;
 }
 
 export interface OcrClusterStatus {
@@ -327,7 +330,7 @@ export class OcrClientService extends AsyncService {
         fileName: string,
         options?: OcrPredictOptions
     ): Promise<OcrPredictionResult> {
-        const ocrUrl = `${node.url}/ocr`;
+        const ocrUrlObj = new URL(`${node.url}/ocr`);
         const formData = new FormData();
 
         const blob = new Blob([image as any], { type: 'image/png' });
@@ -335,12 +338,23 @@ export class OcrClientService extends AsyncService {
 
         if (options?.lang) {
             formData.append('lang', options.lang);
+            ocrUrlObj.searchParams.set('lang', options.lang);
         }
         if (options?.useAngleCls !== undefined) {
             formData.append('use_angle_cls', String(options.useAngleCls));
+            ocrUrlObj.searchParams.set('use_angle_cls', String(options.useAngleCls));
         }
         if (options?.extractTables !== undefined) {
             formData.append('extract_tables', String(options.extractTables));
+            ocrUrlObj.searchParams.set('extract_tables', String(options.extractTables));
+        }
+        if (options?.tableOnly !== undefined) {
+            formData.append('table_only', String(options.tableOnly));
+            ocrUrlObj.searchParams.set('table_only', String(options.tableOnly));
+        }
+        if (options?.mode) {
+            formData.append('mode', options.mode);
+            ocrUrlObj.searchParams.set('mode', options.mode);
         }
 
         const headers: Record<string, string> = {
@@ -351,7 +365,7 @@ export class OcrClientService extends AsyncService {
             headers['X-API-Key'] = this.secretKey;
         }
 
-        const resp = await fetch(ocrUrl, {
+        const resp = await fetch(ocrUrlObj.toString(), {
             method: 'POST',
             headers,
             body: formData,
@@ -374,6 +388,7 @@ export class OcrClientService extends AsyncService {
         return {
             text: plainText.trim(),
             markdown: plainText.trim(),
+            tables: [],
             lines: plainText.split('\n').map((t) => ({ text: t })),
             nodeUrl: node.url,
         };
@@ -383,22 +398,27 @@ export class OcrClientService extends AsyncService {
      * Normalize PaddleOCR or generic OCR response into unified OcrPredictionResult.
      */
     formatOcrResponse(data: any, nodeUrl?: string): OcrPredictionResult {
+        const tables: string[] = Array.isArray(data.tables) ? data.tables : [];
+
         // If the service already provides markdown or text directly
         if (typeof data.markdown === 'string' && data.markdown.trim()) {
             const lines: OcrLineItem[] = Array.isArray(data.lines) ? data.lines : [];
             return {
                 text: data.text || data.markdown,
                 markdown: data.markdown,
+                tables,
                 lines,
                 nodeUrl,
             };
         }
 
         if (typeof data.text === 'string' && data.text.trim()) {
+            const lines: OcrLineItem[] = Array.isArray(data.lines) ? data.lines : [];
             return {
                 text: data.text,
                 markdown: data.text,
-                lines: Array.isArray(data.lines) ? data.lines : [{ text: data.text }],
+                tables,
+                lines,
                 nodeUrl,
             };
         }

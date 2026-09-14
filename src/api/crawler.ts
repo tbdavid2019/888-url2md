@@ -356,13 +356,14 @@ async function insertOcrTableIntoBlockNote(editor: BlockNoteEditor, imageBlob: B
   const formData = new FormData();
   formData.append('file', imageBlob, 'table.png');
 
-  const res = await fetch(\`${baseDomain}/api/ocr\`, {
+  // Use ?mode=table to isolate only the table and strip outer UI noise/footers
+  const res = await fetch(\`${baseDomain}/api/ocr?mode=table\`, {
     method: 'POST',
     headers: { 'Accept': 'application/json' },
     body: formData
   }).then(r => r.json());
 
-  const markdownTable = res?.data?.markdown || res.markdown;
+  const markdownTable = res?.data?.tables?.[0] || res?.data?.markdown || res.markdown;
   const blocks = await editor.tryParseMarkdownToBlocks(markdownTable);
   editor.insertBlocks(blocks, editor.getTextCursorPosition().block, 'after');
 }
@@ -370,9 +371,9 @@ async function insertOcrTableIntoBlockNote(editor: BlockNoteEditor, imageBlob: B
 
 ### 6. Response Formats
 - **Markdown / Plain Text (Default / \`Accept: text/plain\` or \`Accept: text/markdown\`)**:
-  Returns clean Markdown content directly. Batch requests separate pages with \`---\`.
+  Returns clean Markdown content directly. If \`mode=table\` is specified, returns only the isolated GFM table. Batch requests separate pages with \`---\`.
 - **JSON (\`Accept: application/json\`)**:
-  Returns structured JSON object with \`data.text\`, \`data.markdown\` (reconstructed GFM table), and \`data.lines\` (bounding boxes \`[[x1,y1],[x2,y2],[x3,y3],[x4,y4]]\` and confidence scores).
+  Returns structured JSON object with \`data.text\`, \`data.markdown\`, \`data.tables\` (array of isolated clean GFM tables), and \`data.lines\` (bounding boxes and confidence scores).
 
 ### 7. Advanced Crawl and Extraction
 - Add \`extraction\` with \`type\`, \`baseSelector\`, and \`fields\` to return deterministic \`extracted\` JSON records.
@@ -2640,12 +2641,24 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
             });
         }
 
-        const result = await this.ocrClientService.predict(imageBuffer, fileName);
+        const query = (ctx.query || {}) as Record<string, string>;
+        const lang = (crawlerOptionsParamsAllowed as any).lang || query.lang || ctx.get('x-ocr-lang') || undefined;
+        const isTableMode = query.mode === 'table' || query.table_only === 'true' || query.tableOnly === 'true' ||
+            ctx.get('x-ocr-mode') === 'table' || ctx.get('x-table-only') === 'true' ||
+            (crawlerOptionsParamsAllowed as any).tableOnly === true || (crawlerOptionsParamsAllowed as any).mode === 'table';
+
+        const result = await this.ocrClientService.predict(imageBuffer, fileName, {
+            lang,
+            tableOnly: isTableMode,
+            mode: isTableMode ? 'table' : undefined,
+            extractTables: true,
+        });
 
         if (!ctx.accepts('text/plain') && (ctx.accepts('text/json') || ctx.accepts('application/json'))) {
             return {
                 text: result.text,
                 markdown: result.markdown,
+                tables: result.tables || [],
                 lines: result.lines,
                 durationMs: result.durationMs,
             };

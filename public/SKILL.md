@@ -93,13 +93,15 @@ async function insertOcrTableIntoBlockNote(editor: BlockNoteEditor, imageBlob: B
   const formData = new FormData();
   formData.append('file', imageBlob, 'table.png');
 
-  const res = await fetch('https://<HOST>/api/ocr', {
+  // Add ?mode=table to isolate only the table and strip editor chrome/footers
+  const res = await fetch('https://<HOST>/api/ocr?mode=table', {
     method: 'POST',
     headers: { 'Accept': 'application/json' },
     body: formData
   }).then(r => r.json());
 
-  const markdownTable = res?.data?.markdown || res.markdown;
+  // res.data.tables[0] or res.data.markdown contains the isolated GFM table
+  const markdownTable = res?.data?.tables?.[0] || res?.data?.markdown || res.markdown;
   const blocks = await editor.tryParseMarkdownToBlocks(markdownTable);
   editor.insertBlocks(blocks, editor.getTextCursorPosition().block, 'after');
 }
@@ -107,9 +109,11 @@ async function insertOcrTableIntoBlockNote(editor: BlockNoteEditor, imageBlob: B
 
 ### 6. Response Formats
 - **Markdown / Plain Text (Default / `Accept: text/plain` or `Accept: text/markdown`)**:
-  Returns clean Markdown content directly. Batch requests separate pages with `---`.
+  Returns clean Markdown content directly. When `mode=table` is specified, returns only the isolated GFM table. Batch requests separate pages with `---`.
 - **JSON (`Accept: application/json`)**:
-  Returns structured JSON object with data array:
+  Returns structured JSON object:
+  - For standard crawler: `data` array with extracted pages.
+  - For `/api/ocr`: `data.markdown`, `data.tables` (isolated tables array), `data.text`, and `data.lines`.
   ```json
   {
     "code": 200,

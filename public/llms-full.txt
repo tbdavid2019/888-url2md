@@ -92,21 +92,25 @@
 - **Optional Query Parameters**:
   - `lang`: `ch` (default, PP-OCRv4 bilingual Chinese & English) or `chinese_cht` (Traditional Chinese).
   - `use_angle_cls`: `true` (default) / `false` (orientation angle auto-detection).
-- **2D Spatial Table Reconstruction**:
-  The OCR engine clusters 2D bounding boxes and detects horizontal and vertical gutters in tabular data, outputting clean, ready-to-render GitHub-Flavored Markdown (GFM) tables directly (`| Header 1 | Header 2 |...`).
+  - `mode`: `table` (isolates and returns ONLY the reconstructed table, stripping editor chrome/footers).
+  - `table_only`: `true` (alias for `mode=table`).
+- **2D Spatial Table Reconstruction & Isolated Tables**:
+  The OCR engine clusters 2D bounding boxes and detects horizontal and vertical gutters in tabular data, outputting clean, ready-to-render GitHub-Flavored Markdown (GFM) tables directly (`| Header 1 | Header 2 |...`). JSON responses include `data.tables` (an array of isolated table strings).
 - **Pure Frontend (SPA) Direct Access (CORS)**:
-  Full browser CORS is enabled (`Access-Control-Allow-Origin: *`, credentials, preflight OPTIONS). Client-side SPAs (React, Vue, Vite) can invoke `/api/ocr` directly from the browser:
+  Full browser CORS is enabled (`Access-Control-Allow-Origin: *`, credentials for trusted origins, preflight OPTIONS). Client-side SPAs (React, Vue, Vite, BlockNote) can invoke `/api/ocr` directly from the browser:
   ```typescript
   // Upload table image and insert into BlockNote editor
   async function insertOcrTable(editor: BlockNoteEditor, imageBlob: Blob) {
     const fd = new FormData();
     fd.append('file', imageBlob, 'table.png');
-    const res = await fetch('https://<HOST>/api/ocr', {
+    // Using ?mode=table strips surrounding editor noise
+    const res = await fetch('https://<HOST>/api/ocr?mode=table', {
       method: 'POST',
       headers: { 'Accept': 'application/json' },
       body: fd
     }).then(r => r.json());
-    const blocks = await editor.tryParseMarkdownToBlocks(res?.data?.markdown || res.markdown);
+    const tableMd = res?.data?.tables?.[0] || res?.data?.markdown || res.markdown;
+    const blocks = await editor.tryParseMarkdownToBlocks(tableMd);
     editor.insertBlocks(blocks, editor.getTextCursorPosition().block, 'after');
   }
   ```

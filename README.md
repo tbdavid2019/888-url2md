@@ -390,10 +390,15 @@ curl -X POST "https://create360.ai/api/ocr" \
   -H "Accept: text/plain" \
   -F "file=@screenshot.png"
 
-# 取得包含每一行座標 (box)、信心度與重建 GFM 表格 Markdown 之 JSON 結果 (Accept: application/json)
+# 取得包含每一行座標 (box)、信心度、重建 Markdown 與獨立表格陣列 (data.tables) 之 JSON 結果 (Accept: application/json)
 curl -X POST "https://create360.ai/api/ocr" \
   -H "Accept: application/json" \
   -F "file=@invoice.jpg"
+
+# 表格專用模式 (mode=table)：徹底過濾外圍編輯器外框、圖片網址與頁尾狀態列，僅回傳純淨 GFM 表格
+curl -X POST "https://create360.ai/api/ocr?mode=table" \
+  -H "Accept: text/markdown" \
+  -F "file=@table-screenshot.png"
 ```
 
 #### **B. 查詢 OCR 叢集節點健康與狀態 (`GET /api/capabilities`)**
@@ -971,10 +976,15 @@ curl -X POST "https://create360.ai/api/ocr" \
   -H "Accept: text/plain" \
   -F "file=@screenshot.png"
 
-# Return structured JSON with bounding boxes, confidence scores, and reconstructed GFM table
+# Return structured JSON with bounding boxes, confidence scores, reconstructed Markdown, and isolated tables (data.tables)
 curl -X POST "https://create360.ai/api/ocr" \
   -H "Accept: application/json" \
   -F "file=@invoice.jpg"
+
+# Table-only mode (mode=table): Strips outer UI chrome, sidebar links, and footers, returning ONLY the pure GFM table
+curl -X POST "https://create360.ai/api/ocr?mode=table" \
+  -H "Accept: text/markdown" \
+  -F "file=@table-screenshot.png"
 ```
 
 #### **B. Cluster Capabilities & Node Health (`GET /api/capabilities`)**

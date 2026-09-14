@@ -2,7 +2,7 @@ import os
 import io
 import time
 from typing import Optional, List, Dict, Any
-from fastapi import FastAPI, File, UploadFile, Header, HTTPException, Query
+from fastapi import FastAPI, File, UploadFile, Header, HTTPException, Query, Form, Request
 from fastapi.responses import JSONResponse
 from PIL import Image
 import numpy as np
@@ -74,15 +74,16 @@ async def health_check():
     }
 
 
-def reconstruct_markdown(extracted_lines: List[Dict[str, Any]]) -> str:
+def reconstruct_markdown(extracted_lines: List[Dict[str, Any]], table_only: bool = False) -> tuple[str, List[str]]:
     """
-    Intelligently converts extracted bounding box lines into clean Markdown.
+    Reconstruct raw OCR extracted lines into formatted Markdown.
     Detects table structures (rows and columns) and formats them as GitHub Flavored Markdown (GFM) tables.
     Non-tabular text is formatted into coherent paragraphs.
     """
     if not extracted_lines:
-        return ""
+        return "", []
 
+    extracted_tables: List[str] = []
     items = []
     for line in extracted_lines:
         box = line.get("box")
@@ -250,7 +251,9 @@ def reconstruct_markdown(extracted_lines: List[Dict[str, Any]]) -> str:
                 t_lines = ["| " + " | ".join(hdr) + " |", "| " + " | ".join(sep) + " |"]
                 for gr in grid[1:]:
                     t_lines.append("| " + " | ".join(gr) + " |")
-                md_blocks.append("\n".join(t_lines))
+                table_str = "\n".join(t_lines)
+                extracted_tables.append(table_str)
+                md_blocks.append(table_str)
             else:
                 for r in table_rows:
                     md_blocks.append(" ".join(x["text"] for x in sorted(r, key=lambda x: x["x_min"])))
@@ -260,18 +263,25 @@ def reconstruct_markdown(extracted_lines: List[Dict[str, Any]]) -> str:
             if txt:
                 md_blocks.append(txt)
 
-    return "\n\n".join(md_blocks)
+    full_md = "\n\n".join(md_blocks)
+    if table_only and extracted_tables:
+        return "\n\n".join(extracted_tables), extracted_tables
+    return full_md, extracted_tables
 
 
 @app.post("/ocr")
 async def perform_ocr(
+    request: Request,
     file: UploadFile = File(...),
     lang: Optional[str] = Query(None),
     use_angle_cls: Optional[bool] = Query(True),
+    table_only: Optional[bool] = Query(False),
+    extract_tables: Optional[bool] = Query(True),
+    mode: Optional[str] = Query(None),
     x_api_key: Optional[str] = Header(None)
 ):
     """
-    Perform OCR on an uploaded image file and return extracted text and Markdown.
+    Perform OCR on an uploaded image file and return extracted text, Markdown, and isolated tables.
     """
     verify_secret(x_api_key)
 
@@ -303,13 +313,20 @@ async def perform_ocr(
 
 
         raw_text = "\n".join([line["text"] for line in extracted_lines])
-        markdown = reconstruct_markdown(extracted_lines)
+
+        # Check table mode across query parameters, explicit arguments, and request headers
+        req_mode = request.query_params.get("mode") or mode or request.headers.get("x-ocr-mode")
+        req_table_only = (request.query_params.get("table_only") == "true") or table_only or (request.headers.get("x-table-only") == "true")
+        is_table_mode = bool(req_table_only or (req_mode == "table"))
+
+        markdown, tables = reconstruct_markdown(extracted_lines, table_only=is_table_mode)
 
         duration_ms = int((time.time() - t0) * 1000)
 
         return {
             "text": raw_text,
             "markdown": markdown,
+            "tables": tables,
             "lines": extracted_lines,
             "durationMs": duration_ms
         }

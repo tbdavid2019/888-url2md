@@ -2,6 +2,17 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.09.14.12] - 2026-09-14 - OCR 表格專用模式 (mode=table) 與獨立表格陣列 (data.tables) 徹底隔離截圖雜訊 (OCR Dedicated Table Mode and Clean Tables Array for Editor Integration)
+
+### 🚀 Features & Quality Enhancements
+- **新增 OCR 表格專用模式 (`mode=table` / `table_only=true`)**：
+  - 支援透過 Query 參數 `?mode=table`、`?table_only=true` 或 Header `X-Ocr-Mode: table`、`X-Table-Only: true` 啟動純表格抽取。
+  - 當啟用表格專用模式時，`data.markdown`（以及 `Accept: text/markdown`、`Accept: text/plain`）僅回傳 100% 純淨的 GFM Markdown 表格，自動剝離所有外圍截圖雜訊（如側邊欄圖片網址、未發布提示文字、長度計數器、底部工具按鈕等）。
+- **新增結構化獨立表格陣列 (`data.tables`)**：
+  - 在所有 OCR JSON 回應中永久提供 `data.tables: string[]`。
+  - 即使在預設全頁模式下，前端富文本編輯器（如 `cf-notepad` / BlockNote）亦可直接讀取 `res.data.tables[0]`，免除前端任何二次正則過濾或雜訊修剪。
+- **`package.json`**：版本號遞增至 `2026.09.14.12`。
+
 ## [2026.09.14.11] - 2026-09-14 - OCR 表格連通空間聚類品質重構、CORS 安全憑證隔離與內部節點防洩漏 (OCR Table Spatial Clustering Quality Upgrade, Secure CORS Credentials Isolation & Node URL Masking)
 
 ### 🚀 Features & Quality Enhancements
