@@ -1,6 +1,6 @@
 # PaddleOCR 微服務部署說明 (Host 1: 10.9.0.9)
 
-本目錄包含專為 `888-url2md` 設計的 PaddleOCR 高性能微服務。預設載入繁體中文（`chinese_cht`）模型與方向角校正。
+本目錄包含專為 `888-url2md` 設計的 PaddleOCR 高性能微服務。預設載入旗艦版中英文超輕量模型（`ch`，PP-OCRv4 繁簡中文、英文、數字、符號雙向最佳化）與方向角校正，並支援按需調用繁中模型（`chinese_cht`）。
 
 ---
 
@@ -19,7 +19,7 @@ docker compose up -d --build
 
 # 3. 驗證服務運行狀態
 curl http://localhost:8089/health
-# 預期回傳：{"status":"ok","service":"paddleocr","lang":"chinese_cht",...}
+# 預期回傳：{"status":"ok","service":"paddleocr","lang":"ch",...}
 ```
 
 ---

@@ -7,26 +7,52 @@ from fastapi.responses import JSONResponse
 from PIL import Image
 import numpy as np
 
+# Apply hardware pass patch for CPU compatibility (prevents SIGILL Illegal instruction on CPUs without AVX512)
+try:
+    from paddle import inference
+    _orig_config_init = inference.Config.__init__
+    def _safe_config_init(self, *args, **kwargs):
+        _orig_config_init(self, *args, **kwargs)
+        try:
+            self.delete_pass("self_attention_fuse_pass")
+        except Exception:
+            pass
+    inference.Config.__init__ = _safe_config_init
+except Exception as e:
+    print(f"[!] Warning: Unable to patch inference.Config: {e}")
+
 # PaddleOCR is imported
 from paddleocr import PaddleOCR
 
 OCR_SECRET_KEY = os.getenv("OCR_SECRET_KEY", "").strip()
-DEFAULT_LANG = os.getenv("OCR_LANG", "chinese_cht")  # Traditional Chinese by default
+DEFAULT_LANG = os.getenv("OCR_LANG", "ch")  # PP-OCRv4 (Chinese + English + Numbers) by default
 
 app = FastAPI(
     title="PaddleOCR Microservice for 888-url2md",
-    description="High-performance OCR engine with Traditional Chinese (chinese_cht) & PP-Structure support.",
-    version="1.0.0"
+    description="High-performance OCR engine with PP-OCRv4 Chinese & English and PP-Structure support.",
+    version="1.1.0"
 )
 
-# Initialize PaddleOCR engine
-# Note: ch_PP-OCRv4 supports Traditional & Simplified Chinese.
-print(f"[*] Initializing PaddleOCR with lang={DEFAULT_LANG}...")
-try:
-    ocr_engine = PaddleOCR(use_angle_cls=True, lang=DEFAULT_LANG, show_log=False)
-except Exception:
-    ocr_engine = PaddleOCR(lang=DEFAULT_LANG)
-print("[+] PaddleOCR initialized successfully.")
+# Engine cache for different languages
+_engines: Dict[str, PaddleOCR] = {}
+
+
+def get_engine(lang: Optional[str] = None) -> PaddleOCR:
+    target_lang = lang or DEFAULT_LANG
+    if target_lang not in _engines:
+        print(f"[*] Initializing PaddleOCR engine for lang={target_lang}...")
+        try:
+            _engines[target_lang] = PaddleOCR(use_angle_cls=True, lang=target_lang, show_log=False)
+        except Exception:
+            _engines[target_lang] = PaddleOCR(lang=target_lang, show_log=False)
+        print(f"[+] PaddleOCR engine ({target_lang}) ready.")
+    return _engines[target_lang]
+
+
+# Pre-load default engine
+print(f"[*] Pre-loading default OCR engine (lang={DEFAULT_LANG})...")
+get_engine(DEFAULT_LANG)
+print("[+] Default OCR engine pre-loaded successfully.")
 
 
 def verify_secret(x_api_key: Optional[str] = Header(None)):
@@ -69,8 +95,9 @@ async def perform_ocr(
         image = Image.open(io.BytesIO(content)).convert("RGB")
         img_np = np.array(image)
 
-        # Run PaddleOCR inference
-        result = ocr_engine.ocr(img_np, cls=use_angle_cls)
+        # Run PaddleOCR inference with requested or default engine
+        engine = get_engine(lang)
+        result = engine.ocr(img_np, cls=use_angle_cls)
 
         extracted_lines: List[Dict[str, Any]] = []
         if result and len(result) > 0 and result[0]:

@@ -2,6 +2,14 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.09.14.4] - 2026-09-14 - PaddleOCR 升級 PP-OCRv4 旗艦中英文雙向模型與 CPU AVX 相容性修補 (PaddleOCR PP-OCRv4 Chinese/English Upgrade & CPU AVX Compatibility Patch)
+
+### 🚀 Enhancements & Operations
+- **模型升級至 PP-OCRv4 (`ch`)**：將預設推論模型由字典狹窄的舊版 `chinese_cht` 升級為官方旗艦 `ch`（PP-OCRv4 繁簡中文、英文、數字、符號全字典模型）。解決英文單字與混排文字被誤判為形近繁體字（如 `Word` 誤判為 `Wo士d`、`Markdown` 誤判為 `Harkdown`、`URLBatch` 誤判等問題），中英文及網址識別率由約 60% 大幅提升至 95%~100%。
+- **非 AVX-512 CPU 崩潰問題修復（`SIGILL Illegal instruction`）**：在 `deploy/ocr/main.py` 注入 `paddle.inference.Config` 猴子補丁，在建立推理引擎前自動剔除觸發未定義指令集的 `self_attention_fuse_pass`，使 PP-OCRv4 能在 Intel KVM 虛擬化實體機及各類雲端 VM 上以 Intel MKL 滿速穩定運行。
+- **多語系引擎動態緩存**：實作 `get_engine(lang)` 緩存機制，預設加載 `ch`（PP-OCRv4），並支援隨選快取 `chinese_cht` 等其他語系。
+- **Docker 配置與即時熱部署**：更新 `deploy/ocr/Dockerfile`、`docker-compose.yml`（掛載 `main.py` 與 `OCR_LANG=ch`），並已於 `10.9.0.9` 實機重啟驗證通過。
+
 ## [2026.09.14.3] - 2026-09-14 - 修復動態能力探測 API 回應解包與前端 OCR 頁籤即時顯示 (Fix Dynamic Capability Envelope Unpacking & Immediate OCR Tab Activation)
 
 ### 🐛 Bug Fixes

@@ -12,9 +12,11 @@ services:
       - "8089:8088"
     environment:
       - PORT=8088
-      - OCR_LANG=chinese_cht
+      - OCR_LANG=ch
       - OMP_NUM_THREADS=4
       # - OCR_SECRET_KEY=your_cluster_secret_token
+    volumes:
+      - ./main.py:/app/main.py
     deploy:
       resources:
         limits:

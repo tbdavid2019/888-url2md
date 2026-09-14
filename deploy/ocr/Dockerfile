@@ -3,7 +3,7 @@ FROM paddlepaddle/paddle:2.6.2
 ENV PYTHONUNBUFFERED=1 \
     DEBIAN_FRONTEND=noninteractive \
     OMP_NUM_THREADS=4 \
-    OCR_LANG=chinese_cht
+    OCR_LANG=ch
 
 WORKDIR /app
 
@@ -11,10 +11,10 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt && \
     pip install --no-cache-dir --no-deps paddleocr==2.8.1
 
-# Pre-download models during docker build to speed up container startup
-RUN python -c "from paddleocr import PaddleOCR; PaddleOCR(use_angle_cls=True, lang='chinese_cht', show_log=False)"
-
 COPY main.py .
+
+# Pre-download PP-OCRv4 Chinese/English and Traditional Chinese models
+RUN python -c "import main; main.get_engine('ch'); main.get_engine('chinese_cht')"
 
 EXPOSE 8088
 
