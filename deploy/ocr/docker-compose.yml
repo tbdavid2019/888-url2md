@@ -17,6 +17,7 @@ services:
       # - OCR_SECRET_KEY=your_cluster_secret_token
     volumes:
       - ./main.py:/app/main.py
+      - ./ocr_markdown.py:/app/ocr_markdown.py
     deploy:
       resources:
         limits:
