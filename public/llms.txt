@@ -64,7 +64,7 @@ curl -s -X POST "https://<HOST>/v1/batch" \
 # Extract text & tables from image to GFM Markdown table
 curl -s -X POST "https://<HOST>/api/ocr" -H "Accept: text/plain" -F "file=@screenshot.png"
 
-# Get structured JSON with bounding boxes, reconstructed markdown, tableMarkdown, and isolated tables array (data.tables)
+# Get structured JSON: data.markdown is full OCR; data.tableMarkdown/data.tables[0] are isolated tables (or null/empty when absent)
 curl -s -X POST "https://<HOST>/api/ocr" -H "Accept: application/json" -F "file=@screenshot.png"
 
 # Table-only mode: Strip outer UI chrome/footers and return ONLY the GFM table

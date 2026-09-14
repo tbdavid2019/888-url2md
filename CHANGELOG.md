@@ -2,6 +2,18 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.09.14.14] - 2026-09-14 - OCR 純表格模式嚴格回傳與重構器回歸測試 (Strict OCR Table-Only Output and Reconstruction Regression Tests)
+
+### Fixed
+- `mode=table` / `table_only=true` 在未偵測到表格時不再退回包含圖片網址與 Footer 的全文 OCR，改回傳空字串與空的 `tables` 陣列。
+- 將 OCR Markdown 重構器抽出為可獨立測試的模組，確保 `tableMarkdown` 不包含表格外的 OCR 文字。
+- OCR Docker image build now runs the Markdown reconstruction regression tests before publishing.
+
+### Contract Clarification
+- Standard JSON responses keep `data.markdown` as full OCR content.
+- Consumers that need an isolated table must use `data.tableMarkdown` or `data.tables[0]`; `tableMarkdown` is `null` when no table is detected.
+- `package.json` version updated to `2026.09.14.14`.
+
 ## [2026.09.14.13] - 2026-09-14 - OCR 回應結構新增 tableMarkdown 欄位直通純淨 Markdown 表格 (OCR JSON Response tableMarkdown Field for Seamless Editor Direct Consumption)
 
 ### 🚀 Features & Frontend Integration Enhancements

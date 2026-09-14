@@ -11,7 +11,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt && \
     pip install --no-cache-dir --no-deps paddleocr==2.8.1
 
-COPY main.py .
+COPY main.py ocr_markdown.py ./
 
 # Pre-download PP-OCRv4 Chinese/English and Traditional Chinese models
 RUN python -c "import main; main.get_engine('ch'); main.get_engine('chinese_cht')"

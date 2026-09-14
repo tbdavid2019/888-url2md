@@ -75,6 +75,23 @@ describe('OcrClientService: Multi-endpoint cluster & anti-thundering-herd logic'
         assert.equal(res2.markdown, '純文字辨識結果');
     });
 
+    it('preserves full markdown while exposing the isolated table markdown', () => {
+        const service = createService();
+        const fullMarkdown = '圖片網址\n\n| 項目 | 數值 |\n| :--- | :--- |\n| A | 100 |\n\n尚未發布';
+        const tableMarkdown = '| 項目 | 數值 |\n| :--- | :--- |\n| A | 100 |';
+
+        const result = service.formatOcrResponse({
+            markdown: fullMarkdown,
+            tableMarkdown,
+            tables: [tableMarkdown],
+            lines: [],
+        }, 'https://ocr.aiurl.tw');
+
+        assert.equal(result.markdown, fullMarkdown);
+        assert.equal(result.tableMarkdown, tableMarkdown);
+        assert.deepEqual(result.tables, [tableMarkdown]);
+    });
+
     it('guarantees Single-Flight promise coalescing during concurrent node probes', async () => {
         const service = createService();
         service.loadConfiguration(['https://ocr.mock.local']);

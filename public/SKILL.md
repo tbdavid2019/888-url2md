@@ -100,7 +100,7 @@ async function insertOcrTableIntoBlockNote(editor: BlockNoteEditor, imageBlob: B
     body: formData
   }).then(r => r.json());
 
-  // res.data.tableMarkdown or res.data.tables[0] contains the isolated GFM table
+  // data.markdown keeps full OCR; use tableMarkdown/tables[0] for the isolated table
   const markdownTable = res?.data?.tableMarkdown || res?.data?.tables?.[0] || res?.data?.markdown || res.markdown;
   const blocks = await editor.tryParseMarkdownToBlocks(markdownTable);
   editor.insertBlocks(blocks, editor.getTextCursorPosition().block, 'after');
@@ -114,6 +114,7 @@ async function insertOcrTableIntoBlockNote(editor: BlockNoteEditor, imageBlob: B
   Returns structured JSON object:
   - For standard crawler: `data` array with extracted pages.
   - For `/api/ocr`: `data.markdown` (full document), `data.tableMarkdown` (isolated clean GFM table), `data.tables` (isolated tables array), `data.text`, and `data.lines`.
+  - `data.tableMarkdown` is `null` when no table is detected. In `mode=table`, no-table input returns an empty Markdown body instead of full OCR text.
   ```json
   {
     "code": 200,
