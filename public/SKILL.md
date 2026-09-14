@@ -69,6 +69,7 @@ If you are an LLM or AI Agent accessing this service for the first time:
   }
   ```
   *Supported Formats*: PNG, JPG, JPEG, WEBP, BMP, GIF.
+  *Upload Size Limit*: Up to 50MB per file (supports ultra-high resolution screenshots, multi-megapixel scans, and uncompressed PNGs; reverse proxy configured for 50MB, internal engine up to 100MB).
   *Optional Query Parameters*:
     - `lang`: `ch` (default, PP-OCRv4 bilingual Chinese & English) or `chinese_cht` (Traditional Chinese).
     - `use_angle_cls`: `true` (default) / `false` (orientation angle auto-detection).

@@ -70,6 +70,7 @@ curl -s -X POST "https://<HOST>/api/ocr" -H "Accept: application/json" -F "file=
 # Pure Frontend / SPA Direct Access (CORS Enabled):
 # Pure browser applications (React, Vue, Vite, Next.js, BlockNote editors) can fetch('https://<HOST>/api/ocr')
 # directly without a backend proxy, receiving ready-to-render Markdown tables or cell coordinate JSON.
+# Max upload payload: 50MB per request (supports high-res retina PNG screenshots and document scans).
 ```
 
 ### 5. Adaptive Structured Extraction and Deep Crawl

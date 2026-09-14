@@ -2,6 +2,19 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.09.14.10] - 2026-09-14 - 修復 Nginx 反向代理上傳限制 (HTTP 413) 擴充至 50MB 並同步全量文件規格 (Fix Nginx 413 Upload Limit to 50MB and Sync Documentation Across All Endpoints)
+
+### 🐛 Bug Fixes & Infrastructure
+- **修復 Nginx 反向代理 413 Request Entity Too Large 限制**：
+  - 診斷出線上反向代理（Nginx）預設 `client_max_body_size` 僅 1MB，導致高解析度截圖（如 1.83 MB PNG 表格圖片）在入口層被 Nginx 攔截並回傳 413 錯誤。
+  - 三台生產主機（`2md.aiurl.tw`、`create360.ai`、`2md.glsoft.ai`）之 Nginx 設定全量擴充 `client_max_body_size 50M;` 並重載生效。
+  - 成功以 1.7 MB (1.83 MB uncompressed) 原始 PNG 表格截圖實測三台主機，全數正確通過入口層並產出完整 GFM 表格 Markdown。
+
+### 📚 Documentation & Developer Experience
+- **全量同步 50MB 上傳大小規格與文件更新**：
+  - 於 `README.md`（中英文雙區塊）、`public/SKILL.md`、`public/llms.txt`、`public/llms-full.txt` 及 `src/api/crawler.ts` 動態端點明確註明單檔上傳上限為 50MB（支援超高解析度截圖與多頁掃描 PDF）。
+- **`package.json`**：版本號遞增至 `2026.09.14.10`。
+
 ## [2026.09.14.9] - 2026-09-14 - 全面同步純前端 CORS 支援、2D 表格重構與 BlockNote 編輯器整合規格至 SKILL.md 與 llms.txt (Pure Frontend CORS, 2D Table Reconstruction & BlockNote Integration Documentation Sync)
 
 ### 📚 Documentation & Developer Experience

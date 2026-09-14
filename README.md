@@ -381,13 +381,16 @@ LLM 應每 2–5 秒以 `GET /jobs/{data.id}` 搭配 `X-Job-Token: {data.accessT
 當配置 `OCR_SERVICE_URLS` 且叢集節點在線時，可直接辨識圖片並轉譯為乾淨 Markdown：
 
 #### **A. 透過 API 辨識本機圖片 (`POST /api/ocr` 或 `POST /v1/ocr`)**
+- **檔案大小限制**：最高支援 **50MB** 上傳（支援視網膜超高解析度 PNG 截圖、多百萬畫素掃描件與長圖；Nginx 與後端微服務均已配置 50MB 傳輸通道）。
+- **純前端直連 (CORS)**：已全域啟用 CORS，前端 SPA（React, Vue, Vite, Next.js, BlockNote 編輯器）可直接在瀏覽器以 `fetch` 呼叫。
+
 ```bash
-# 上傳本機圖片檔並直接取得乾淨 Markdown (Accept: text/plain)
+# 上傳本機圖片檔並直接取得乾淨 Markdown (Accept: text/plain 或 Accept: text/markdown)
 curl -X POST "https://create360.ai/api/ocr" \
   -H "Accept: text/plain" \
   -F "file=@screenshot.png"
 
-# 取得包含每一行座標 (box) 與信心度之 JSON 結果 (Accept: application/json)
+# 取得包含每一行座標 (box)、信心度與重建 GFM 表格 Markdown 之 JSON 結果 (Accept: application/json)
 curl -X POST "https://create360.ai/api/ocr" \
   -H "Accept: application/json" \
   -F "file=@invoice.jpg"
@@ -959,13 +962,16 @@ When architecting AI Agents, RAG ingestion pipelines, or LLM web tools, engineer
 When `OCR_SERVICE_URLS` is configured and at least one node is online:
 
 #### **A. OCR via API (`POST /api/ocr` or `POST /v1/ocr`)**
+- **Upload Size Limit**: Up to **50MB** per file (supports ultra-high resolution retina PNG screenshots, multi-megapixel document scans, and raw photos; reverse proxy configured for 50MB).
+- **Pure Frontend Direct Access (CORS)**: Full CORS enabled (`Access-Control-Allow-Origin: *`, credentials, preflight OPTIONS); browser SPAs (React, Vue, Vite, BlockNote editor) can invoke directly via `fetch`.
+
 ```bash
 # Upload an image and receive clean Markdown
 curl -X POST "https://create360.ai/api/ocr" \
   -H "Accept: text/plain" \
   -F "file=@screenshot.png"
 
-# Return structured JSON with bounding boxes and confidence scores
+# Return structured JSON with bounding boxes, confidence scores, and reconstructed GFM table
 curl -X POST "https://create360.ai/api/ocr" \
   -H "Accept: application/json" \
   -F "file=@invoice.jpg"

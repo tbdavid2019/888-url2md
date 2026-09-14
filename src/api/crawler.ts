@@ -332,6 +332,7 @@ If you are an LLM or AI Agent accessing this service for the first time:
   }
   \`\`\`
   *Supported Formats*: PNG, JPG, JPEG, WEBP, BMP, GIF.
+  *Upload Size Limit*: Up to 50MB per file (supports ultra-high resolution screenshots, multi-megapixel scans, and uncompressed PNGs; reverse proxy configured for 50MB, internal engine up to 100MB).
   *Optional Query Parameters*:
     - \`lang\`: \`ch\` (default, PP-OCRv4 bilingual Chinese & English) or \`chinese_cht\` (Traditional Chinese).
     - \`use_angle_cls\`: \`true\` (default) / \`false\` (orientation angle auto-detection).
@@ -544,6 +545,7 @@ curl -s -X POST "${baseDomain}/api/ocr" -H "Accept: application/json" -F "file=@
 # Pure Frontend / SPA Direct Access (CORS Enabled):
 # Pure browser applications (React, Vue, Vite, Next.js, BlockNote editors) can fetch('${baseDomain}/api/ocr')
 # directly without a backend proxy, receiving ready-to-render Markdown tables or cell coordinate JSON.
+# Max upload payload: 50MB per request (supports high-res retina PNG screenshots and document scans).
 \`\`\`
 
 ## Optional Customization Headers
