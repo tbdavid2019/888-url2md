@@ -40,7 +40,7 @@ import {
     ServiceDisabledError,
     ServiceNodeResourceDrainError,
 } from '../services/errors';
-import { OcrClientService } from '../services/ocr-client';
+import { OcrClientService, selectOcrMarkdown } from '../services/ocr-client';
 
 import { countGPTToken as estimateToken } from '../utils/openai';
 import { ProxyProviderService } from '../services/proxy-provider';
@@ -2668,7 +2668,7 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
             };
         }
 
-        const responseMarkdown = (isTableMode && tableMarkdown) ? tableMarkdown : result.markdown;
+        const responseMarkdown = selectOcrMarkdown(result.markdown, tableMarkdown, isTableMode);
         return assignTransferProtocolMeta(responseMarkdown, {
             contentType: 'text/markdown; charset=utf-8',
             envelope: null,

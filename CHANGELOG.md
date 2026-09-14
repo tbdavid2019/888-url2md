@@ -2,6 +2,14 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.09.14.15] - 2026-09-14 - 修正 Gateway 表格專用模式全文回退 (Prevent Gateway Fallback to Full OCR in Strict Table Mode)
+
+### Fixed
+- 修正 TypeScript gateway 在 `mode=table` 且 `tableMarkdown` 為空時，錯誤退回 `result.markdown` 的問題。
+- `/api/ocr` 與 `/v1/ocr` 的純文字表格專用回應現在會在無表格時回傳空字串，完整 OCR 只保留在標準模式。
+- 新增 gateway 層回歸測試，防止 Python OCR 層修正後又被上層 fallback 覆蓋。
+- `package.json` version updated to `2026.09.14.15`.
+
 ## [2026.09.14.14] - 2026-09-14 - OCR 純表格模式嚴格回傳與重構器回歸測試 (Strict OCR Table-Only Output and Reconstruction Regression Tests)
 
 ### Fixed

@@ -38,6 +38,18 @@ export interface OcrPredictOptions {
     mode?: string;
 }
 
+/**
+ * Select the body for an OCR Markdown response without falling back from
+ * strict table mode to full OCR text when no table was detected.
+ */
+export function selectOcrMarkdown(
+    fullMarkdown: string,
+    tableMarkdown: string | null | undefined,
+    tableOnly: boolean,
+): string {
+    return tableOnly ? (tableMarkdown || '') : fullMarkdown;
+}
+
 export interface OcrClusterStatus {
     available: boolean;
     configured: boolean;

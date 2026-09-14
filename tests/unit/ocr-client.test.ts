@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { OcrClientService } from '../../build/services/ocr-client.js';
+import { OcrClientService, selectOcrMarkdown } from '../../build/services/ocr-client.js';
 
 describe('OcrClientService: Multi-endpoint cluster & anti-thundering-herd logic', () => {
     const createService = () => {
@@ -90,6 +90,12 @@ describe('OcrClientService: Multi-endpoint cluster & anti-thundering-herd logic'
         assert.equal(result.markdown, fullMarkdown);
         assert.equal(result.tableMarkdown, tableMarkdown);
         assert.deepEqual(result.tables, [tableMarkdown]);
+    });
+
+    it('does not fall back to full OCR in strict table mode', () => {
+        assert.equal(selectOcrMarkdown('圖片網址\n\n尚未發布', null, true), '');
+        assert.equal(selectOcrMarkdown('完整 OCR', null, false), '完整 OCR');
+        assert.equal(selectOcrMarkdown('完整 OCR', '| A | B |', true), '| A | B |');
     });
 
     it('guarantees Single-Flight promise coalescing during concurrent node probes', async () => {

@@ -67,7 +67,7 @@ curl -s -X POST "https://<HOST>/api/ocr" -H "Accept: text/plain" -F "file=@scree
 # Get structured JSON: data.markdown is full OCR; data.tableMarkdown/data.tables[0] are isolated tables (or null/empty when absent)
 curl -s -X POST "https://<HOST>/api/ocr" -H "Accept: application/json" -F "file=@screenshot.png"
 
-# Table-only mode: Strip outer UI chrome/footers and return ONLY the GFM table
+# Table-only mode: Strip outer UI chrome/footers and return ONLY the GFM table; no-table input returns an empty body
 curl -s -X POST "https://<HOST>/api/ocr?mode=table" -H "Accept: text/markdown" -F "file=@screenshot.png"
 
 # Pure Frontend / SPA Direct Access (CORS Enabled):

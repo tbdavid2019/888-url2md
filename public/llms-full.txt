@@ -92,7 +92,7 @@
 - **Optional Query Parameters**:
   - `lang`: `ch` (default, PP-OCRv4 bilingual Chinese & English) or `chinese_cht` (Traditional Chinese).
   - `use_angle_cls`: `true` (default) / `false` (orientation angle auto-detection).
-  - `mode`: `table` (isolates and returns ONLY the reconstructed table, stripping editor chrome/footers).
+  - `mode`: `table` (isolates and returns ONLY the reconstructed table, stripping editor chrome/footers; no-table input returns an empty body).
   - `table_only`: `true` (alias for `mode=table`).
 - **2D Spatial Table Reconstruction & Isolated Tables**:
   The OCR engine clusters 2D bounding boxes and detects horizontal and vertical gutters in tabular data, outputting clean, ready-to-render GitHub-Flavored Markdown (GFM) tables directly (`| Header 1 | Header 2 |...`). JSON responses keep full OCR in `data.markdown` and expose `data.tableMarkdown` (isolated clean table string) plus `data.tables` (an array of isolated table strings). `tableMarkdown` is `null` when no table is detected.

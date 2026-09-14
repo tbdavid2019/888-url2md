@@ -396,7 +396,7 @@ curl -X POST "https://create360.ai/api/ocr" \
   -F "file=@invoice.jpg"
 # 注意：data.markdown 保留完整 OCR；BlockNote 等編輯器請優先使用 data.tableMarkdown，未偵測到表格時為 null。
 
-# 表格專用模式 (mode=table)：徹底過濾外圍編輯器外框、圖片網址與頁尾狀態列，僅回傳純淨 GFM 表格
+# 表格專用模式 (mode=table)：僅回傳純淨 GFM 表格；未偵測到表格時回傳空字串，不回退全文 OCR
 curl -X POST "https://create360.ai/api/ocr?mode=table" \
   -H "Accept: text/markdown" \
   -F "file=@table-screenshot.png"
@@ -983,7 +983,7 @@ curl -X POST "https://create360.ai/api/ocr" \
   -F "file=@invoice.jpg"
 # Note: data.markdown preserves full OCR content. Editors such as BlockNote should use data.tableMarkdown first; it is null when no table is detected.
 
-# Table-only mode (mode=table): Strips outer UI chrome, sidebar links, and footers, returning ONLY the pure GFM table
+# Table-only mode (mode=table): Returns ONLY the pure GFM table; no-table input returns an empty body instead of full OCR
 curl -X POST "https://create360.ai/api/ocr?mode=table" \
   -H "Accept: text/markdown" \
   -F "file=@table-screenshot.png"
