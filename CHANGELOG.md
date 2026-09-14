@@ -2,14 +2,18 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
-## [2026.09.14.16] - 2026-09-14 - 提升 OCR 推論與健康檢查超時門檻至 30 秒 (Increase OCR Inference Timeout to 30s and Health Check to 6s)
+## [2026.09.14.16] - 2026-09-14 - 建立 OCR 自動重試、自我修復與 30 秒彈性逾時機制 (OCR Automatic Retry, Self-Healing Resilience & 30s Timeout)
 
 ### Fixed & Hardened
+- **引進節點內自動重試機制（Auto-Retry with Jittered Backoff）**：
+  - 針對瞬態網路抖動、連線重置（ECONNRESET/fetch failed）、逾時（TimeoutError）或上游 502/503/504 暫時性錯誤，自動在同一節點執行最多 2 次平滑重試（包含 400~600ms 指數隨機退避），不再因單次瞬態延遲直接失敗。
+- **漸進式熔斷冷卻（Progressive Circuit Breaker）**：
+  - 首次異常時僅設定 5 秒短暫觀察冷卻（5000ms），連續 2 次以上失敗才升級至 30 秒冷卻；推論成功立即重置失敗次數與冷卻狀態，徹底消除單一偶發毛刺引發長時間服務中斷的問題。
 - **提升推論逾時上限至 30 秒 (`timeoutMs: 30000`)**：
-  - 先前預設的 10 秒（`10000ms`）超時在伺服器高負載（如並行執行爬蟲渲染）或網路抖動時，會導致大型高解析度圖片因超過 10 秒而被客戶端強行中止並拋出 `AssertionFailureError: Failed to process OCR request. Please check the image format or try again later. (The operation was aborted due to timeout)`。
-  - 將預設超時從 10 秒調整為 30 秒（`timeoutMs: 30000`），並支援以環境變數 `OCR_TIMEOUT_MS` 自行覆寫。
+  - 先前預設的 10 秒（`10000ms`）超時在伺服器高負載（如並行執行爬蟲渲染）時，會導致大型高解析度圖片因超過 10 秒而被客戶端強行中止並拋出 `AssertionFailureError`。
+  - 將預設超時調整為 30 秒，並支援以環境變數 `OCR_TIMEOUT_MS` 覆寫。
 - **提升健康檢查超時至 6 秒 (`healthTimeoutMs: 6000`)**：
-  - 避免在短暫 CPU 峰值期間健康探測過早超時判定節點離線而觸發熔斷冷卻。
+  - 避免在短暫 CPU 峰值期間健康探測過早超時判定節點離線。
 - **`package.json`**：版本號遞增至 `2026.09.14.16`。
 
 ## [2026.09.14.15] - 2026-09-14 - 修正 Gateway 表格專用模式全文回退 (Prevent Gateway Fallback to Full OCR in Strict Table Mode)

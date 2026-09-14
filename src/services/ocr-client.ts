@@ -314,12 +314,16 @@ export class OcrClientService extends AsyncService {
             try {
                 const result = await this.executePredictOnNode(node, image, fileName, options);
                 result.durationMs = Date.now() - totalT0;
+                node.healthy = true;
+                node.cooldownUntil = 0;
+                node.consecutiveFailures = 0;
                 return result;
             } catch (err: any) {
                 lastError = err;
-                // Trigger circuit breaker cooldown on the failed node
-                node.cooldownUntil = Date.now() + this.cooldownMs;
+                // Progressive cooldown: 5s on first incident, 30s on repeated failure
                 node.consecutiveFailures++;
+                const backoffMs = node.consecutiveFailures >= 2 ? this.cooldownMs : 5000;
+                node.cooldownUntil = Date.now() + backoffMs;
                 this.logger.warn(`OCR request failed on node ${node.url}, falling back to next node...`, {
                     node: node.url,
                     err: err?.message || err,
@@ -378,12 +382,41 @@ export class OcrClientService extends AsyncService {
             headers['X-API-Key'] = this.secretKey;
         }
 
-        const resp = await fetch(ocrUrlObj.toString(), {
-            method: 'POST',
-            headers,
-            body: formData,
-            signal: AbortSignal.timeout(this.timeoutMs),
-        });
+        let lastFetchError: any;
+        let resp: Response | undefined;
+        const maxAttempts = 2;
+
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                resp = await fetch(ocrUrlObj.toString(), {
+                    method: 'POST',
+                    headers,
+                    body: formData,
+                    signal: AbortSignal.timeout(this.timeoutMs),
+                });
+                if (resp.status >= 502 && resp.status <= 504 && attempt < maxAttempts) {
+                    const delay = 400 + Math.random() * 200;
+                    this.logger.warn(`OCR upstream returned transient HTTP ${resp.status} on attempt ${attempt}, auto-retrying in ${Math.round(delay)}ms...`);
+                    await new Promise((r) => setTimeout(r, delay));
+                    continue;
+                }
+                break;
+            } catch (fetchErr: any) {
+                lastFetchError = fetchErr;
+                const isTimeoutOrNetwork = /timeout|aborted|econnreset|fetch failed|econnrefused/i.test(fetchErr?.message || String(fetchErr));
+                if (attempt < maxAttempts && isTimeoutOrNetwork) {
+                    const delay = 400 + Math.random() * 200;
+                    this.logger.warn(`OCR network/timeout error on attempt ${attempt} (${fetchErr?.message || fetchErr}), auto-retrying in ${Math.round(delay)}ms...`);
+                    await new Promise((r) => setTimeout(r, delay));
+                    continue;
+                }
+                throw fetchErr;
+            }
+        }
+
+        if (!resp) {
+            throw lastFetchError || new Error('Failed to obtain OCR response');
+        }
 
         if (!resp.ok) {
             const errBody = await resp.text().catch(() => '');
