@@ -18,7 +18,7 @@ cd /home/david/paddleocr-service
 docker compose up -d --build
 
 # 3. 驗證服務運行狀態
-curl http://localhost:8088/health
+curl http://localhost:8089/health
 # 預期回傳：{"status":"ok","service":"paddleocr","lang":"chinese_cht",...}
 ```
 
@@ -27,7 +27,7 @@ curl http://localhost:8088/health
 ### 二、 外部網路與 Cloudflare 橘雲配置
 
 1. **防火牆 / NAT 映射**：
-   - 將外網 IP `60.248.142.126` 的 TCP `8088`（或透過 Nginx 反向代理至 `80/443`）對應至內網 `10.9.0.9:8088`。
+   - 將外網 IP `60.248.142.126` 的 TCP `8088`（或透過 Nginx 反向代理至 `80/443`）對應至內網 `10.9.0.9:8089`。
 2. **Cloudflare DNS**：
    - 設定 A 記錄 `ocr.aiurl.tw` 指向 `60.248.142.126`，開啟橘雲（Proxied）。
 3. **驗證公開端點**：

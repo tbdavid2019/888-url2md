@@ -2,6 +2,17 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.09.14.2] - 2026-09-14 - PaddleOCR 官方映像檔對標、CI/CD 自動打包與端口衝突收斂 (PaddleOCR Official Image Alignment, CI/CD Packaging & Port Convergence)
+
+### 🚀 Enhancements & Operations
+- **官方映像檔對標與推論穩定化**：將 `deploy/ocr/Dockerfile` 升級對標官方 `paddlepaddle/paddle:2.6.2` 基礎映像檔，內建最佳化 C++ runtime 與 Intel MKL 支援，徹底消除 Debian 13 (Trixie) 函式庫衝突與 `inflateReset2` 記憶體區段錯誤（Segmentation fault）。
+- **依賴套件精簡與零回溯解析**：移除與單純推論無關之冗餘依賴（如訓練用 `albumentations`、PyTorch 綁定之 `albucore` 等），以 `--no-deps` 載入 `paddleocr==2.8.1`，實現秒級套件下載與確定性構建。
+- **端口衝突收斂與 Watchtower 自動化標籤**：將 `deploy/ocr/docker-compose.yml` 容器對外端口調整為 `8089:8088`，避免與 Host 1 (`10.9.0.9`) 現有 `open-webui` (8088) 發生端口衝突；加入 `com.centurylinklabs.watchtower.enable=true` 標籤，納入既有 Watchtower 零停機滾動更新體系。
+- **持續對標官方更新工作流**：
+  - 新增 GitHub Actions 工作流 `.github/workflows/ocr-image.yml`，排程每週日 03:00 UTC（或變更時）自動建置並發布至 `ghcr.io/tbdavid2019/888-ocr:latest`。
+  - 新增本機自動維護腳本 `deploy/ocr/update.sh`，支援一鍵拉取更新、重建與自我健康檢查。
+- **實機 Live 驗證成功**：`10.9.0.9` 成功啟動 `paddleocr-server` 容器，`/health` 端點回傳 200，單張繁體中文圖片推論耗時 107ms，順利完成端到端驗證。
+
 ## [2026.09.14.1] - 2026-09-14 - PaddleOCR 繁體中文圖片辨識與高可用容錯叢集 (PaddleOCR Traditional Chinese Image-to-Markdown & Resilient Cluster)
 
 ### 🚀 Enhancements

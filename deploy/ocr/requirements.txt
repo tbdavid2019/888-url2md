@@ -1,10 +1,22 @@
 # PaddleOCR FastAPI Microservice Dependencies
-# CPU inference with PaddlePaddle 2.6.2 and PaddleOCR
-paddlepaddle==2.6.2
-paddleocr>=2.8.1
+# Base image paddlepaddle/paddle:2.6.2 already provides paddlepaddle 2.6.2 & numpy
+opencv-python-headless==4.10.0.84
 fastapi>=0.115.0
 uvicorn[standard]>=0.30.0
 python-multipart>=0.0.9
 pydantic>=2.7.0
 numpy<2.0.0
 pillow>=10.2.0
+pyyaml
+shapely
+pyclipper
+rapidfuzz
+lmdb
+tqdm
+requests
+scikit-image
+lazy_loader
+scipy
+imgaug
+imageio
+packaging

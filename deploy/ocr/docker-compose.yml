@@ -1,15 +1,15 @@
-version: '3.8'
-
 services:
   paddleocr:
     build:
       context: .
       dockerfile: Dockerfile
-    image: paddleocr-server:latest
+    image: ghcr.io/tbdavid2019/888-ocr:latest
     container_name: paddleocr-server
     restart: unless-stopped
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
     ports:
-      - "8088:8088"
+      - "8089:8088"
     environment:
       - PORT=8088
       - OCR_LANG=chinese_cht

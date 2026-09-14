@@ -22,7 +22,10 @@ app = FastAPI(
 # Initialize PaddleOCR engine
 # Note: ch_PP-OCRv4 supports Traditional & Simplified Chinese.
 print(f"[*] Initializing PaddleOCR with lang={DEFAULT_LANG}...")
-ocr_engine = PaddleOCR(use_angle_cls=True, lang=DEFAULT_LANG, show_log=False)
+try:
+    ocr_engine = PaddleOCR(use_angle_cls=True, lang=DEFAULT_LANG, show_log=False)
+except Exception:
+    ocr_engine = PaddleOCR(lang=DEFAULT_LANG)
 print("[+] PaddleOCR initialized successfully.")
 
 
