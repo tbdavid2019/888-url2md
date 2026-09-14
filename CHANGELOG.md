@@ -2,6 +2,16 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.09.14.16] - 2026-09-14 - 提升 OCR 推論與健康檢查超時門檻至 30 秒 (Increase OCR Inference Timeout to 30s and Health Check to 6s)
+
+### Fixed & Hardened
+- **提升推論逾時上限至 30 秒 (`timeoutMs: 30000`)**：
+  - 先前預設的 10 秒（`10000ms`）超時在伺服器高負載（如並行執行爬蟲渲染）或網路抖動時，會導致大型高解析度圖片因超過 10 秒而被客戶端強行中止並拋出 `AssertionFailureError: Failed to process OCR request. Please check the image format or try again later. (The operation was aborted due to timeout)`。
+  - 將預設超時從 10 秒調整為 30 秒（`timeoutMs: 30000`），並支援以環境變數 `OCR_TIMEOUT_MS` 自行覆寫。
+- **提升健康檢查超時至 6 秒 (`healthTimeoutMs: 6000`)**：
+  - 避免在短暫 CPU 峰值期間健康探測過早超時判定節點離線而觸發熔斷冷卻。
+- **`package.json`**：版本號遞增至 `2026.09.14.16`。
+
 ## [2026.09.14.15] - 2026-09-14 - 修正 Gateway 表格專用模式全文回退 (Prevent Gateway Fallback to Full OCR in Strict Table Mode)
 
 ### Fixed

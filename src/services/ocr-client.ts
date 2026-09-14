@@ -69,8 +69,8 @@ export class OcrClientService extends AsyncService {
 
     protected nodes: OcrNodeState[] = [];
     protected secretKey?: string;
-    protected timeoutMs: number = 10000;
-    protected healthTimeoutMs: number = 2000;
+    protected timeoutMs: number = 30000;
+    protected healthTimeoutMs: number = 6000;
     protected pollIntervalMs: number = 30000;
     protected jitterMs: number = 3000;
     protected cooldownMs: number = 30000;
