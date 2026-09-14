@@ -2,6 +2,25 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.09.14.1] - 2026-09-14 - PaddleOCR 繁體中文圖片辨識與高可用容錯叢集 (PaddleOCR Traditional Chinese Image-to-Markdown & Resilient Cluster)
+
+### 🚀 Enhancements
+- **OcrClientService 高可用叢集支援**：新增 `OcrClientService`，支援多節點容錯備援池（`OCR_SERVICE_URLS`，如 `https://ocr.aiurl.tw,https://ocr2.aiurl.tw`）。當主節點發生連線中斷或 5xx 錯誤時，系統自動無縫重試下一個備援節點。
+- **防驚群效應設計（Anti-Thundering Herd）**：
+  - **Single-Flight 請求合併**：多個並發探測或請求共用同一個 Promise 鎖，避免同時擊穿後端 OCR 節點。
+  - **隨機抖動背景輪詢（Jittered Probing）**：以配置的間隔（預設 30s ± 3s Jitter）背景探測 `/health` 端點，完全錯開多台主機的輪詢週期。
+  - **熔斷冷卻期（Circuit Breaker Cooldown）**：失敗節點自動進入 30 秒冷卻期，防止備援節點遭遇突發流量壓垮。
+- **圖片抽取優先整合**：於 `BinaryExtractorService` 整合 `OcrClientService`。當 OCR 節點在線時，圖片文件優先使用 PaddleOCR 進行文字與表格結構抽取；離線或無文字時自動優雅降級至 VLM。
+- **專屬 API 端點**：
+  - `GET /api/capabilities` 與 `GET /api/ocr/status`：查詢即時服務能力與節點池健康延遲。
+  - `POST /api/ocr` 與 `POST /v1/ocr`：支援圖片檔案（`multipart/form-data`）或 Base64 提交，直接回傳乾淨 Markdown 或結構化 JSON。
+- **前端動態第四功能頁籤（UI Tab 4）**：
+  - 首頁新增 `[ 🖼️ 圖片辨識 (OCR) ]` 功能，支援檔案拖曳、點擊選擇、以及全域截圖貼上（Ctrl+V / Cmd+V）。
+  - 動態特性探測：若檢測到 OCR 節點在線則自動顯示該頁籤；所有節點離線時乾淨隱藏，不干擾使用者。
+  - 完整繁體中文（Traditional Chinese）與英文雙語 i18n 介面。
+- **獨立 PaddleOCR 微服務範本（`deploy/ocr/`）**：
+  - 提供專為 `10.9.0.9`（Intel i9-10900）設計的 FastAPI + PaddleOCR（`chinese_cht` 繁體中文與方向角校正）容器化部署檔案（`Dockerfile`, `docker-compose.yml`, `main.py`, `README.md`）。
+
 ## [2026.09.12.1] - 2026-09-12 - Docker CI/CD Smoke Deployment Note (Docker CI/CD Smoke Deployment Note)
 
 ### 📝 Documentation

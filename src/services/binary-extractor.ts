@@ -19,6 +19,7 @@ import { stat } from 'fs/promises';
 import { JSDomControl } from './jsdom';
 import { AnyDocService } from './anydoc';
 import { MagikaService, selectContentTypeFromMagika } from './magika';
+import { OcrClientService } from './ocr-client';
 
 @singleton()
 export class BinaryExtractorService extends AsyncService {
@@ -35,6 +36,7 @@ export class BinaryExtractorService extends AsyncService {
         protected jsdomControl: JSDomControl,
         protected anyDocService: AnyDocService,
         protected magikaService: MagikaService,
+        protected ocrClientService: OcrClientService,
     ) {
         super(...arguments);
     }
@@ -442,21 +444,37 @@ export class BinaryExtractorService extends AsyncService {
             const resized = this.canvasService.fitImageToBox(img, viewPort?.width || 1024, viewPort?.height || 1024);
             const imageBuff = await this.canvasService.canvasToBuffer(resized);
 
-            // const altText = await this.altTextService.getAltText({
-            //     src: url.href,
-            //     buff: imageBuff,
-            // }, 'jina-vlm');
-            const altText = await this.altTextService.vqa(imageBuff, this.asyncLocalContext.get('instruction'), 'jina-vlm');
+            let extractedContent = '';
+            let ocrUsed = false;
 
-            snapshot.text = altText || '';
+            if (this.ocrClientService.isAvailable()) {
+                try {
+                    const ocrRes = await this.ocrClientService.predict(imageBuff, fileName);
+                    if (ocrRes.markdown && ocrRes.markdown.trim()) {
+                        extractedContent = ocrRes.markdown.trim();
+                        ocrUsed = true;
+                    }
+                } catch (ocrErr) {
+                    this.logger.warn(`OCR extraction failed, falling back to VLM`, { ocrErr, fileName });
+                }
+            }
+
+            if (!extractedContent) {
+                extractedContent = await this.altTextService.vqa(imageBuff, this.asyncLocalContext.get('instruction'), 'jina-vlm') || '';
+            }
+
+            snapshot.text = extractedContent;
             snapshot.parsed = {
-                content: altText || '',
-                textContent: altText || '',
+                content: extractedContent,
+                textContent: extractedContent,
             };
             snapshot.screenshot = imageBuff;
-            snapshot.html = `<html style="height: 100%;"><head><meta name="viewport" content="width=device-width, minimum-scale=0.1"><title>${fileName}</title></head><body style="margin: 0px; height: 100%; background-color: rgb(14, 14, 14);"><p>${altText}</p></body></html>`;
+            snapshot.html = `<html style="height: 100%;"><head><meta name="viewport" content="width=device-width, minimum-scale=0.1"><title>${fileName}</title></head><body style="margin: 0px; height: 100%; background-color: rgb(14, 14, 14);"><p>${extractedContent}</p></body></html>`;
 
             snapshot.traits!.push('image');
+            if (ocrUsed) {
+                snapshot.traits!.push('ocr');
+            }
 
             return snapshot;
         }

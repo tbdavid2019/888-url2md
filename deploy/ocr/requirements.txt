@@ -1,0 +1,10 @@
+# PaddleOCR FastAPI Microservice Dependencies
+# CPU inference with PaddlePaddle 2.6.2 and PaddleOCR
+paddlepaddle==2.6.2
+paddleocr>=2.8.1
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+python-multipart>=0.0.9
+pydantic>=2.7.0
+numpy<2.0.0
+pillow>=10.2.0

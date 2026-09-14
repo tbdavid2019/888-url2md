@@ -37,8 +37,10 @@ import {
     BudgetExceededError,
     SecurityCompromiseError, ServiceBadApproachError, ServiceBadAttemptError,
     ServiceCrashedError,
+    ServiceDisabledError,
     ServiceNodeResourceDrainError,
 } from '../services/errors';
+import { OcrClientService } from '../services/ocr-client';
 
 import { countGPTToken as estimateToken } from '../utils/openai';
 import { ProxyProviderService } from '../services/proxy-provider';
@@ -134,6 +136,7 @@ export class CrawlerHost extends RPCHost {
         protected bogoSitesControl: BogoSitesControl,
         protected jobQueue: JobQueueService,
         protected adaptiveSelectorService: AdaptiveSelectorService,
+        protected ocrClientService: OcrClientService,
     ) {
         super(...arguments);
 
@@ -2484,6 +2487,116 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
             throw new AssertionFailureError(`Crawl job ${id} was not found or the X-Job-Token is invalid`);
         }
         return { id, resumed };
+    }
+
+    @Method({
+        name: 'getCapabilities',
+        description: 'Get server capabilities and feature status',
+        proto: {
+            http: {
+                action: 'get',
+                path: '/api/capabilities',
+            }
+        },
+        tags: ['misc'],
+        returnType: [Object],
+    })
+    @Method({
+        name: 'getOcrStatus',
+        description: 'Get OCR service status and node pool health',
+        proto: {
+            http: {
+                action: 'get',
+                path: '/api/ocr/status',
+            }
+        },
+        tags: ['ocr'],
+        returnType: [Object],
+    })
+    async getCapabilitiesCtrl() {
+        return {
+            ocr: this.ocrClientService.getStatus(),
+        };
+    }
+
+    @Method({
+        name: 'ocrImage',
+        description: 'Perform OCR and convert image to Markdown',
+        proto: {
+            http: {
+                action: 'post',
+                path: '/api/ocr',
+            }
+        },
+        tags: ['ocr'],
+        returnType: [RawString, Object],
+    })
+    @Method({
+        proto: {
+            http: {
+                action: 'post',
+                path: '/v1/ocr',
+            }
+        },
+        tags: ['ocr'],
+        returnType: [RawString, Object],
+    })
+    async ocrCtrl(
+        @RPCReflect() rpcReflect: RPCReflection,
+        @Ctx() ctx: Context,
+        @Param({ type: AUTH_DTO_CLS }) auth: BaseAuthDTO,
+        crawlerOptionsParamsAllowed: CrawlerOptions,
+    ) {
+        if (!this.ocrClientService.isAvailable()) {
+            throw new ServiceDisabledError('OCR service is currently offline or unreachable');
+        }
+
+        const rawFile = crawlerOptionsParamsAllowed.image || crawlerOptionsParamsAllowed.file || crawlerOptionsParamsAllowed.pdf;
+        if (!rawFile) {
+            throw new ParamValidationError({
+                message: 'No image file provided for OCR (expected multipart field "file" or "image")',
+                path: 'file',
+            });
+        }
+
+        let imageBuffer: Buffer;
+        let fileName: string = 'image.png';
+
+        if (rawFile instanceof FancyFile) {
+            fileName = (await rawFile.fileName) || 'image.png';
+            imageBuffer = await readFile(await rawFile.filePath);
+        } else if (typeof rawFile === 'string') {
+            if (rawFile.startsWith('data:')) {
+                const base64Data = rawFile.split(',')[1] || rawFile;
+                imageBuffer = Buffer.from(base64Data, 'base64');
+            } else {
+                imageBuffer = Buffer.from(rawFile, 'base64');
+            }
+        } else if (Buffer.isBuffer(rawFile)) {
+            imageBuffer = rawFile;
+        } else {
+            throw new ParamValidationError({
+                message: 'Invalid image format provided for OCR',
+                path: 'file',
+            });
+        }
+
+        const result = await this.ocrClientService.predict(imageBuffer, fileName);
+
+        if (!ctx.accepts('text/plain') && (ctx.accepts('text/json') || ctx.accepts('application/json'))) {
+            return {
+                text: result.text,
+                markdown: result.markdown,
+                lines: result.lines,
+                nodeUrl: result.nodeUrl,
+                durationMs: result.durationMs,
+            };
+        }
+
+        return assignTransferProtocolMeta(result.markdown, {
+            contentType: 'text/markdown; charset=utf-8',
+            envelope: null,
+        });
     }
 
     async getFinalSnapshot(url: URL, opts?: ExtraScrappingOptions, crawlerOptions?: CrawlerOptions): Promise<PageSnapshot | undefined> {

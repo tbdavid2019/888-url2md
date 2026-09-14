@@ -1,0 +1,30 @@
+version: '3.8'
+
+services:
+  paddleocr:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: paddleocr-server:latest
+    container_name: paddleocr-server
+    restart: unless-stopped
+    ports:
+      - "8088:8088"
+    environment:
+      - PORT=8088
+      - OCR_LANG=chinese_cht
+      - OMP_NUM_THREADS=4
+      # - OCR_SECRET_KEY=your_cluster_secret_token
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: '6.0'
+        reservations:
+          memory: 1G
+          cpus: '2.0'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8088/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3

@@ -44,6 +44,11 @@ Currently deployed at: [**create360.ai**](https://create360.ai) (or easily self-
   - 可選用 `contentFilter: "pruning"` 或 `"bm25"` 產生較精簡的 `fitMarkdown`。
   - 支援有上限的 BFS deep crawl、prefetch、session cookie 延續與 virtual scroll。
   - 長任務支援 `asyncJob`、進度查詢、取消與 HTTPS webhook。
+10. **PaddleOCR 繁體中文圖片辨識與高可用容錯叢集 (PaddleOCR & Failover Cluster)**
+  - 支援 `POST /api/ocr` 與首頁第 4 個專屬頁籤 `[ 🖼️ 圖片辨識 (OCR) ]`，支援直接上傳圖片或貼上截圖（Ctrl+V / Cmd+V）。
+  - **高可用備援池（Failover Pool）**：支援以逗號分隔多個節點（`OCR_SERVICE_URLS`，如 `https://ocr.aiurl.tw,https://ocr2.aiurl.tw`），主節點異常自動平滑故障轉移。
+  - **防驚群效應（Anti-Thundering Herd）**：內建 Single-Flight 請求合併、隨機抖動背景輪詢（Jittered Probing）與熔斷冷卻期（Circuit Breaker Cooldown）。
+  - **動態特性探測**：節點在線時自動點亮前端頁籤，全部離線時乾淨隱藏。
 
 ---
 
@@ -133,6 +138,11 @@ services:
 | `S3_LOG_ACCESS_KEY_ID` | (SRE 選填) S3 / R2 Access Key ID | 填入金鑰 |
 | `S3_LOG_SECRET_ACCESS_KEY` | (SRE 選填) S3 / R2 Secret Access Key | 填入金鑰 |
 | `S3_LOG_PREFIX` | (SRE 選填) 上傳路徑前綴 | `url2md-logs/` |
+| `OCR_SERVICE_URLS` | (選填) PaddleOCR 叢集端點（逗號分隔，依序容錯備援） | 範例：`https://ocr.aiurl.tw,https://ocr2.aiurl.tw` |
+| `OCR_TIMEOUT_MS` | (選填) 單次 OCR 請求逾時時間（毫秒） | `10000` (10 秒) |
+| `OCR_HEALTH_TIMEOUT_MS` | (選填) 單次健康檢查探測逾時（毫秒） | `2000` (2 秒) |
+| `OCR_POLL_INTERVAL_MS` | (選填) 背景探測間隔時間（毫秒） | `30000` (30 秒) |
+| `OCR_SECRET_KEY` | (選填) OCR 微服務 API Key（透過 `X-API-Key` 傳遞） | 自訂密鑰 |
 
 ---
 
@@ -362,6 +372,28 @@ LLM 應每 2–5 秒以 `GET /jobs/{data.id}` 搭配 `X-Job-Token: {data.accessT
 - **大文件 / 多頁深度爬取 (Deep Crawl)**：建議設定 **45 ~ 60 秒以上**，或啟用非同步任務模式 (`"asyncJob": true`) 搭配 Webhook，避免維持長連線 HTTP。
 - **退避與隨機抖動 (Exponential Backoff with Jitter)**：串接多爬蟲 Fallback 時，切勿在失敗時立即同時轉發，應加上隨機延遲（Jitter, 如 200ms ~ 800ms），打散請求洪峰。
 - **熔斷機制 (Circuit Breaker)**：若特定目標網站因停機或強烈反爬導致連續 Timeout，應觸發熔斷，避免源源不絕的請求衝垮最後的 Fallback 節點。
+
+### 1.11 圖片 OCR 與 Markdown 結構轉譯 (PaddleOCR Image-to-Markdown)
+
+當配置 `OCR_SERVICE_URLS` 且叢集節點在線時，可直接辨識圖片並轉譯為乾淨 Markdown：
+
+#### **A. 透過 API 辨識本機圖片 (`POST /api/ocr` 或 `POST /v1/ocr`)**
+```bash
+# 上傳本機圖片檔並直接取得乾淨 Markdown (Accept: text/plain)
+curl -X POST "https://create360.ai/api/ocr" \
+  -H "Accept: text/plain" \
+  -F "file=@screenshot.png"
+
+# 取得包含每一行座標 (box) 與信心度之 JSON 結果 (Accept: application/json)
+curl -X POST "https://create360.ai/api/ocr" \
+  -H "Accept: application/json" \
+  -F "file=@invoice.jpg"
+```
+
+#### **B. 查詢 OCR 叢集節點健康與狀態 (`GET /api/capabilities`)**
+```bash
+curl -s "https://create360.ai/api/capabilities" | jq .ocr
+```
 
 ---
 
@@ -602,6 +634,11 @@ Currently deployed at: [**create360.ai**](https://create360.ai) (or easily self-
    - Opt into `contentFilter: "pruning"` or `"bm25"` for compact `fitMarkdown`.
    - Supports bounded BFS deep crawling, prefetch, session cookies, and virtual scrolling.
    - Long-running crawls support `asyncJob`, progress polling, cancellation, and HTTPS webhooks.
+10. **PaddleOCR Traditional Chinese Image & Table Extraction (Failover Cluster)**
+   - High-accuracy OCR engine for Traditional Chinese (`chinese_cht`), English, and table structures via `POST /api/ocr` and Web UI Tab 4.
+   - **Multi-Node Failover Pool**: Define fallback endpoints with `OCR_SERVICE_URLS` (e.g. `https://ocr.aiurl.tw,https://ocr2.aiurl.tw`) with seamless in-flight retry.
+   - **Anti-Thundering-Herd Architecture**: Single-Flight promise coalescing, jittered background health probes, and 30-second circuit breaker cooldown.
+   - **Dynamic Feature Flagging**: The Web UI automatically shows Tab 4 when healthy OCR nodes exist, and hides it cleanly when offline.
 
 ---
 
@@ -688,6 +725,11 @@ services:
 | `S3_LOG_ACCESS_KEY_ID` | (SRE Optional) S3 / R2 Access Key ID | Set credential |
 | `S3_LOG_SECRET_ACCESS_KEY` | (SRE Optional) S3 / R2 Secret Access Key | Set credential |
 | `S3_LOG_PREFIX` | (SRE Optional) Upload path prefix | `url2md-logs/` |
+| `OCR_SERVICE_URLS` | (Optional) Comma-separated list of PaddleOCR endpoints for failover | e.g. `https://ocr.aiurl.tw,https://ocr2.aiurl.tw` |
+| `OCR_TIMEOUT_MS` | (Optional) Per-request OCR timeout in milliseconds | `10000` (10 seconds) |
+| `OCR_HEALTH_TIMEOUT_MS` | (Optional) Health check probe timeout in milliseconds | `2000` (2 seconds) |
+| `OCR_POLL_INTERVAL_MS` | (Optional) Background probing interval in milliseconds | `30000` (30 seconds) |
+| `OCR_SECRET_KEY` | (Optional) API key passed via `X-API-Key` header | Cluster secret |
 
 ---
 
@@ -904,6 +946,28 @@ When architecting AI Agents, RAG ingestion pipelines, or LLM web tools, engineer
 - **Large Documents / Bounded Deep Crawling**: Set timeout to **45s – 60s+**, or decouple via asynchronous background jobs (`"asyncJob": true`) with HTTPS webhooks.
 - **Exponential Backoff with Jitter**: When falling over between scrapers, introduce randomized jitter (e.g., 200ms – 800ms) rather than firing synchronized requests to the next tier.
 - **Circuit Breaker**: Implement domain-level circuit breakers when targets are down or rate-limiting to prevent stampeding downstream fallback nodes.
+
+### 1.11 Image OCR & Table-to-Markdown (PaddleOCR)
+
+When `OCR_SERVICE_URLS` is configured and at least one node is online:
+
+#### **A. OCR via API (`POST /api/ocr` or `POST /v1/ocr`)**
+```bash
+# Upload an image and receive clean Markdown
+curl -X POST "https://create360.ai/api/ocr" \
+  -H "Accept: text/plain" \
+  -F "file=@screenshot.png"
+
+# Return structured JSON with bounding boxes and confidence scores
+curl -X POST "https://create360.ai/api/ocr" \
+  -H "Accept: application/json" \
+  -F "file=@invoice.jpg"
+```
+
+#### **B. Cluster Capabilities & Node Health (`GET /api/capabilities`)**
+```bash
+curl -s "https://create360.ai/api/capabilities" | jq .ocr
+```
 
 ---
 

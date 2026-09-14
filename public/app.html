@@ -414,6 +414,9 @@
         <button class="tab-btn" id="tab-upload-btn" data-tab="tab-upload" role="tab">
           <span>📄</span> <span data-i18n="uploadTab">文檔解析 (AnyDoc)</span>
         </button>
+        <button class="tab-btn" id="tab-ocr-btn" data-tab="tab-ocr" role="tab" style="display: none;">
+          <span>🖼️</span> <span data-i18n="ocrTab">圖片辨識 (OCR)</span>
+        </button>
       </nav>
 
       <section class="card">
@@ -469,6 +472,24 @@
           </form>
         </div>
 
+        <!-- 4. Image OCR Tab -->
+        <div id="tab-ocr" class="tab-content" role="tabpanel">
+          <form id="ocr-form" enctype="multipart/form-data">
+            <label for="ocr-file-input" data-i18n="ocrLabel">圖片文字辨識 (PaddleOCR 繁中 & 表格引擎)</label>
+            <div id="ocr-dropzone" class="dropzone" tabindex="0">
+              <input type="file" id="ocr-file-input" name="file" accept=".png,.jpg,.jpeg,.webp,.bmp,.gif" style="display: none">
+              <div class="dropzone-icon">🖼️</div>
+              <div class="dropzone-text" id="ocr-file-name-display" data-i18n="ocrDropzonePrompt">拖曳圖片至此，點擊選擇檔案，或直接 Ctrl+V / Cmd+V 貼上截圖</div>
+              <div class="file-types-hint" data-i18n="ocrDropzoneHint">支援 PNG, JPG, JPEG, WEBP, BMP，以及剪貼簿截圖直接貼上...</div>
+            </div>
+            <div class="actions" style="margin-top: 18px">
+              <button class="primary-btn" id="ocr-btn" type="submit">
+                <span>⚡</span> <span data-i18n="ocrAction">辨識圖片並轉成 Markdown</span>
+              </button>
+            </div>
+          </form>
+        </div>
+
         <!-- Status Toast -->
         <div id="status" role="status" aria-live="polite"></div>
       </section>
@@ -516,6 +537,13 @@
         const fileNameDisplay = document.querySelector('#file-name-display');
         const uploadBtn = document.querySelector('#upload-btn');
 
+        const ocrTabBtn = document.querySelector('#tab-ocr-btn');
+        const ocrForm = document.querySelector('#ocr-form');
+        const ocrFileInput = document.querySelector('#ocr-file-input');
+        const ocrDropzone = document.querySelector('#ocr-dropzone');
+        const ocrFileNameDisplay = document.querySelector('#ocr-file-name-display');
+        const ocrBtn = document.querySelector('#ocr-btn');
+
         const status = document.querySelector('#status');
         const resultArea = document.querySelector('#result-area');
         const result = document.querySelector('#result');
@@ -531,6 +559,7 @@
             searchTab: '網頁搜尋 (Live SERP)',
             urlsTab: '網址轉換 (URL)',
             uploadTab: '文檔解析 (AnyDoc)',
+            ocrTab: '圖片辨識 (OCR)',
             searchLabel: '網頁搜尋 (Live Web Search)',
             searchPlaceholder: '例如：台積電 2330 最新財報',
             searchHelp: '輸入關鍵字進行即時網路搜尋，結果將自動轉譯為 Markdown 格式。',
@@ -542,6 +571,10 @@
             dropzonePrompt: '拖曳檔案至此，或點擊選擇檔案上傳',
             dropzoneHint: '支援 PDF, Word (.docx/.doc), Excel (.xlsx/.xls), PowerPoint (.pptx/.ppt), EPUB, RTF, CSV, ODT...',
             uploadAction: '上傳文檔並轉成 Markdown',
+            ocrLabel: '圖片文字辨識 (PaddleOCR 繁中 & 表格引擎)',
+            ocrDropzonePrompt: '拖曳圖片至此，點擊選擇檔案，或直接 Ctrl+V / Cmd+V 貼上截圖',
+            ocrDropzoneHint: '支援 PNG, JPG, JPEG, WEBP, BMP，以及剪貼簿截圖直接貼上...',
+            ocrAction: '辨識圖片並轉成 Markdown',
             resultTitle: '轉換結果 (Markdown)',
             copyBtn: '📋 複製內容',
             downloadBtn: '⬇️ 下載 .md',
@@ -550,12 +583,15 @@
             queryRequired: '請輸入搜尋關鍵字。',
             urlsRequired: '請至少輸入一個網址。',
             fileRequired: '請選擇要上傳的文檔檔案。',
+            ocrFileRequired: '請選擇圖片檔案或貼上截圖。',
             searching: query => `正在搜尋「${query}」…`,
             searched: query => `已完成「${query}」的網頁搜尋。`,
             converting: count => `正在轉換 ${count} 個網址…`,
             converted: count => `已完成 ${count} 個網址的轉譯。`,
             uploading: name => `正在解析文檔「${name}」…`,
             uploaded: name => `已完成文檔「${name}」的極速轉譯。`,
+            ocrUploading: name => `正在透過 PaddleOCR 辨識圖片「${name}」…`,
+            ocrUploaded: name => `已完成圖片「${name}」的文字轉譯。`,
             copied: '已複製 Markdown 到剪貼簿！',
             copyFailed: '無法自動複製，請手動選取內容。',
             errorMsg: err => `發生錯誤：${err}`
@@ -565,6 +601,7 @@
             searchTab: 'Web Search (SERP)',
             urlsTab: 'URL Converter',
             uploadTab: 'Document Parser (AnyDoc)',
+            ocrTab: 'Image OCR',
             searchLabel: 'Live Web Search',
             searchPlaceholder: 'e.g. TSMC earnings report 2026',
             searchHelp: 'Search the web by keyword and convert search results into structured Markdown.',
@@ -576,6 +613,10 @@
             dropzonePrompt: 'Drag & drop file here, or click to choose file',
             dropzoneHint: 'Supports PDF, Word (.docx/.doc), Excel (.xlsx/.xls), PowerPoint (.pptx/.ppt), EPUB, RTF, CSV...',
             uploadAction: 'Upload & Parse',
+            ocrLabel: 'Image OCR & Extraction (PaddleOCR Engine)',
+            ocrDropzonePrompt: 'Drag & drop image here, click to choose file, or paste screenshot (Ctrl+V / Cmd+V)',
+            ocrDropzoneHint: 'Supports PNG, JPG, JPEG, WEBP, BMP, and clipboard screenshot pasting...',
+            ocrAction: 'OCR & Convert to Markdown',
             resultTitle: 'Conversion Result (Markdown)',
             copyBtn: '📋 Copy Markdown',
             downloadBtn: '⬇️ Download .md',
@@ -584,12 +625,15 @@
             queryRequired: 'Please enter a search query.',
             urlsRequired: 'Please enter at least one URL.',
             fileRequired: 'Please select a document file to upload.',
+            ocrFileRequired: 'Please select an image file or paste a screenshot.',
             searching: query => `Searching for “${query}”…`,
             searched: query => `Search complete for “${query}”.`,
             converting: count => `Converting ${count} URL${count === 1 ? '' : 's'}…`,
             converted: count => `Converted ${count} URL${count === 1 ? '' : 's'}.`,
             uploading: name => `Parsing file “${name}”…`,
             uploaded: name => `Successfully parsed file “${name}”.`,
+            ocrUploading: name => `Processing image “${name}” with PaddleOCR…`,
+            ocrUploaded: name => `Successfully converted image “${name}” to Markdown.`,
             copied: 'Copied Markdown to clipboard!',
             copyFailed: 'Failed to copy automatically. Please select text manually.',
             errorMsg: err => `Error: ${err}`
@@ -612,6 +656,7 @@
           });
           languageToggle.textContent = text('switchLanguage');
           updateFileNameDisplay();
+          updateOcrFileNameDisplay();
         };
 
         // Tab Switching
@@ -803,6 +848,105 @@
             uploadBtn.disabled = false;
           }
         });
+
+        // 4. OCR Dropzone, File Selection & Paste Listener
+        ocrDropzone.addEventListener('click', () => ocrFileInput.click());
+        ocrDropzone.addEventListener('dragover', e => { e.preventDefault(); ocrDropzone.classList.add('dragover'); });
+        ocrDropzone.addEventListener('dragleave', () => ocrDropzone.classList.remove('dragover'));
+        ocrDropzone.addEventListener('drop', e => {
+          e.preventDefault();
+          ocrDropzone.classList.remove('dragover');
+          if (e.dataTransfer.files && e.dataTransfer.files.length) {
+            ocrFileInput.files = e.dataTransfer.files;
+            updateOcrFileNameDisplay();
+          }
+        });
+        ocrFileInput.addEventListener('change', updateOcrFileNameDisplay);
+
+        function updateOcrFileNameDisplay() {
+          if (ocrFileInput.files && ocrFileInput.files[0]) {
+            const f = ocrFileInput.files[0];
+            ocrFileNameDisplay.textContent = `已選擇圖片 / Selected: ${f.name} (${(f.size / 1024).toFixed(1)} KB)`;
+          } else {
+            ocrFileNameDisplay.textContent = text('ocrDropzonePrompt');
+          }
+        }
+
+        // Global Screenshot Paste (Ctrl+V / Cmd+V)
+        window.addEventListener('paste', e => {
+          const items = e.clipboardData?.items;
+          if (!items) return;
+          for (let i = 0; i < items.length; i++) {
+            if (items[i].type.startsWith('image/')) {
+              const blob = items[i].getAsFile();
+              if (blob) {
+                const dataTransfer = new DataTransfer();
+                const file = new File([blob], `screenshot-${Date.now()}.png`, { type: blob.type || 'image/png' });
+                dataTransfer.items.add(file);
+                ocrFileInput.files = dataTransfer.files;
+                updateOcrFileNameDisplay();
+                ocrTabBtn.click();
+                setStatus('已從剪貼簿接收截圖圖片，點擊按鈕即可辨識 / Image pasted from clipboard');
+                e.preventDefault();
+                break;
+              }
+            }
+          }
+        });
+
+        ocrForm.addEventListener('submit', async event => {
+          event.preventDefault();
+          if (!ocrFileInput.files || !ocrFileInput.files[0]) {
+            setStatus(text('ocrFileRequired'), true);
+            ocrFileInput.click();
+            return;
+          }
+          const file = ocrFileInput.files[0];
+          ocrBtn.disabled = true;
+          setStatus(text('ocrUploading')(file.name), false, true);
+          resultArea.hidden = true;
+
+          try {
+            const formData = new FormData();
+            formData.append('file', file);
+            const response = await fetch('/api/ocr', {
+              method: 'POST',
+              headers: { 'Accept': 'text/plain' },
+              body: formData
+            });
+            const markdown = await response.text();
+            if (!response.ok) throw new Error(markdown || `Server error ${response.status}`);
+            showResult(markdown);
+            setStatus(text('ocrUploaded')(file.name));
+          } catch (err) {
+            setStatus(text('errorMsg')(err.message || 'OCR failed'), true);
+          } finally {
+            ocrBtn.disabled = false;
+          }
+        });
+
+        // Dynamic Capability Probing for OCR Service
+        const checkOcrCapability = async () => {
+          try {
+            const resp = await fetch('/api/capabilities');
+            if (resp.ok) {
+              const data = await resp.json();
+              if (data?.ocr?.available) {
+                ocrTabBtn.style.display = '';
+              } else {
+                ocrTabBtn.style.display = 'none';
+                if (ocrTabBtn.classList.contains('active')) {
+                  document.querySelector('#tab-urls-btn').click();
+                }
+              }
+            } else {
+              ocrTabBtn.style.display = 'none';
+            }
+          } catch {
+            ocrTabBtn.style.display = 'none';
+          }
+        };
+        checkOcrCapability();
 
         // WebMCP integration. Browsers without document.modelContext continue
         // to use the regular UI unchanged.

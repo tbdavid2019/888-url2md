@@ -480,6 +480,12 @@ export class CrawlerOptions extends Coercible {
     file?: FancyFile | string;
 
     @Prop({
+        desc: 'Base64 encoded image or uploaded image file.',
+        type: [FancyFile, String]
+    })
+    image?: FancyFile | string;
+
+    @Prop({
         desc: 'Steer which page to return for uploaded files (1-indexed). Ignored when no file/PDF is uploaded.',
         validate: (v: number) => Number.isInteger(v) && v >= 1,
     })
