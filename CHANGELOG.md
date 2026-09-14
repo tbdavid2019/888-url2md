@@ -2,6 +2,12 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.09.14.3] - 2026-09-14 - 修復動態能力探測 API 回應解包與前端 OCR 頁籤即時顯示 (Fix Dynamic Capability Envelope Unpacking & Immediate OCR Tab Activation)
+
+### 🐛 Bug Fixes
+- **動態能力探測回應解包修正**：修正 `public/app.html` 前端在解析 `/api/capabilities` 時未解封 FoalTS 標準包裹物件（`{ code: 200, status: 20000, data: { ... } }`）的問題。相容 `payload = res?.data || res`，使 `ocr.available` 能即時正確命中布林狀態。
+- **三台節點即時熱更新**：已直接熱部署修正後的 `app.html` 至 Host 1 (`2md.aiurl.tw`)、Host 2 (`create360.ai`)、Host 3 (`2md.glsoft.ai`)。使用者重新整理頁面後，第四個頁籤 `[ 🖼️ 圖片辨識 (OCR) ]` 即可正常點亮顯示。
+
 ## [2026.09.14.2] - 2026-09-14 - PaddleOCR 官方映像檔對標、CI/CD 自動打包與端口衝突收斂 (PaddleOCR Official Image Alignment, CI/CD Packaging & Port Convergence)
 
 ### 🚀 Enhancements & Operations

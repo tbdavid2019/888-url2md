@@ -930,8 +930,9 @@
           try {
             const resp = await fetch('/api/capabilities');
             if (resp.ok) {
-              const data = await resp.json();
-              if (data?.ocr?.available) {
+              const res = await resp.json();
+              const payload = res?.data || res;
+              if (payload?.ocr?.available) {
                 ocrTabBtn.style.display = '';
               } else {
                 ocrTabBtn.style.display = 'none';
