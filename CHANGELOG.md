@@ -2,6 +2,17 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.09.14.8] - 2026-09-14 - PaddleOCR 微服務新主機部署指南與架構文件完善 (PaddleOCR New Host Deployment Guide & Architecture Documentation)
+
+### 📚 Documentation & Developer Experience
+- **完善 `deploy/ocr/README.md`**：
+  - 詳細記錄二維幾何邊界聚類（`reconstruct_markdown`）、PP-OCRv4 旗艦推論模型（`ch`）與 CPU AVX 相容性補丁之程式碼存放位置與角色分工。
+  - 提供全新主機（如 Host 4 或 Staging 環境）的兩種標準化部署路徑：
+    1. **極速部署（GHCR 預建映像檔）**：只需下載 `docker-compose.yml` 即可直接啟動 `ghcr.io/tbdavid2019/888-ocr:latest`。
+    2. **原始碼本地構建**：`git clone` 後執行 `docker compose up -d --build`。
+  - 記錄如何在 `888-url2md` 的 `OCR_SERVICE_URLS` 登記新節點，以實現自動探測與跨主機故障轉移（Failover）。
+- **`package.json`**：版本號遞增至 `2026.09.14.8`。
+
 ## [2026.09.14.7] - 2026-09-14 - OCR 二維空間表格重構與 AnyDoc 掃描文件 Opt-in 協同整合 (2D Spatial Table Reconstruction & AnyDoc OCR Opt-in Integration)
 
 ### 🚀 Features & Enhancements
