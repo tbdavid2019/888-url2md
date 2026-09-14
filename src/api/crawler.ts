@@ -259,22 +259,23 @@ export class CrawlerHost extends RPCHost {
 
 ---
 name: 888-url2md
-description: Convert any web page, document file, search query, or multiple URLs into LLM-friendly clean Markdown or structured JSON. Supports single URL, document file upload, web search, and multi-URL batch crawling.
+description: Convert any web page, document file, image (OCR), search query, or multiple URLs into LLM-friendly clean Markdown or structured JSON. Supports single URL, document file upload, PaddleOCR image extraction, web search, and multi-URL batch crawling.
 ---
 
 ## Overview
-This service converts web pages, document files, and search queries into clean Markdown or JSON for LLM consumption.
+This service converts web pages, document files, images, and search queries into clean Markdown or JSON for LLM consumption.
 Server Base URL: ${baseDomain}
 
 ## Agent Installation & Setup Instructions
 If you are an LLM or AI Agent accessing this service for the first time:
 1. Use **Single URL mode** to read individual web pages.
 2. Use **Document File Upload mode** to parse PDF, Word, Excel, PPT, EPUB, CSV files via multipart form-data.
-3. Use **Web Search mode** to execute live web search queries.
-4. Use **Multi-URL Batch mode** to fetch and extract multiple pages concurrently in a single request.
-5. Use **Advanced Extraction mode** with CSS/XPath schemas when you need records instead of prose.
-6. Use **Deep Crawl mode** with explicit depth/page limits to explore a site from a starting URL.
-7. Include \`Accept: application/json\` header for JSON responses or \`Accept: text/plain\` for clean Markdown text.
+3. Use **Image OCR mode** (\`POST ${baseDomain}/api/ocr\` or \`/v1/ocr\`) to extract text and tables from images (PNG, JPG, WEBP, BMP) using PP-OCRv4.
+4. Use **Web Search mode** to execute live web search queries.
+5. Use **Multi-URL Batch mode** to fetch and extract multiple pages concurrently in a single request.
+6. Use **Advanced Extraction mode** with CSS/XPath schemas when you need records instead of prose.
+7. Use **Deep Crawl mode** with explicit depth/page limits to explore a site from a starting URL.
+8. Include \`Accept: application/json\` header for JSON responses or \`Accept: text/plain\` for clean Markdown text.
 
 ---
 
@@ -318,7 +319,25 @@ If you are an LLM or AI Agent accessing this service for the first time:
   *Supported Formats*: PDF, Word (.docx/.doc), Excel (.xlsx/.xls), PowerPoint (.pptx/.ppt), EPUB, RTF, OpenDocument (.odt/.ods/.odp), CSV.
   *Latency*: Sub-5ms conversion via Firecrawl AnyDoc engine.
 
-### 5. Response Formats
+### 5. Image OCR (PaddleOCR PP-OCRv4 Engine)
+- **POST Request**: \`${baseDomain}/api/ocr\` or \`${baseDomain}/v1/ocr\`
+  *Multipart Form-Data*: Attach image in form-data parameter \`file\` or \`image\`:
+  \`curl -X POST '${baseDomain}/api/ocr' -H 'Accept: text/plain' -F "file=@screenshot.png"\`
+  *JSON / Base64 Body*:
+  \`\`\`json
+  {
+    "image": "data:image/png;base64,..."
+  }
+  \`\`\`
+  *Supported Formats*: PNG, JPG, JPEG, WEBP, BMP, GIF.
+  *Optional Query Parameters*:
+    - \`lang\`: \`ch\` (default, PP-OCRv4 bilingual Chinese & English) or \`chinese_cht\` (Traditional Chinese).
+    - \`use_angle_cls\`: \`true\` (default) / \`false\` (orientation angle auto-detection).
+  *Capabilities & Health Check*:
+    - \`GET ${baseDomain}/api/capabilities\`: Probe dynamic OCR cluster status (\`data.ocr.available\`).
+    - \`GET ${baseDomain}/api/ocr/status\`: Inspect active node and cluster health.
+
+### 6. Response Formats
 - **Markdown / Plain Text (Default / \`Accept: text/plain\`)**:
   Returns clean Markdown content. Batch requests separate pages with \`---\`.
 - **JSON (\`Accept: application/json\`)**:
@@ -423,6 +442,8 @@ without \`document.modelContext\` continue to use the regular API and forms.
             usage2_search: `${baseDomain}/s/YOUR_SEARCH_QUERY`,
             usage3_batch: `POST ${baseDomain}/v1/batch with {"urls": ["URL1", "URL2"]}`,
             usage4_upload: `POST ${baseDomain}/ with multipart/form-data "file" parameter (PDF, DOCX, XLSX, PPTX, EPUB, CSV)`,
+            usage5_ocr: `POST ${baseDomain}/api/ocr with multipart/form-data "file" parameter (PNG, JPG, WEBP, BMP)`,
+            capabilities: `${baseDomain}/api/capabilities`,
             skillDoc: `${baseDomain}/skill.md`,
             skillContent: skillMd,
         });
@@ -433,12 +454,13 @@ without \`document.modelContext\` continue to use the regular API and forms.
     generateLlmstxt(baseDomain: string): string {
         return `# 888 URL to Markdown (888-url2md) API
 
-> High-performance Web Reader, Live Web Search (SERP), Document & PDF Parsing (Firecrawl AnyDoc), and Multi-URL Batch Crawling API service for LLMs and AI Agents. Converts web pages, document files (PDF, Word, Excel, PPT, EPUB, RTF, CSV), and live search queries into clean Markdown or structured JSON.
+> High-performance Web Reader, Live Web Search (SERP), Document & PDF Parsing (Firecrawl AnyDoc), Image OCR (PaddleOCR PP-OCRv4), and Multi-URL Batch Crawling API service for LLMs and AI Agents. Converts web pages, document files (PDF, Word, Excel, PPT, EPUB, RTF, CSV), images, and live search queries into clean Markdown or structured JSON.
 
 ## Capabilities
 
 - **Single URL Web Reader & Scraper**: Convert any web page or online document URL into clean LLM-friendly Markdown by calling \`GET ${baseDomain}/<URL>\` or \`POST ${baseDomain}/\` with \`{"url": "..."}\`.
 - **High-Speed Document & PDF Parsing (AnyDoc Engine)**: Extract and convert local document files (PDF, DOCX, DOC, XLSX, XLS, PPTX, PPT, EPUB, RTF, ODT, ODS, ODP, CSV) into clean Markdown with sub-5ms latency via \`POST ${baseDomain}/\` using multipart form-data (\`file=@document.pdf\` or \`pdf=@document.pdf\`), or by providing direct remote PDF/document URLs.
+- **Image OCR & Text Extraction (PaddleOCR PP-OCRv4 Engine)**: Convert local image files (PNG, JPG, JPEG, WEBP, BMP) or screenshots into clean Markdown and structured JSON with line-level bounding box coordinates via \`POST ${baseDomain}/api/ocr\` (or \`/v1/ocr\`). Powered by PP-OCRv4 (Chinese & English) with multi-node failover pool and single-flight anti-thundering-herd protection.
 - **Real-Time Live Web Search (SERP)**: Execute zero-config live web searches and get structured Markdown snippets by calling \`GET ${baseDomain}/s/<QUERY>\` or \`GET ${baseDomain}/search?q=<QUERY>\`. Powered by DuckDuckGo with multi-engine fallback.
 - **Multi-URL Batch Crawling**: Fetch, scrape, and convert multiple web pages concurrently in a single HTTP request by calling \`POST ${baseDomain}/v1/batch\` (or \`POST ${baseDomain}/\`) with \`{"urls": ["...", "..."]}\`. Features isolated fault tolerance where individual failures do not disrupt the entire batch.
 - **Advanced Extraction and Deep Crawl**: Use CSS/XPath schemas for deterministic JSON extraction, Pruning/BM25 filters for compact Fit Markdown, or bounded BFS crawling with \`maxDepth\` and \`maxPages\`. Deep crawls optionally support bounded concurrency and per-domain AutoThrottle.
@@ -454,6 +476,8 @@ without \`document.modelContext\` continue to use the regular API and forms.
 - [Live Web Search](${baseDomain}/s/): \`GET ${baseDomain}/s/<QUERY>\` or \`GET ${baseDomain}/search?q=<QUERY>\`
 - [Multi-URL Batch Crawl](${baseDomain}/v1/batch): \`POST ${baseDomain}/v1/batch\` with \`{"urls": ["URL1", "URL2"]}\`
 - [Document File & PDF Upload](${baseDomain}/): \`POST ${baseDomain}/\` with multipart form-data \`file=@document.pdf\`
+- [Image OCR & Text Extraction](${baseDomain}/api/ocr): \`POST ${baseDomain}/api/ocr\` with multipart form-data \`file=@screenshot.png\`
+- [Service Capabilities & Health](${baseDomain}/api/capabilities): \`GET ${baseDomain}/api/capabilities\` for dynamic OCR and feature status
 - [Agent Skill Specification](${baseDomain}/skill.md): Complete LLM skill specification and tool schema
 - [Full LLM Documentation](${baseDomain}/llms-full.txt): Complete full-text documentation and reference guide for LLMs
 
@@ -488,6 +512,15 @@ curl -s -X POST "${baseDomain}/v1/batch" \\
   -H "Content-Type: application/json" \\
   -H "Accept: text/plain" \\
   -d '{"urls": ["https://example.com/page1", "https://example.com/page2"]}'
+\`\`\`
+
+### 5. Image OCR (PaddleOCR PP-OCRv4 Engine)
+\`\`\`bash
+# Extract text & tables from image to Markdown
+curl -s -X POST "${baseDomain}/api/ocr" -H "Accept: text/plain" -F "file=@screenshot.png"
+
+# Get structured JSON with bounding boxes and line coordinates
+curl -s -X POST "${baseDomain}/api/ocr" -H "Accept: application/json" -F "file=@screenshot.png"
 \`\`\`
 
 ## Optional Customization Headers

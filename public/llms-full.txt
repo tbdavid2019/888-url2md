@@ -10,11 +10,12 @@
 2. **High-Speed Document & PDF Parsing (AnyDoc Engine)**: Extract and convert local document files (PDF, DOCX, DOC, XLSX, XLS, PPTX, PPT, EPUB, RTF, ODT, ODS, ODP, CSV) into clean Markdown with sub-5ms latency via multipart form-data or direct remote URLs.
 3. **Real-Time Live Web Search (SERP)**: Execute zero-config live web searches and get structured Markdown snippets powered by DuckDuckGo with multi-engine fallback.
 4. **Multi-URL Batch Crawling**: Fetch, scrape, and convert multiple web pages concurrently in a single HTTP request with isolated fault tolerance.
-5. **Flexible Response Formats**: Supports clean GitHub-Flavored Markdown (`Accept: text/plain` or default), structured JSON (`Accept: application/json`), or SSE event streaming (`Accept: text/event-stream`).
-6. **WebMCP Browser Tools**: For Chrome browsers supporting WebMCP (`document.modelContext`), automatically registers `search_web`, `read_web_page`, and `read_web_pages` client tools.
-7. **Adaptive Structured Extraction**: Opt-in CSS selector relocation with bounded, origin-scoped profiles and ambiguity rejection.
-8. **Resumable Deep Crawling**: Bounded concurrency, optional per-domain AutoThrottle, and checkpoint resume for asynchronous jobs.
-9. **LLM-Friendly Waiting**: Explicit synchronous timeout budgets and async job polling guidance prevent duplicate crawler work.
+5. **Image OCR & Text Extraction (PaddleOCR PP-OCRv4 Engine)**: Convert image files (PNG, JPG, JPEG, WEBP, BMP) and screenshots into clean Markdown or line-level bounding box JSON with multi-node failover pool and anti-thundering-herd protection.
+6. **Flexible Response Formats**: Supports clean GitHub-Flavored Markdown (`Accept: text/plain` or default), structured JSON (`Accept: application/json`), or SSE event streaming (`Accept: text/event-stream`).
+7. **WebMCP Browser Tools**: For Chrome browsers supporting WebMCP (`document.modelContext`), automatically registers `search_web`, `read_web_page`, and `read_web_pages` client tools.
+8. **Adaptive Structured Extraction**: Opt-in CSS selector relocation with bounded, origin-scoped profiles and ambiguity rejection.
+9. **Resumable Deep Crawling**: Bounded concurrency, optional per-domain AutoThrottle, and checkpoint resume for asynchronous jobs.
+10. **LLM-Friendly Waiting**: Explicit synchronous timeout budgets and async job polling guidance prevent duplicate crawler work.
 
 ---
 
@@ -71,6 +72,28 @@
     ]
   }
   ```
+
+### 2.5 Image OCR & Text Extraction (PaddleOCR PP-OCRv4 Engine)
+- **POST Request**: `/api/ocr` or `/v1/ocr`
+- **Multipart Form-Data File Upload**:
+  ```bash
+  curl -X POST "https://<HOST>/api/ocr" \
+    -H "Accept: text/plain" \
+    -F "file=@screenshot.png"
+  ```
+- **JSON / Base64 Body**:
+  ```json
+  {
+    "image": "data:image/png;base64,..."
+  }
+  ```
+- **Supported Formats**: PNG, JPG, JPEG, WEBP, BMP, GIF.
+- **Optional Query Parameters**:
+  - `lang`: `ch` (default, PP-OCRv4 bilingual Chinese & English) or `chinese_cht` (Traditional Chinese).
+  - `use_angle_cls`: `true` (default) / `false` (orientation angle auto-detection).
+- **Service Capabilities & Health Check**:
+  - `GET https://<HOST>/api/capabilities`: Probe dynamic OCR cluster status (`data.ocr.available`, latency, nodes).
+  - `GET https://<HOST>/api/ocr/status`: Inspect active node and cluster health.
 
 ---
 

@@ -2,6 +2,17 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.09.14.6] - 2026-09-14 - 全量同步 AI Agent / LLM 規格文件包含 PaddleOCR 端點 (Comprehensive OCR Documentation Sync across llms.txt, SKILL.md & README)
+
+### 📚 Documentation & Developer Experience
+- **全量補齊 LLM 與 AI Agent 推理導覽文件中的 OCR 規格**：
+  - **`src/api/crawler.ts` (`generateSkillMd`, `generateLlmstxt`, `getIndex`)**：加入 Image OCR 模式說明、`POST /api/ocr` 與 `POST /v1/ocr` 端點規範、multipart/form-data 與 Base64 JSON 傳參方式、支援圖片格式（PNG/JPG/WEBP/BMP/GIF）、動態探測端點（`/api/capabilities` 與 `/api/ocr/status`），並動態感知請求主機域名。
+  - **`public/SKILL.md`**：補齊完整的 Agent Installation 流程指引與 `POST /api/ocr` 端點範例。
+  - **`public/llms.txt`**：在 Capabilities、Endpoints & Documentation 與 Quick Usage Examples 中完整加入 PaddleOCR PP-OCRv4 圖片辨識說明與 curl 指令範例。
+  - **`public/llms-full.txt`**：新增 `### 2.5 Image OCR & Text Extraction (PaddleOCR PP-OCRv4 Engine)` 詳細規格章節。
+  - **`README.md`**：在中英文雙語總覽及 LLM 開發者工具標準清單中全數同步加入 PaddleOCR PP-OCRv4 與動態能力探測端點。
+- **三台節點實機即時生效**：已透過編譯與熱替換同步更新 Host 1 (`2md.aiurl.tw`)、Host 2 (`create360.ai`)、Host 3 (`2md.glsoft.ai`)，端點實測均已成功回傳最新 OCR 規格。
+
 ## [2026.09.14.5] - 2026-09-14 - 前端介面現代化向量圖示重構 (Modernize Web UI with Cohesive Lucide Vector Icons)
 
 ### 🎨 UI & Design Enhancements

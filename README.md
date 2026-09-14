@@ -44,8 +44,9 @@ Currently deployed at: [**create360.ai**](https://create360.ai) (or easily self-
   - 可選用 `contentFilter: "pruning"` 或 `"bm25"` 產生較精簡的 `fitMarkdown`。
   - 支援有上限的 BFS deep crawl、prefetch、session cookie 延續與 virtual scroll。
   - 長任務支援 `asyncJob`、進度查詢、取消與 HTTPS webhook。
-10. **PaddleOCR 繁體中文圖片辨識與高可用容錯叢集 (PaddleOCR & Failover Cluster)**
-  - 支援 `POST /api/ocr` 與首頁第 4 個專屬頁籤 `[ 🖼️ 圖片辨識 (OCR) ]`，支援直接上傳圖片或貼上截圖（Ctrl+V / Cmd+V）。
+10. **PaddleOCR 繁簡中英圖片辨識與高可用容錯叢集 (PaddleOCR PP-OCRv4 & Failover Cluster)**
+  - 支援 `POST /api/ocr` 與首頁第 4 個專屬頁籤 `[ 圖片辨識 (OCR) ]`，支援直接上傳圖片或貼上截圖（Ctrl+V / Cmd+V）。
+  - **PP-OCRv4 旗艦雙向引擎**：預設採用中英文雙向增強模型，精準辨識繁體中文、簡體中文、大小寫英文字母、數字與表格結構，並支援動態語系快取。
   - **高可用備援池（Failover Pool）**：支援以逗號分隔多個節點（`OCR_SERVICE_URLS`，如 `https://ocr.aiurl.tw,https://ocr2.aiurl.tw`），主節點異常自動平滑故障轉移。
   - **防驚群效應（Anti-Thundering Herd）**：內建 Single-Flight 請求合併、隨機抖動背景輪詢（Jittered Probing）與熔斷冷卻期（Circuit Breaker Cooldown）。
   - **動態特性探測**：節點在線時自動點亮前端頁籤，全部離線時乾淨隱藏。
@@ -494,6 +495,8 @@ curl -X POST 'https://create360.ai/v1/batch' \
 - `**GET https://create360.ai/skill.md**`: Agent Skill 規格文檔
 - `**GET https://create360.ai/llms.txt**`: 符合 [llmstxt.org](https://llmstxt.org/) 的推理指引
 - `**GET https://create360.ai/llms-full.txt**`: 完整 API 與 Skill 規格
+- `**GET https://create360.ai/api/capabilities**`: 伺服器動態能力與 OCR 叢集狀態
+- `**POST https://create360.ai/api/ocr**`: 圖片文字與表格結構辨識（PP-OCRv4 繁簡中英）
 
 #### **JSON Schema (適用於 Tool Call 宣告)**:
 
@@ -634,8 +637,8 @@ Currently deployed at: [**create360.ai**](https://create360.ai) (or easily self-
    - Opt into `contentFilter: "pruning"` or `"bm25"` for compact `fitMarkdown`.
    - Supports bounded BFS deep crawling, prefetch, session cookies, and virtual scrolling.
    - Long-running crawls support `asyncJob`, progress polling, cancellation, and HTTPS webhooks.
-10. **PaddleOCR Traditional Chinese Image & Table Extraction (Failover Cluster)**
-   - High-accuracy OCR engine for Traditional Chinese (`chinese_cht`), English, and table structures via `POST /api/ocr` and Web UI Tab 4.
+10. **PaddleOCR Chinese & English Image/Table Extraction (PP-OCRv4 Failover Cluster)**
+   - High-accuracy OCR engine powered by official flagship `PP-OCRv4` (`ch`) with support for Traditional Chinese (`chinese_cht`), English, numbers, symbols, and table structures via `POST /api/ocr` and Web UI Tab 4.
    - **Multi-Node Failover Pool**: Define fallback endpoints with `OCR_SERVICE_URLS` (e.g. `https://ocr.aiurl.tw,https://ocr2.aiurl.tw`) with seamless in-flight retry.
    - **Anti-Thundering-Herd Architecture**: Single-Flight promise coalescing, jittered background health probes, and 30-second circuit breaker cooldown.
    - **Dynamic Feature Flagging**: The Web UI automatically shows Tab 4 when healthy OCR nodes exist, and hides it cleanly when offline.
@@ -1019,11 +1022,29 @@ curl -X POST 'https://create360.ai/v1/batch' \
 
 ### 4. Document File Parsing (AnyDoc Engine)
 
-Upload documents via `multipart/form-data` to `/v1/upload` or `/upload`:
+Upload documents via `multipart/form-data` to `/v1/upload`, `/upload`, or `/`:
 
 ```bash
 curl -X POST 'https://create360.ai/upload' \
   -F 'file=@/path/to/document.pdf'
+```
+
+---
+
+### 5. Image OCR (PaddleOCR PP-OCRv4 Engine)
+
+Upload images via `multipart/form-data` to `/api/ocr` or `/v1/ocr`:
+
+```bash
+# Extract Markdown text from image
+curl -X POST 'https://create360.ai/api/ocr' \
+  -H 'Accept: text/plain' \
+  -F 'file=@screenshot.png'
+
+# Return line-level bounding box coordinates and confidence JSON
+curl -X POST 'https://create360.ai/api/ocr' \
+  -H 'Accept: application/json' \
+  -F 'file=@screenshot.png'
 ```
 
 ---

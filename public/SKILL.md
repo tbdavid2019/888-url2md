@@ -2,19 +2,20 @@
 
 ---
 name: 888-url2md
-description: Convert any web page, document file (PDF/Word/Excel/PPT/EPUB/CSV), search query, or multiple URLs into LLM-friendly clean Markdown or structured JSON. Supports single URL, document file upload, web search, and multi-URL batch crawling.
+description: Convert any web page, document file (PDF/Word/Excel/PPT/EPUB/CSV), image (OCR), search query, or multiple URLs into LLM-friendly clean Markdown or structured JSON. Supports single URL, document file upload, PaddleOCR image extraction, web search, and multi-URL batch crawling.
 ---
 
 ## Overview
-This service converts web pages, document files, and search queries into clean Markdown or JSON for LLM consumption.
+This service converts web pages, document files, images, and search queries into clean Markdown or JSON for LLM consumption.
 
 ## Agent Installation & Setup Instructions
 If you are an LLM or AI Agent accessing this service for the first time:
 1. Use **Single URL mode** to read individual web pages or online documents.
 2. Use **Document File Upload mode** to parse PDF, Word, Excel, PPT, EPUB, CSV files via multipart form-data.
-3. Use **Web Search mode** to execute live web search queries.
-4. Use **Multi-URL Batch mode** to fetch and extract multiple pages concurrently in a single request.
-5. Include `Accept: application/json` header for JSON responses or `Accept: text/plain` for clean Markdown text.
+3. Use **Image OCR mode** (`POST /api/ocr` or `/v1/ocr`) to extract text and tables from images (PNG, JPG, WEBP, BMP) using PP-OCRv4.
+4. Use **Web Search mode** to execute live web search queries.
+5. Use **Multi-URL Batch mode** to fetch and extract multiple pages concurrently in a single request.
+6. Include `Accept: application/json` header for JSON responses or `Accept: text/plain` for clean Markdown text.
 
 ---
 
@@ -57,7 +58,25 @@ If you are an LLM or AI Agent accessing this service for the first time:
   *Supported Formats*: PDF, Word (.docx/.doc), Excel (.xlsx/.xls), PowerPoint (.pptx/.ppt), EPUB, RTF, OpenDocument (.odt/.ods/.odp), CSV.
   *Latency*: Sub-5ms conversion via Firecrawl AnyDoc engine.
 
-### 5. Response Formats
+### 5. Image OCR (PaddleOCR PP-OCRv4 Engine)
+- **POST Request**: `/api/ocr` or `/v1/ocr`
+  *Multipart Form-Data*: Attach image in form-data parameter `file` or `image`:
+  `curl -X POST 'https://<HOST>/api/ocr' -H 'Accept: text/plain' -F "file=@screenshot.png"`
+  *JSON / Base64 Body*:
+  ```json
+  {
+    "image": "data:image/png;base64,..."
+  }
+  ```
+  *Supported Formats*: PNG, JPG, JPEG, WEBP, BMP, GIF.
+  *Optional Query Parameters*:
+    - `lang`: `ch` (default, PP-OCRv4 bilingual Chinese & English) or `chinese_cht` (Traditional Chinese).
+    - `use_angle_cls`: `true` (default) / `false` (orientation angle auto-detection).
+  *Capabilities & Health Check*:
+    - `GET https://<HOST>/api/capabilities`: Probe dynamic OCR cluster readiness and node health (`data.ocr.available`).
+    - `GET https://<HOST>/api/ocr/status`: Inspect active node and cluster health.
+
+### 6. Response Formats
 - **Markdown / Plain Text (Default / `Accept: text/plain`)**:
   Returns clean Markdown content. Batch requests separate pages with `---`.
 - **JSON (`Accept: application/json`)**:
