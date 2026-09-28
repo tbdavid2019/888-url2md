@@ -20,6 +20,7 @@ import { JSDomControl } from './jsdom';
 import { AnyDocService } from './anydoc';
 import { MagikaService, selectContentTypeFromMagika } from './magika';
 import { OcrClientService } from './ocr-client';
+import _ from 'lodash';
 
 @singleton()
 export class BinaryExtractorService extends AsyncService {
@@ -253,36 +254,74 @@ export class BinaryExtractorService extends AsyncService {
 
         if (this.anyDocService.supports(contentType, fileName)) {
             try {
-                let markdown = await this.anyDocService.convertFile(filePath);
+                let markdown = '';
+                try {
+                    markdown = await this.anyDocService.convertFile(filePath);
+                } catch (anyDocErr: any) {
+                    if (withOcr || anyDocErr?.message?.includes('OCR is required') || anyDocErr?.message?.includes('no extractable text')) {
+                        this.logger.info(`AnyDoc indicated OCR is required or failed on scanned doc, continuing with OCR`, { anyDocErr, fileName });
+                        markdown = '';
+                    } else {
+                        throw anyDocErr;
+                    }
+                }
                 const isPdf = contentType.startsWith('application/pdf');
                 const isSparseOrEmpty = !markdown || markdown.trim().length < 50;
                 let ocrApplied = false;
 
                 // Optical Character Recognition (OCR) opt-in or smart fallback for scanned PDFs
-                if ((withOcr || isSparseOrEmpty) && isPdf && this.ocrClientService.isAvailable()) {
+                if ((withOcr || isSparseOrEmpty) && isPdf && this.ocrClientService.isConfigured()) {
                     try {
-                        const pagesToRender = pageNumber ? [pageNumber, pageNumber + 1, pageNumber + 2] : [1, 2, 3];
-                        const extracted = await this.pdfExtractor.extractRendered(filePath, outPath, pagesToRender);
-                        const ocrResults: string[] = [];
+                        const fileBuf = await readFile(filePath);
+                        let ocrMarkdown = '';
+                        try {
+                            const ocrResult = await this.ocrClientService.predict(fileBuf, fileName, { extractTables: true });
+                            if (ocrResult.markdown && ocrResult.markdown.trim()) {
+                                ocrMarkdown = ocrResult.markdown.trim();
+                            }
+                        } catch (directPdfErr) {
+                            this.logger.warn(`Direct PDF OCR via microservice failed, falling back to page rendering`, { directPdfErr, fileName });
+                        }
 
-                        for (const page of extracted.pages) {
-                            if (page.pngPath) {
-                                try {
-                                    const pageBuf = await readFile(page.pngPath);
-                                    const pageOcr = await this.ocrClientService.predict(pageBuf, `${fileName}#${page.page}.png`);
-                                    if (pageOcr.markdown && pageOcr.markdown.trim()) {
-                                        page.text = pageOcr.text;
-                                        page.content = pageOcr.markdown;
-                                        ocrResults.push(pageOcr.markdown.trim());
+                        if (!ocrMarkdown) {
+                            let totalPages = 3;
+                            try {
+                                const loadingTask = this.pdfExtractor.pdfjs.getDocument({
+                                    data: new Uint8Array(fileBuf),
+                                    useSystemFonts: true,
+                                    verbosity: 0,
+                                });
+                                const doc = await loadingTask.promise;
+                                totalPages = Math.min(doc.numPages, 20);
+                            } catch {
+                                totalPages = 3;
+                            }
+                            const pagesToRender = pageNumber ? [pageNumber, pageNumber + 1, pageNumber + 2] : _.range(1, totalPages + 1);
+                            const extracted = await this.pdfExtractor.extractRendered(filePath, outPath, pagesToRender);
+                            const ocrResults: string[] = [];
+
+                            for (const page of extracted.pages) {
+                                if (page.pngPath) {
+                                    try {
+                                        const pageBuf = await readFile(page.pngPath);
+                                        const pageOcr = await this.ocrClientService.predict(pageBuf, `${fileName}#${page.page}.png`);
+                                        if (pageOcr.markdown && pageOcr.markdown.trim()) {
+                                            page.text = pageOcr.text;
+                                            page.content = pageOcr.markdown;
+                                            ocrResults.push(pageOcr.markdown.trim());
+                                        }
+                                    } catch (pageOcrErr) {
+                                        this.logger.warn(`OCR extraction failed for PDF page ${page.page}`, { pageOcrErr, fileName });
                                     }
-                                } catch (pageOcrErr) {
-                                    this.logger.warn(`OCR extraction failed for PDF page ${page.page}`, { pageOcrErr, fileName });
                                 }
+                            }
+
+                            if (ocrResults.length > 0) {
+                                ocrMarkdown = ocrResults.join('\n\n---\n\n');
                             }
                         }
 
-                        if (ocrResults.length > 0) {
-                            const ocrMarkdown = ocrResults.join('\n\n---\n\n');
+                        if (ocrMarkdown) {
                             if (isSparseOrEmpty || withOcr) {
                                 markdown = ocrMarkdown;
                             }
@@ -345,32 +384,61 @@ export class BinaryExtractorService extends AsyncService {
         }
 
         if (contentType.startsWith('application/pdf')) {
-            const pagesToRender = pageNumber ? [pageNumber, pageNumber + 1, pageNumber + 2] : [1, 2, 3];
+            let totalPages = 3;
+            try {
+                const fileBuf = await readFile(filePath);
+                const loadingTask = this.pdfExtractor.pdfjs.getDocument({
+                    data: new Uint8Array(fileBuf),
+                    useSystemFonts: true,
+                    verbosity: 0,
+                });
+                const doc = await loadingTask.promise;
+                totalPages = Math.min(doc.numPages, 20);
+            } catch {
+                totalPages = 3;
+            }
+            const pagesToRender = pageNumber ? [pageNumber, pageNumber + 1, pageNumber + 2] : _.range(1, totalPages + 1);
             const extracted = await this.pdfExtractor.extractRendered(filePath, outPath, pagesToRender);
             const isSparseOrEmpty = !extracted.content || extracted.content.trim().length < 50;
 
-            if ((withOcr || isSparseOrEmpty) && this.ocrClientService.isAvailable()) {
+            if ((withOcr || isSparseOrEmpty) && this.ocrClientService.isConfigured()) {
                 try {
-                    const ocrResults: string[] = [];
-                    for (const page of extracted.pages) {
-                        if (page.pngPath) {
-                            try {
-                                const pageBuf = await readFile(page.pngPath);
-                                const pageOcr = await this.ocrClientService.predict(pageBuf, `${fileName}#${page.page}.png`);
-                                if (pageOcr.markdown && pageOcr.markdown.trim()) {
-                                    page.text = pageOcr.text;
-                                    page.content = pageOcr.markdown;
-                                    ocrResults.push(pageOcr.markdown.trim());
+                    let ocrDone = false;
+                    try {
+                        const fileBuf = await readFile(filePath);
+                        const directOcr = await this.ocrClientService.predict(fileBuf, fileName, { extractTables: true });
+                        if (directOcr.markdown && directOcr.markdown.trim()) {
+                            extracted.content = directOcr.markdown.trim();
+                            extracted.text = directOcr.text || directOcr.markdown;
+                            snapshot.traits!.push('ocr');
+                            ocrDone = true;
+                        }
+                    } catch (directErr) {
+                        this.logger.debug(`Direct PDF OCR failed in legacy branch, falling back to per-page`, { directErr, fileName });
+                    }
+
+                    if (!ocrDone) {
+                        const ocrResults: string[] = [];
+                        for (const page of extracted.pages) {
+                            if (page.pngPath) {
+                                try {
+                                    const pageBuf = await readFile(page.pngPath);
+                                    const pageOcr = await this.ocrClientService.predict(pageBuf, `${fileName}#${page.page}.png`);
+                                    if (pageOcr.markdown && pageOcr.markdown.trim()) {
+                                        page.text = pageOcr.text;
+                                        page.content = pageOcr.markdown;
+                                        ocrResults.push(pageOcr.markdown.trim());
+                                    }
+                                } catch (pageOcrErr) {
+                                    this.logger.warn(`Legacy PDF OCR failed for page ${page.page}`, { pageOcrErr });
                                 }
-                            } catch (pageOcrErr) {
-                                this.logger.warn(`Legacy PDF OCR failed for page ${page.page}`, { pageOcrErr });
                             }
                         }
-                    }
-                    if (ocrResults.length > 0) {
-                        extracted.content = ocrResults.join('\n\n---\n\n');
-                        extracted.text = ocrResults.join('\n\n');
-                        snapshot.traits!.push('ocr');
+                        if (ocrResults.length > 0) {
+                            extracted.content = ocrResults.join('\n\n---\n\n');
+                            extracted.text = ocrResults.join('\n\n');
+                            snapshot.traits!.push('ocr');
+                        }
                     }
                 } catch (pdfOcrErr) {
                     this.logger.warn(`Legacy PDF OCR error`, { pdfOcrErr });

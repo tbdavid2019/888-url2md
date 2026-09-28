@@ -891,11 +891,12 @@
             if (withOcr) {
               formData.append('ocr', 'true');
             }
-            const headers = { 'Accept': 'text/plain' };
+            const headers = { 'Accept': 'text/plain', 'X-No-Cache': 'true' };
             if (withOcr) {
               headers['X-With-Ocr'] = 'true';
+              headers['X-Ocr'] = 'true';
             }
-            const endpoint = withOcr ? '/?ocr=true' : '/';
+            const endpoint = withOcr ? '/?ocr=true&noCache=true' : '/?noCache=true';
             const response = await fetch(endpoint, {
               method: 'POST',
               headers,
@@ -974,9 +975,9 @@
           try {
             const formData = new FormData();
             formData.append('file', file);
-            const response = await fetch('/api/ocr', {
+            const response = await fetch('/api/ocr?noCache=true', {
               method: 'POST',
-              headers: { 'Accept': 'text/plain' },
+              headers: { 'Accept': 'text/plain', 'X-No-Cache': 'true' },
               body: formData
             });
             const markdown = await response.text();

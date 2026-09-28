@@ -1719,9 +1719,15 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
         }
         cacheIt.return(undefined);
 
+        const isOcrRequested = Boolean(crawlOpts?.withOcr || crawlOpts?.ocr);
+        const isCacheValidForOcr = !isOcrRequested || Boolean(cache?.snapshot?.traits?.includes('ocr'));
+        const hasSubstantiveContent = Boolean(cache?.snapshot?.text?.trim() || cache?.snapshot?.parsed?.content?.trim());
+
         if (blob && digest) {
             if (
                 cache?.snapshot &&
+                isCacheValidForOcr &&
+                hasSubstantiveContent &&
                 (!crawlOpts?.favorScreenshot || cache.snapshot?.screenshotUrl)
             ) {
                 cache.snapshot.isFromCache = true;
@@ -1741,6 +1747,8 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
         const consecutiveError = await pConsecutiveError;
 
         if (cache?.isFresh &&
+            isCacheValidForOcr &&
+            hasSubstantiveContent &&
             (!crawlOpts?.favorScreenshot || ((cache.screenshotAvailable && cache.pageshotAvailable) || cache.snapshot?.screenshotUrl)) &&
             (_.get(cache.snapshot, 'locale') === crawlOpts?.locale)
         ) {
@@ -2198,6 +2206,8 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
         }
         this.threadLocal.set('contentFilter', opts.contentFilter);
         this.threadLocal.set('contentQuery', opts.contentQuery);
+        this.threadLocal.set('withOcr', Boolean(opts.withOcr || opts.ocr));
+        this.threadLocal.set('ocr', Boolean(opts.withOcr || opts.ocr));
 
         const crawlOpts: ExtraScrappingOptions = {
             proxyUrl: opts.proxyUrl,
@@ -2223,6 +2233,8 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
             prefetch: opts.prefetch,
             sessionId: opts.sessionId,
             virtualScroll: opts.virtualScroll,
+            withOcr: Boolean(opts.withOcr || opts.ocr),
+            ocr: Boolean(opts.withOcr || opts.ocr),
         };
 
         if (crawlOpts.targetSelector?.length) {

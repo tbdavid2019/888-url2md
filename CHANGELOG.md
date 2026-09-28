@@ -2,6 +2,20 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.09.28.3] - 2026-09-28 - 修正 AnyDoc 掃描版 PDF 空白快取與深度 OCR 管線直通 (Fix AnyDoc Scanned PDF Empty Cache & Seamless OCR Pipeline)
+
+### Fixed & Hardened
+- **快取穿透防禦與實質內容檢驗（Cache Invalidation on Empty Content & Forced OCR）**：
+  - 修正 `src/api/crawler.ts` 中 `cachedScrap()` 在要求 OCR 時未校驗快照是否包含實質內容或是否曾經執行過 OCR 的缺陷。當請求指定 `ocr=true`、`withOcr=true` 或前次快照內容為空/過度稀疏（< 50 字元）時，主動繞過本機記憶體快取與資料庫快取，避免先前未開 OCR 或失敗留下的空白快取被直接命中回傳。
+- **AnyDoc 掃描版 PDF 異常防禦與容錯分流（AnyDoc Scanned PDF OCR Fallback）**：
+  - 修正 `src/services/binary-extractor.ts` 中 `@firecrawl/anydoc` 在處理純圖片掃描型 PDF 時拋出 `PDF has no extractable text: OCR is required` 導致流程直接進入 `catch` 跳過 OCR 的致命問題。
+  - 將 OCR 辨識邏輯整合至容錯處理中，優先調用 PaddleOCR 高效原生的直接 PDF 辨識（直傳微服務 PyMuPDF 解析），失敗時無縫降級至本地多頁渲染（擴大至前 20 頁）逐頁辨識，確保純圖掃描 PDF 100% 擷取完整文字與表格。
+- **爬蟲配置參數完整對齊（Crawler Options Mapping for OCR）**：
+  - 在 `src/api/crawler.ts` 的 `this.configure()` 補齊 `opts.withOcr` 與 `opts.ocr` 向 `threadLocal` 與 `crawlOpts` 的參數傳遞，確保上游 HTTP 請求之 OCR 旗標能穩定穿透至底層二進位解析器。
+- **前端文檔與 OCR 上傳強制刷新（Front-end Cache-Busting Headers）**：
+  - 在 `public/app.html` 的文檔上傳與 OCR 上傳請求中加入 `X-No-Cache: true` 請求標頭與 `noCache=true` 查詢參數，防止瀏覽器與代理伺服器快取影響上傳辨識結果。
+- **`package.json`**：版本號更新至 `2026.09.28.3`。
+
 ## [2026.09.28.2] - 2026-09-28 - PaddleOCR Predictor 並發互斥鎖與 PDF 來源頁碼精準映射 (PaddleOCR Thread-Safe Mutex & PDF Source Page Numbering)
 
 ### Fixed & Hardened
