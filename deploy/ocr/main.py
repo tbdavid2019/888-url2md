@@ -1,6 +1,7 @@
 import os
 import io
 import time
+import threading
 from typing import Optional, List, Dict, Any
 from fastapi import FastAPI, File, UploadFile, Header, HTTPException, Query, Form, Request
 from fastapi.responses import JSONResponse
@@ -44,20 +45,30 @@ app = FastAPI(
     version="1.1.0"
 )
 
-# Engine cache for different languages
+# Engine cache and thread safety locks for different languages
 _engines: Dict[str, PaddleOCR] = {}
+_engine_locks: Dict[str, threading.Lock] = {}
+_engine_init_lock = threading.Lock()
+
+
+def get_engine_lock(lang: str) -> threading.Lock:
+    with _engine_init_lock:
+        if lang not in _engine_locks:
+            _engine_locks[lang] = threading.Lock()
+        return _engine_locks[lang]
 
 
 def get_engine(lang: Optional[str] = None) -> PaddleOCR:
     target_lang = lang or DEFAULT_LANG
-    if target_lang not in _engines:
-        print(f"[*] Initializing PaddleOCR engine for lang={target_lang}...")
-        try:
-            _engines[target_lang] = PaddleOCR(use_angle_cls=True, lang=target_lang, show_log=False)
-        except Exception:
-            _engines[target_lang] = PaddleOCR(lang=target_lang, show_log=False)
-        print(f"[+] PaddleOCR engine ({target_lang}) ready.")
-    return _engines[target_lang]
+    with get_engine_lock(target_lang):
+        if target_lang not in _engines:
+            print(f"[*] Initializing PaddleOCR engine for lang={target_lang}...")
+            try:
+                _engines[target_lang] = PaddleOCR(use_angle_cls=True, lang=target_lang, show_log=False)
+            except Exception:
+                _engines[target_lang] = PaddleOCR(lang=target_lang, show_log=False)
+            print(f"[+] PaddleOCR engine ({target_lang}) ready.")
+        return _engines[target_lang]
 
 
 # Pre-load default engine
@@ -116,7 +127,9 @@ async def perform_ocr(
         is_table_mode = bool(req_table_only or (req_mode == "table"))
 
         def _sync_ocr() -> Dict[str, Any]:
-            engine = get_engine(lang)
+            target_lang = lang or DEFAULT_LANG
+            engine = get_engine(target_lang)
+            engine_lock = get_engine_lock(target_lang)
 
             if is_pdf:
                 if pymupdf is None:
@@ -140,7 +153,8 @@ async def perform_ocr(
                     page_img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
                     page_np = np.array(page_img)
 
-                    result = engine.ocr(page_np, cls=use_angle_cls)
+                    with engine_lock:
+                        result = engine.ocr(page_np, cls=use_angle_cls)
                     page_lines: List[Dict[str, Any]] = []
                     if result and len(result) > 0 and result[0]:
                         for line in result[0]:
@@ -187,7 +201,8 @@ async def perform_ocr(
             image = Image.open(io.BytesIO(content)).convert("RGB")
             img_np = np.array(image)
 
-            result = engine.ocr(img_np, cls=use_angle_cls)
+            with engine_lock:
+                result = engine.ocr(img_np, cls=use_angle_cls)
 
             extracted_lines: List[Dict[str, Any]] = []
             if result and len(result) > 0 and result[0]:

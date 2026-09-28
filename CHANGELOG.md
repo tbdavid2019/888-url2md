@@ -20,6 +20,9 @@ All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888
 - **容器記憶體擴展與 OpenMP 資源配置最佳化**：
   - `paddleocr-server` 容器記憶體限制由 4GB 調升至 8GB，消除處理高解析度大圖時因 Linux cgroup 記憶體上限觸發頻繁 swap 抖動與 I/O 阻塞問題。
   - 調整 `OMP_NUM_THREADS=1`，防止 OpenBlas 多執行緒資源競爭與日誌警告。
+- **PaddleOCR Predictor 並發互斥鎖與來源頁碼精準映射（Thread-Safe Engine Mutex & Exact Source Page Numbering）**：
+  - 依據 Codex Code Review 審查建議，在 `deploy/ocr/main.py` 引入語言層級互斥鎖 `engine_lock`，序列化調用底層 PaddlePaddle C++ Predictor，徹底杜絕並行請求下的 C++ 推論競爭。
+  - 在 `src/api/crawler.ts` 本機 PDF 分頁降級流程中，精準保留來源真實頁碼（避免頁面略過時造成後續頁碼錯置），並在結構化 JSON 的 `lines` 陣列中逐項掛載 `page` 頁碼屬性。
 - **`package.json`**：版本號更新至 `2026.09.28.1`。
 
 ## [2026.09.14.16] - 2026-09-14 - 建立 OCR 自動重試、自我修復與 30 秒彈性逾時機制 (OCR Automatic Retry, Self-Healing Resilience & 30s Timeout)

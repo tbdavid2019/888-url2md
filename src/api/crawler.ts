@@ -2738,7 +2738,7 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
         }
 
         const extracted = await this.pdfExtractor.extractRendered(tempFilePath, tempDir, pagesToRender);
-        const pageResults: OcrPredictionResult[] = [];
+        const pageResults: { pageNum: number; result: OcrPredictionResult }[] = [];
 
         for (const page of extracted.pages) {
             if (page.pngPath) {
@@ -2750,7 +2750,7 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
                         mode: opts.isTableMode ? 'table' : undefined,
                         extractTables: true,
                     });
-                    pageResults.push(pageOcr);
+                    pageResults.push({ pageNum: page.page, result: pageOcr });
                 } catch (pageErr) {
                     this.logger.warn(`OCR failed for PDF page ${page.page}`, { err: pageErr, fileName });
                 }
@@ -2769,9 +2769,9 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
         const pageTexts: string[] = [];
         const allLines: any[] = [];
 
-        for (let idx = 0; idx < pageResults.length; idx++) {
-            const pr = pageResults[idx];
-            const pageNum = idx + 1;
+        for (const item of pageResults) {
+            const pr = item.result;
+            const pageNum = item.pageNum;
             if (pr.tables && pr.tables.length > 0) {
                 allTables.push(...pr.tables);
             }
@@ -2785,7 +2785,7 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
                 pageTexts.push(pr.text.trim());
             }
             if (pr.lines && pr.lines.length > 0) {
-                allLines.push(...pr.lines);
+                allLines.push(...pr.lines.map((l: any) => ({ ...l, page: pageNum })));
             }
         }
 
