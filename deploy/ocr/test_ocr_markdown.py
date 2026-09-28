@@ -41,6 +41,35 @@ class ReconstructMarkdownTests(unittest.TestCase):
         self.assertEqual(table_markdown, "")
         self.assertEqual(tables, [])
 
+    def test_vertical_layout_reading_order_and_line_unwrapping(self):
+        # 6 vertical boxes across 3 vertical columns (Right to Left: Col 1 -> Col 2 -> Col 3)
+        lines = [
+            # Right column (x: 500..530)
+            {"text": "一、國字注音", "box": box(500, 50, 530, 200)},
+            {"text": "1. 太陽對我微笑", "box": box(500, 210, 530, 350)},
+            # Middle column (x: 350..380)
+            {"text": "2. 做事要持之以恆", "box": box(350, 50, 380, 250)},
+            {"text": "才會成功", "box": box(350, 260, 380, 380)},
+            # Left column (x: 200..230)
+            {"text": "二、改錯字", "box": box(200, 50, 230, 200)},
+            {"text": "1. 下課聊天", "box": box(200, 210, 230, 350)},
+        ]
+
+        full_markdown, tables = reconstruct_markdown(lines)
+        table_markdown, _ = reconstruct_markdown(lines, table_only=True)
+
+        # Right-to-Left order: Col 1 (國字注音) before Col 3 (改錯字)
+        pos1 = full_markdown.index("一、國字注音")
+        pos2 = full_markdown.index("二、改錯字")
+        self.assertLess(pos1, pos2)
+
+        # Unwrapping: "才會成功" continues question 2
+        self.assertIn("2. 做事要持之以恆才會成功", full_markdown)
+
+        # Vertical text does not produce fake GFM tables
+        self.assertEqual(len(tables), 0)
+        self.assertEqual(table_markdown, "")
+
 
 if __name__ == "__main__":
     unittest.main()

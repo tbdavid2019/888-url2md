@@ -2,6 +2,20 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.09.28.5] - 2026-09-28 - 繁體中文直排（豎排）考卷與文檔幾何重構 (Traditional Chinese Vertical Layout OCR Reconstruction)
+
+### Fixed & Hardened
+- **繁體中文直排（豎排）排版自動識別與閱讀順序重構（Traditional Vertical Layout Reconstruction）**：
+  - 徹底解決台灣國小考卷、古籍與公文等直排排版文件（文字由上至下、欄位由右至左）被誤當作橫排處理，導致水平跨欄橫向切片串接、語句顛倒錯亂的根本問題。
+  - 在 `deploy/ocr/ocr_markdown.py` 中引入垂直文本特徵偵測（`v_boxes > h_boxes and v_boxes >= 5`），自動切換至直排幾何重構管線：
+    1. **由右至左欄位流向（Right-to-Left Column Ordering）**：以 X 軸降冪排列欄位，每欄內部依 Y 軸升冪（由上至下）串接字符。
+    2. **多層橫向分欄切片（Multi-Tier Lane Segmentation）**：透過 Y 軸佔用長方圖空隙分析，自動偵測試卷上下分層分隔線（如考卷上半部與下半部），依序分層重構。
+    3. **側邊滿版標題抽取（Margin Header Extraction）**：自動將貫穿整頁的考卷抬頭（如校名、考試名稱）提升至文件首行作為主標題。
+    4. **語句跨行自動折行黏合（Intelligent Line Unwrapping）**：以題目序號、標點與項目起始標記作為邊界，自動將跨欄折行的長句子無縫拼接，消除破碎換行。
+    5. **杜絕誤判假表格**：直排模式下抑制橫向 GFM 表格生成，防止試卷欄位被粗暴轉譯成破裂的 Markdown 數據表格。
+- **單元測試擴充**：在 `deploy/ocr/test_ocr_markdown.py` 新增直排由右至左閱讀順序、換行黏合與無假表格驗證。
+- **`package.json`**：版本號更新至 `2026.09.28.5`。
+
 ## [2026.09.28.4] - 2026-09-28 - PDF 分頁子框架 OCR 深度映射與頁碼錨點支援 (PDF Page Sub-Frames OCR Mapping & Hash Fragment Support)
 
 ### Fixed & Hardened

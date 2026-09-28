@@ -1,4 +1,142 @@
+import re
 from typing import Any, Dict, List, Tuple
+
+
+SECTION_HEADER = re.compile(
+    r"^([#\s]*[一二三四五六七八九十]+[、.．丶\s]|"
+    r"第[一二三四五六七八九十0-9]+[部分題大題])"
+)
+
+ITEM_START = re.compile(
+    r"^([#\s]*[一二三四五六七八九十]+[、.．丶\s]|"
+    r"第[一二三四五六七八九十0-9]+[部分題大題]|"
+    r"[（(]?\s*[0-9]+[\s、.．）)]|"
+    r"[>丨lI1-9]\s*[0-9]*|"
+    r"[（(]\s*[）)]|"
+    r"[①②③④⑤⑥⑦⑧⑨⑩❶❷❸❹❺]|"
+    r"[ㄅㄆㄇㄈㄉㄊㄋㄌㄍㄎㄏㄐㄑㄒㄓㄔㄕㄖㄗㄘㄙㄚㄛㄜㄝㄞㄟㄠㄡㄢㄣㄤㄥㄦㄧㄨㄩ]|"
+    r"[【《〈\\[])"
+)
+
+
+def reconstruct_vertical_markdown(
+    items: List[Dict[str, Any]],
+    table_only: bool = False,
+) -> Tuple[str, List[str]]:
+    """Reconstruct traditional vertical layout (直排 / 豎排) documents.
+
+    Columns flow from Right to Left, characters flow from Top to Bottom.
+    Detects full-height margin headers and multi-tier horizontal lane dividers.
+    """
+    if table_only:
+        return "", []
+
+    max_x = max(it["x_max"] for it in items)
+    min_x = min(it["x_min"] for it in items)
+    max_y = max(it["y_max"] for it in items)
+    min_y = min(it["y_min"] for it in items)
+    page_h = max(max_y - min_y, 1.0)
+    page_w = max(max_x - min_x, 1.0)
+
+    # Full-height margin headers (e.g. running along the side margin)
+    def is_margin_header(it: Dict[str, Any]) -> bool:
+        at_margin = (it["x_center"] > max_x - page_w * 0.12) or (it["x_center"] < min_x + page_w * 0.12)
+        return at_margin and (it["height"] > page_h * 0.45)
+
+    headers = [it for it in items if is_margin_header(it)]
+    content_items = [it for it in items if not is_margin_header(it)]
+    headers.sort(key=lambda it: -it["x_center"])
+
+    # Multi-tier horizontal lane detection via Y occupancy gaps
+    y_floor = int(min_y)
+    occupancy_len = int(max_y) - y_floor + 2
+    occupancy = [0] * max(1, occupancy_len)
+    for it in content_items:
+        start = max(0, int(it["y_min"]) - y_floor)
+        end = min(occupancy_len - 1, int(it["y_max"]) - y_floor)
+        for y in range(start, end + 1):
+            occupancy[y] += 1
+
+    gaps: List[float] = []
+    in_gap = False
+    gap_start = 0
+    search_start = int(page_h * 0.2)
+    search_end = int(page_h * 0.8)
+    for y in range(search_start, search_end):
+        if y < len(occupancy) and occupancy[y] == 0:
+            if not in_gap:
+                in_gap = True
+                gap_start = y + y_floor
+        else:
+            if in_gap:
+                in_gap = False
+                gap_end = y + y_floor
+                if gap_end - gap_start >= 10:
+                    gaps.append((gap_start + gap_end) / 2.0)
+    if in_gap and (search_end + y_floor) - gap_start >= 10:
+        gaps.append((gap_start + search_end + y_floor) / 2.0)
+
+    lane_cuts = [-1e9] + gaps + [1e9]
+    lanes: List[List[Dict[str, Any]]] = [[] for _ in range(len(lane_cuts) - 1)]
+    for it in content_items:
+        for idx in range(len(lanes)):
+            if lane_cuts[idx] <= it["y_center"] < lane_cuts[idx + 1]:
+                lanes[idx].append(it)
+                break
+
+    output_blocks: List[str] = []
+    for h_it in headers:
+        output_blocks.append(f"# {h_it['text']}")
+
+    for lane in lanes:
+        if not lane:
+            continue
+        cols: List[List[Dict[str, Any]]] = []
+        for it in sorted(lane, key=lambda it: -it["x_center"]):
+            placed = False
+            for col in cols:
+                col_x_min = min(x["x_min"] for x in col)
+                col_x_max = max(x["x_max"] for x in col)
+                col_w = max(col_x_max - col_x_min, 1.0)
+                x_overlap = max(0.0, min(col_x_max, it["x_max"]) - max(col_x_min, it["x_min"]))
+                col_x_center = sum(x["x_center"] for x in col) / len(col)
+
+                # Prevent vertical collisions: items in the same column cannot overlap vertically
+                has_v_collision = False
+                for member in col:
+                    v_overlap = max(0.0, min(member["y_max"], it["y_max"]) - max(member["y_min"], it["y_min"]))
+                    if v_overlap > 0.25 * min(member["height"], it["height"]):
+                        has_v_collision = True
+                        break
+
+                if not has_v_collision:
+                    if x_overlap > 0.25 * min(col_w, it["width"]) or abs(it["x_center"] - col_x_center) < 18:
+                        col.append(it)
+                        placed = True
+                        break
+            if not placed:
+                cols.append([it])
+
+        cols.sort(key=lambda col: -sum(x["x_center"] for x in col) / len(col))
+        lane_lines: List[str] = []
+        for col in cols:
+            col.sort(key=lambda it: it["y_min"])
+            col_text = "".join(it["text"] for it in col)
+            lane_lines.append(col_text)
+
+        merged_lines: List[str] = []
+        for line in lane_lines:
+            if SECTION_HEADER.match(line):
+                merged_lines.append(f"\n### {line}")
+            elif not merged_lines or ITEM_START.match(line):
+                merged_lines.append(line)
+            else:
+                merged_lines[-1] += line
+
+        if merged_lines:
+            output_blocks.append("\n".join(merged_lines).strip())
+
+    return "\n\n".join(output_blocks), []
 
 
 def reconstruct_markdown(
@@ -7,6 +145,7 @@ def reconstruct_markdown(
 ) -> Tuple[str, List[str]]:
     """Reconstruct OCR lines into full Markdown and isolated GFM tables.
 
+    Auto-detects vertical layout (直排 / 豎排) and horizontal layout.
     ``markdown`` keeps all detected text for the full OCR contract. The
     ``tables`` result is built only from rows that form a multi-column block.
     When ``table_only`` is enabled, no-table input returns an empty string
@@ -16,6 +155,9 @@ def reconstruct_markdown(
         return "", []
 
     items: List[Dict[str, Any]] = []
+    v_boxes = 0
+    h_boxes = 0
+
     for line in extracted_lines:
         box = line.get("box")
         text = (line.get("text") or "").strip()
@@ -25,6 +167,12 @@ def reconstruct_markdown(
         if box and len(box) >= 4:
             xs = [point[0] for point in box]
             ys = [point[1] for point in box]
+            w = max(xs) - min(xs)
+            h = max(ys) - min(ys)
+            if h > w * 1.2:
+                v_boxes += 1
+            elif w > h * 1.2:
+                h_boxes += 1
             items.append({
                 "text": text,
                 "x_min": min(xs),
@@ -33,8 +181,8 @@ def reconstruct_markdown(
                 "y_max": max(ys),
                 "x_center": (min(xs) + max(xs)) / 2.0,
                 "y_center": (min(ys) + max(ys)) / 2.0,
-                "height": max(ys) - min(ys),
-                "width": max(xs) - min(xs),
+                "height": h,
+                "width": w,
             })
         else:
             items.append({
@@ -51,6 +199,10 @@ def reconstruct_markdown(
 
     if not items:
         return "", []
+
+    # If document is primarily vertical layout (豎排 / 直排)
+    if v_boxes > h_boxes and v_boxes >= 5:
+        return reconstruct_vertical_markdown(items, table_only=table_only)
 
     # Keep spatially separate regions independent so page chrome cannot
     # influence the gutter calculation for a table.
