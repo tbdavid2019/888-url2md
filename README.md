@@ -48,6 +48,7 @@ Currently deployed at: [**create360.ai**](https://create360.ai) (or easily self-
   - 支援 `POST /api/ocr` 與首頁專屬頁籤 `[ 圖片與 PDF 辨識 (OCR) ]`，支援直接上傳圖片、貼上截圖（Ctrl+V / Cmd+V）以及原生 **PDF 文件 (`.pdf`)** 多頁光學辨識。
   - **PP-OCRv4 旗艦雙向引擎**：預設採用中英文雙向增強模型，精準辨識繁體中文、簡體中文、大小寫英文字母、數字與表格結構，並支援動態語系快取。
   - **二維幾何表格重建 (GFM Markdown Table Reconstruction)**：內建 2D 空間邊界分析與縱向通道（Gutters）偵測算法，自動將圖片、截圖與掃描 PDF 中的多欄多列數據精準轉換為標準 GitHub-Flavored Markdown 表格，告別單純逐行堆疊。
+  - **繁體中文直排（豎排）閱讀流向重構 (Vertical Layout Reconstruction)**：自動識別直排排版（如台灣國小考卷、公文、古籍），依「文字由上至下、欄位由右至左」重新組裝，支援多層上下分欄切片（Multi-Tier Lane Segmentation）與語句跨欄折行黏合，杜絕橫向切片串接錯亂與直排假表格。
   - **AnyDoc + OCR 協同整合與手動切換開關**：前端 Tab 3「文檔解析 (AnyDoc)」提供「`[x] 啟用 OCR 圖片/掃描文檔文字辨識`」開關；API 亦支援 Header `X-With-Ocr: true`、`X-Ocr: true` 或 Query `ocr=true` 顯式強制啟動 PaddleOCR。針對無文字圖層的純圖片型掃描 PDF（抽取字元 < 50），系統亦會自動平滑降級調用 OCR 引擎逐頁抽取並重構 Markdown 表格。
   - **高可用備援池（Failover Pool）**：支援以逗號分隔多個節點（`OCR_SERVICE_URLS`，如 `https://ocr.aiurl.tw,https://ocr2.aiurl.tw`），主節點異常自動平滑故障轉移。
   - **防驚群效應（Anti-Thundering Herd）**：內建 Single-Flight 請求合併、隨機抖動背景輪詢（Jittered Probing）與熔斷冷卻期（Circuit Breaker Cooldown）。
@@ -382,6 +383,7 @@ LLM 應每 2–5 秒以 `GET /jobs/{data.id}` 搭配 `X-Job-Token: {data.accessT
 
 #### **A. 透過 API 辨識本機圖片與 PDF 文件 (`POST /api/ocr` 或 `POST /v1/ocr`)**
 - **支援格式**：支援常見圖片（`.png`, `.jpg`, `.jpeg`, `.webp`, `.bmp`, `.tiff`）以及原生多頁 **PDF 文件 (`.pdf`)**。
+- **繁體中文直排（豎排）閱讀流向重構**：自動偵測國小考卷、古籍與公文等直排排版（Bounding Box 高度大於寬度佔優勢），依據「文字由上至下、欄位由右至左」重新組配閱讀順序，支援多層上下分欄切片（Multi-Tier Lane Segmentation）與語句跨欄折行黏合，杜絕將直排欄位誤判為假表格。
 - **檔案大小限制**：最高支援 **50MB** 上傳（支援視網膜超高解析度 PNG 截圖、多百萬畫素掃描件與多頁 PDF 文件；Nginx 與後端微服務均已配置 50MB 傳輸通道）。
 - **純前端直連 (CORS)**：已全域啟用 CORS，前端 SPA（React, Vue, Vite, Next.js, BlockNote 編輯器）可直接在瀏覽器以 `fetch` 呼叫。
 
@@ -653,6 +655,7 @@ Currently deployed at: [**create360.ai**](https://create360.ai) (or easily self-
 10. **PaddleOCR Chinese & English Image and PDF Extraction (PP-OCRv4 Failover Cluster)**
    - High-accuracy OCR engine powered by official flagship `PP-OCRv4` (`ch`) with support for Traditional Chinese (`chinese_cht`), English, numbers, symbols, and table structures via `POST /api/ocr` and Web UI Tab 4. Directly supports images and native multi-page **PDF files (`.pdf`)**.
    - **2D Spatial Markdown Table Reconstruction**: Built-in 2D bounding-box spatial clustering and vertical gutter detection automatically format tabular cells into clean GitHub-Flavored Markdown (GFM) tables rather than naive vertical line dumps.
+   - **Traditional Chinese Vertical Layout Reconstruction**: Automatically detects traditional vertical writing mode (top-to-bottom text, right-to-left columns, e.g., exam papers, classic literature), applies multi-tier lane segmentation and intelligent line unwrapping, and suppresses false horizontal tables.
    - **AnyDoc + OCR Opt-in Integration & Scanned PDF Fallback**: Frontend Tab 3 (AnyDoc) includes an explicit `[x] Enable OCR for Images / Scanned Documents` toggle; the backend API supports `X-With-Ocr: true`, `X-Ocr: true`, or query parameter `ocr=true`. For scanned PDFs lacking text layers (extracting < 50 characters), the pipeline automatically renders pages and performs multi-page OCR table extraction with full metadata enrichment.
    - **Multi-Node Failover Pool**: Define fallback endpoints with `OCR_SERVICE_URLS` (e.g. `https://ocr.aiurl.tw,https://ocr2.aiurl.tw`) with seamless in-flight retry.
    - **Anti-Thundering-Herd Architecture**: Single-Flight promise coalescing, jittered background health probes, and 30-second circuit breaker cooldown.
@@ -971,6 +974,7 @@ When `OCR_SERVICE_URLS` is configured and at least one node is online:
 
 #### **A. OCR via API (`POST /api/ocr` or `POST /v1/ocr`)**
 - **Supported Formats**: Common images (`.png`, `.jpg`, `.jpeg`, `.webp`, `.bmp`, `.tiff`) and native multi-page **PDF documents (`.pdf`)**.
+- **Traditional Chinese Vertical Layout Reconstruction**: Automatically recognizes vertical writing layouts (bounding boxes where height > width), reorganizing reading flow top-to-bottom and right-to-left, with multi-tier lane segmentation and line unwrapping to avoid scrambled horizontal table interpretations.
 - **Upload Size Limit**: Up to **50MB** per file (supports ultra-high resolution retina PNG screenshots, multi-megapixel document scans, and multi-page PDF documents; reverse proxy configured for 50MB).
 - **Pure Frontend Direct Access (CORS)**: Full CORS enabled (`Access-Control-Allow-Origin: *`, credentials, preflight OPTIONS); browser SPAs (React, Vue, Vite, BlockNote editor) can invoke directly via `fetch`.
 

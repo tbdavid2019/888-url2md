@@ -3,12 +3,12 @@ from typing import Any, Dict, List, Tuple
 
 
 SECTION_HEADER = re.compile(
-    r"^([#\s]*[一二三四五六七八九十]+[、.．丶\s]|"
+    r"^([#\s]*([一二三四五六七八九十0-9]|[一—\-\~丶丨1])?[、.．丶\s]|"
     r"第[一二三四五六七八九十0-9]+[部分題大題])"
 )
 
 ITEM_START = re.compile(
-    r"^([#\s]*[一二三四五六七八九十]+[、.．丶\s]|"
+    r"^([#\s]*([一二三四五六七八九十0-9]|[一—\-\~丶丨1])?[、.．丶\s]|"
     r"第[一二三四五六七八九十0-9]+[部分題大題]|"
     r"[（(]?\s*[0-9]+[\s、.．）)]|"
     r"[>丨lI1-9]\s*[0-9]*|"
@@ -26,7 +26,7 @@ def reconstruct_vertical_markdown(
     """Reconstruct traditional vertical layout (直排 / 豎排) documents.
 
     Columns flow from Right to Left, characters flow from Top to Bottom.
-    Detects full-height margin headers and multi-tier horizontal lane dividers.
+    Detects multi-tier horizontal lane dividers while preserving natural reading order.
     """
     if table_only:
         return "", []
@@ -38,20 +38,17 @@ def reconstruct_vertical_markdown(
     page_h = max(max_y - min_y, 1.0)
     page_w = max(max_x - min_x, 1.0)
 
-    # Full-height margin headers (e.g. running along the side margin)
-    def is_margin_header(it: Dict[str, Any]) -> bool:
-        at_margin = (it["x_center"] > max_x - page_w * 0.12) or (it["x_center"] < min_x + page_w * 0.12)
-        return at_margin and (it["height"] > page_h * 0.45)
+    # Multi-tier horizontal lane detection via Y occupancy gaps.
+    # Exclude tall boxes spanning across tiers (> 55% page height) to prevent
+    # margin banners from masking genuine horizontal dividing gaps.
+    tier_items = [it for it in items if it["height"] < page_h * 0.55]
+    if len(tier_items) < 5:
+        tier_items = items
 
-    headers = [it for it in items if is_margin_header(it)]
-    content_items = [it for it in items if not is_margin_header(it)]
-    headers.sort(key=lambda it: -it["x_center"])
-
-    # Multi-tier horizontal lane detection via Y occupancy gaps
     y_floor = int(min_y)
     occupancy_len = int(max_y) - y_floor + 2
     occupancy = [0] * max(1, occupancy_len)
-    for it in content_items:
+    for it in tier_items:
         start = max(0, int(it["y_min"]) - y_floor)
         end = min(occupancy_len - 1, int(it["y_max"]) - y_floor)
         for y in range(start, end + 1):
@@ -60,34 +57,37 @@ def reconstruct_vertical_markdown(
     gaps: List[float] = []
     in_gap = False
     gap_start = 0
-    search_start = int(page_h * 0.2)
-    search_end = int(page_h * 0.8)
-    for y in range(search_start, search_end):
-        if y < len(occupancy) and occupancy[y] == 0:
+    search_start = int(min_y + page_h * 0.15)
+    search_end = int(min_y + page_h * 0.85)
+    for y_abs in range(search_start, search_end):
+        idx = y_abs - y_floor
+        if 0 <= idx < len(occupancy) and occupancy[idx] == 0:
             if not in_gap:
                 in_gap = True
-                gap_start = y + y_floor
+                gap_start = y_abs
         else:
             if in_gap:
                 in_gap = False
-                gap_end = y + y_floor
+                gap_end = y_abs
                 if gap_end - gap_start >= 10:
                     gaps.append((gap_start + gap_end) / 2.0)
-    if in_gap and (search_end + y_floor) - gap_start >= 10:
-        gaps.append((gap_start + search_end + y_floor) / 2.0)
+    if in_gap and search_end - gap_start >= 10:
+        gaps.append((gap_start + search_end) / 2.0)
 
     lane_cuts = [-1e9] + gaps + [1e9]
     lanes: List[List[Dict[str, Any]]] = [[] for _ in range(len(lane_cuts) - 1)]
-    for it in content_items:
+    for it in items:
+        # Place item into lane based on its top coordinate (y_min)
+        placed = False
         for idx in range(len(lanes)):
-            if lane_cuts[idx] <= it["y_center"] < lane_cuts[idx + 1]:
+            if lane_cuts[idx] <= it["y_min"] < lane_cuts[idx + 1]:
                 lanes[idx].append(it)
+                placed = True
                 break
+        if not placed:
+            lanes[0].append(it)
 
     output_blocks: List[str] = []
-    for h_it in headers:
-        output_blocks.append(f"# {h_it['text']}")
-
     for lane in lanes:
         if not lane:
             continue

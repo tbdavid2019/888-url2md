@@ -2,6 +2,22 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.09.28.6] - 2026-09-28 - 繁體中文直排（豎排）閱讀流向與非零原點邊界硬化 (Vertical Layout Natural Flow & Nonzero Origin Boundary Hardening)
+
+### Fixed & Hardened
+- **邊緣欄位自然閱讀流向維護（Natural Right-to-Left Reading Flow for Outer Columns）**：
+  - 根據 Codex 代碼審查反饋，徹底移除將外側邊緣欄位誤判為 Margin Header 並強行抽離本文的截斷邏輯。
+  - 直排（豎排）排版天然由右至左讀取，右側邊緣抬頭欄位自然排列在首位，而左側邊界尾段落款（如文章結尾、註腳）得以嚴格保留在最後讀取位置，防止左側結尾被誤升為頂部 `#` 標題。
+- **非零 Y 原點佔用掃描位移修復（Nonzero Y Origin Offset in Lane Divider Detection）**：
+  - 修正多層試卷上下分欄（Lane Dividers）的空隙掃描邏輯。原先以 `page_h` 計算之相對索引直接查詢 `occupancy`，當 OCR 幾何座標具有非零原點（`min_y > 0`）時會造成掃描區間偏移而遺漏水平隔線。
+  - 改以絕對座標 `y_abs`（`min_y + 0.15 * page_h` 至 `min_y + 0.85 * page_h`）為基準，精確映射至 `idx = y_abs - y_floor` 陣列索引，並直接產出絕對 Y 軸分割點。
+- **跨層長方框幾何過濾（Multi-Tier Gap Filtering for Tall Banners）**：
+  - 針對高度超過 55% 頁高之貫穿型邊緣橫幅（如考卷滿版校名抬頭），在計算水平空隙時予以排除，杜絕邊緣縱向橫幅阻礙中央水平分割線識別的問題。
+- **OCR 筆畫殘缺容錯強化（Stroke-Degraded Section Header Detection）**：
+  - 擴充大題與題目序號正規表達式（`SECTION_HEADER` / `ITEM_START`），支援注音或筆畫殘缺（如 `一、` 被誤辨識為單一符號 `丶`、`丨`、`—`）時依然能精確識別為大題標題，保障標題獨立成行與折行黏合機制順暢運作。
+- **單元測試強化**：在 `deploy/ocr/test_ocr_markdown.py` 新增左側高欄位自然流向測試（`test_vertical_tall_outer_edge_columns_remain_in_flow`）與非零 Y 原點分層測試（`test_vertical_nonzero_y_origin_lane_detection`）。
+- **`package.json`**：版本號更新至 `2026.09.28.6`。
+
 ## [2026.09.28.5] - 2026-09-28 - 繁體中文直排（豎排）考卷與文檔幾何重構 (Traditional Chinese Vertical Layout OCR Reconstruction)
 
 ### Fixed & Hardened

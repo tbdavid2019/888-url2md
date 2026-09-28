@@ -70,6 +70,55 @@ class ReconstructMarkdownTests(unittest.TestCase):
         self.assertEqual(len(tables), 0)
         self.assertEqual(table_markdown, "")
 
+    def test_vertical_tall_outer_edge_columns_remain_in_flow(self):
+        # A tall body column at the leftmost margin (spanning > 60% page height)
+        # must stay at the END of reading order in right-to-left flow, not plucked to top.
+        lines = [
+            # Right column (x: 500..530)
+            {"text": "第一段文章起頭", "box": box(500, 50, 530, 450)},
+            # Middle column (x: 350..380)
+            {"text": "第二段文章內容", "box": box(350, 50, 380, 450)},
+            # Left edge tall column (x: 50..80, height: 400 out of 450)
+            {"text": "結尾落款於左側邊緣", "box": box(50, 50, 80, 450)},
+            # Vertical boxes to trigger vertical mode detection
+            {"text": "注釋一", "box": box(450, 50, 470, 200)},
+            {"text": "注釋二", "box": box(400, 50, 420, 200)},
+        ]
+
+        full_markdown, _ = reconstruct_markdown(lines)
+        pos_start = full_markdown.index("第一段文章起頭")
+        pos_mid = full_markdown.index("第二段文章內容")
+        pos_end = full_markdown.index("結尾落款於左側邊緣")
+
+        # Must follow natural Right-to-Left order: right -> mid -> left edge
+        self.assertLess(pos_start, pos_mid)
+        self.assertLess(pos_mid, pos_end)
+        self.assertFalse(full_markdown.startswith("# 結尾落款於左側邊緣"))
+
+    def test_vertical_nonzero_y_origin_lane_detection(self):
+        # Test coordinates where min_y is far from 0 (e.g. y starts at 500)
+        # Upper tier: y = 500..800
+        # Lower tier: y = 860..1160
+        # Dividing gap: y = 800..860
+        lines = [
+            # Upper tier (y: 500..800)
+            {"text": "一、上半部題目", "box": box(500, 500, 530, 650)},
+            {"text": "上半部第1題", "box": box(500, 660, 530, 800)},
+            {"text": "上半部第2題", "box": box(350, 500, 380, 650)},
+            # Lower tier (y: 860..1160)
+            {"text": "二、下半部題目", "box": box(500, 860, 530, 1010)},
+            {"text": "下半部第1題", "box": box(500, 1020, 530, 1160)},
+            {"text": "下半部第2題", "box": box(350, 860, 380, 1010)},
+        ]
+
+        full_markdown, _ = reconstruct_markdown(lines)
+        pos_upper = full_markdown.index("一、上半部題目")
+        pos_lower = full_markdown.index("二、下半部題目")
+
+        # Upper tier must precede Lower tier
+        self.assertLess(pos_upper, pos_lower)
+
 
 if __name__ == "__main__":
     unittest.main()
+
