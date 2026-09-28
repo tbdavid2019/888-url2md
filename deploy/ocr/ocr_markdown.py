@@ -3,12 +3,16 @@ from typing import Any, Dict, List, Tuple
 
 
 SECTION_HEADER = re.compile(
-    r"^([#\s]*([一二三四五六七八九十0-9]|[一—\-\~丶丨1])?[、.．丶\s]|"
+    r"^([#\s]*[一二三四五六七八九十]+[、.．丶\s]|"
+    r"[#\s]*[、.．丶\s]+[一二三四五六七八九十]+[、.．丶\s]|"
+    r"[#\s]*[丶、][\s]*(國字|注音|改錯|選擇|選撰|成語|閱讀|寫作|綜合|填空|簡答|非選)|"
     r"第[一二三四五六七八九十0-9]+[部分題大題])"
 )
 
 ITEM_START = re.compile(
-    r"^([#\s]*([一二三四五六七八九十0-9]|[一—\-\~丶丨1])?[、.．丶\s]|"
+    r"^([#\s]*[一二三四五六七八九十]+[、.．丶\s]|"
+    r"[#\s]*[、.．丶\s]+[一二三四五六七八九十]+[、.．丶\s]|"
+    r"[#\s]*[丶、][\s]*(國字|注音|改錯|選擇|選撰|成語|閱讀|寫作|綜合|填空|簡答|非選)|"
     r"第[一二三四五六七八九十0-9]+[部分題大題]|"
     r"[（(]?\s*[0-9]+[\s、.．）)]|"
     r"[>丨lI1-9]\s*[0-9]*|"
@@ -42,37 +46,36 @@ def reconstruct_vertical_markdown(
     # Exclude tall boxes spanning across tiers (> 55% page height) to prevent
     # margin banners from masking genuine horizontal dividing gaps.
     tier_items = [it for it in items if it["height"] < page_h * 0.55]
-    if len(tier_items) < 5:
-        tier_items = items
-
-    y_floor = int(min_y)
-    occupancy_len = int(max_y) - y_floor + 2
-    occupancy = [0] * max(1, occupancy_len)
-    for it in tier_items:
-        start = max(0, int(it["y_min"]) - y_floor)
-        end = min(occupancy_len - 1, int(it["y_max"]) - y_floor)
-        for y in range(start, end + 1):
-            occupancy[y] += 1
-
     gaps: List[float] = []
-    in_gap = False
-    gap_start = 0
-    search_start = int(min_y + page_h * 0.15)
-    search_end = int(min_y + page_h * 0.85)
-    for y_abs in range(search_start, search_end):
-        idx = y_abs - y_floor
-        if 0 <= idx < len(occupancy) and occupancy[idx] == 0:
-            if not in_gap:
-                in_gap = True
-                gap_start = y_abs
-        else:
-            if in_gap:
-                in_gap = False
-                gap_end = y_abs
-                if gap_end - gap_start >= 10:
-                    gaps.append((gap_start + gap_end) / 2.0)
-    if in_gap and search_end - gap_start >= 10:
-        gaps.append((gap_start + search_end) / 2.0)
+
+    if tier_items:
+        y_floor = int(min_y)
+        occupancy_len = int(max_y) - y_floor + 2
+        occupancy = [0] * max(1, occupancy_len)
+        for it in tier_items:
+            start = max(0, int(it["y_min"]) - y_floor)
+            end = min(occupancy_len - 1, int(it["y_max"]) - y_floor)
+            for y in range(start, end + 1):
+                occupancy[y] += 1
+
+        in_gap = False
+        gap_start = 0
+        search_start = int(min_y + page_h * 0.15)
+        search_end = int(min_y + page_h * 0.85)
+        for y_abs in range(search_start, search_end):
+            idx = y_abs - y_floor
+            if 0 <= idx < len(occupancy) and occupancy[idx] == 0:
+                if not in_gap:
+                    in_gap = True
+                    gap_start = y_abs
+            else:
+                if in_gap:
+                    in_gap = False
+                    gap_end = y_abs
+                    if gap_end - gap_start >= 10:
+                        gaps.append((gap_start + gap_end) / 2.0)
+        if in_gap and search_end - gap_start >= 10:
+            gaps.append((gap_start + search_end) / 2.0)
 
     lane_cuts = [-1e9] + gaps + [1e9]
     lanes: List[List[Dict[str, Any]]] = [[] for _ in range(len(lane_cuts) - 1)]

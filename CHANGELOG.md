@@ -2,6 +2,18 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.09.28.7] - 2026-09-28 - 阿拉伯數字題目大題誤判隔離與邊緣橫幅佔用防禦 (Arabic Question Header Isolation & Robust Banner Exclusion)
+
+### Fixed & Hardened
+- **阿拉伯數字試題大題標題誤判隔離（Arabic Question Header Isolation）**：
+  - 根據 Codex 審查意見，修正 `SECTION_HEADER` 正則表達式將包含阿拉伯數字（如 `1. 太陽對我微笑`、`2. 做事要持之以恆`）誤判為 `###` 大題標題的缺陷。
+  - 將阿拉伯數字序號嚴格限定於 `ITEM_START`，確保題目項目以普通內文換行輸出，僅保留國字大題（如 `一、`、`二丶`、`三、`、`丶國字注音`、`、成語測驗`）作為 `###` 二級大題標題。
+- **少數短欄位下長橫幅佔用無條件排除（Unconditional Tall Banner Exclusion）**：
+  - 修正原先 `if len(tier_items) < 5: tier_items = items` 在短欄位少於 5 個時會將跨層長橫幅加回 `occupancy` 計算，導致上下分層分隔線被橫幅填滿而錯失分割的問題。
+  - 即使短欄位數量稀少，高度 > 55% 頁高之長橫幅亦一律排除於水平空隙計算之外；若所有欄位皆為長欄位則判定為單層文件，徹底根絕分層失效邊界條件。
+- **單元測試強化**：在 `deploy/ocr/test_ocr_markdown.py` 新增 `test_vertical_arabic_numbered_items_remain_body_text` 與 `test_vertical_tall_banner_with_few_short_items_splits_lanes`，全量單元測試 100% 通過。
+- **`package.json`**：版本號更新至 `2026.09.28.7`。
+
 ## [2026.09.28.6] - 2026-09-28 - 繁體中文直排（豎排）閱讀流向與非零原點邊界硬化 (Vertical Layout Natural Flow & Nonzero Origin Boundary Hardening)
 
 ### Fixed & Hardened

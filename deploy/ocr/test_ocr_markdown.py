@@ -118,7 +118,53 @@ class ReconstructMarkdownTests(unittest.TestCase):
         # Upper tier must precede Lower tier
         self.assertLess(pos_upper, pos_lower)
 
+    def test_vertical_arabic_numbered_items_remain_body_text(self):
+        # Arabic-numbered items like "1. 題目" should remain question body text and NOT become "### 1. 題目"
+        lines = [
+            {"text": "一、國字注音", "box": box(500, 50, 530, 200)},
+            {"text": "1. 太陽對我微笑", "box": box(500, 210, 530, 350)},
+            {"text": "2. 做事要持之以恆", "box": box(350, 50, 380, 250)},
+            {"text": "3. 這是第三題", "box": box(350, 260, 380, 380)},
+            {"text": "二、改錯字", "box": box(200, 50, 230, 200)},
+        ]
+
+        full_markdown, _ = reconstruct_markdown(lines)
+
+        # Chinese section headers get ### heading
+        self.assertIn("### 一、國字注音", full_markdown)
+        self.assertIn("### 二、改錯字", full_markdown)
+
+        # Arabic question numbers must NOT have ###
+        self.assertNotIn("### 1.", full_markdown)
+        self.assertNotIn("### 2.", full_markdown)
+        self.assertNotIn("### 3.", full_markdown)
+        self.assertIn("1. 太陽對我微笑", full_markdown)
+
+    def test_vertical_tall_banner_with_few_short_items_splits_lanes(self):
+        # A document with 1 tall banner spanning full height (y: 50..950)
+        # and only 2 short items (upper: 50..400, lower: 600..950).
+        # Despite having < 5 short items, the tall banner must NOT be added back to occupancy,
+        # and the gap (400..600) must still split upper and lower tiers.
+        lines = [
+            # Tall banner spanning across tiers (x: 500..530, y: 50..950)
+            {"text": "某某學校定期評量試卷抬頭", "box": box(500, 50, 530, 950)},
+            # Upper tier item (x: 350..380, y: 50..400)
+            {"text": "一、上半部大題", "box": box(350, 50, 380, 400)},
+            # Lower tier item (x: 350..380, y: 600..950)
+            {"text": "二、下半部大題", "box": box(350, 600, 380, 950)},
+            # Vertical indicator boxes
+            {"text": "標記甲", "box": box(200, 50, 220, 200)},
+            {"text": "標記乙", "box": box(200, 600, 220, 750)},
+        ]
+
+        full_markdown, _ = reconstruct_markdown(lines)
+        pos_upper = full_markdown.index("一、上半部大題")
+        pos_lower = full_markdown.index("二、下半部大題")
+
+        self.assertLess(pos_upper, pos_lower)
+
 
 if __name__ == "__main__":
     unittest.main()
+
 
