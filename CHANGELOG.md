@@ -2,6 +2,15 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.09.28.4] - 2026-09-28 - PDF 分頁子框架 OCR 深度映射與頁碼錨點支援 (PDF Page Sub-Frames OCR Mapping & Hash Fragment Support)
+
+### Fixed & Hardened
+- **PDF 分頁子框架 OCR 深度映射（Propagate OCR to PDF Child Frames）**：
+  - 根據 Codex 審查反饋，解決純圖掃描 PDF 在直接 OCR 模式下未將各頁文字回填至分頁子框架（`snapshot.childFrames`）的問題。
+  - 在 `src/services/binary-extractor.ts` 中新增 `parseOcrPages()` 解析器，將微服務原生直接 OCR 的多頁 Markdown（含 `<!-- Page N -->` 標籤與分界）精準映射至對應的子頁面框架中。
+  - 同時在 AnyDoc 與傳統 PDF 解析器中全面支援在分頁框架為空時自動合成 `childFrames`，確保使用者透過 URL 錨點（如 `#page`、`#2`）請求個別分頁時，能直接取得該分頁的完整 OCR 辨識文字與表格 Markdown，杜絕分頁回傳空白。
+- **`package.json`**：版本號更新至 `2026.09.28.4`。
+
 ## [2026.09.28.3] - 2026-09-28 - 修正 AnyDoc 掃描版 PDF 空白快取與深度 OCR 管線直通 (Fix AnyDoc Scanned PDF Empty Cache & Seamless OCR Pipeline)
 
 ### Fixed & Hardened

@@ -230,6 +230,32 @@ export class BinaryExtractorService extends AsyncService {
         }
     }
 
+    parseOcrPages(ocrMarkdown: string): Map<number, string> {
+        const pageOcrMap = new Map<number, string>();
+        if (!ocrMarkdown || !ocrMarkdown.trim()) {
+            return pageOcrMap;
+        }
+        const pageRegex = /<!-- Page (\d+) -->\n([\s\S]*?)(?=(?:\n*---\n*<!-- Page \d+ -->|$))/g;
+        let match: RegExpExecArray | null;
+        while ((match = pageRegex.exec(ocrMarkdown)) !== null) {
+            const pNum = parseInt(match[1], 10);
+            const pContent = match[2].trim();
+            if (pNum && pContent) {
+                pageOcrMap.set(pNum, pContent);
+            }
+        }
+        if (pageOcrMap.size === 0) {
+            const parts = ocrMarkdown.split(/\n\n---\n\n/);
+            parts.forEach((part, idx) => {
+                const trimmed = part.trim();
+                if (trimmed) {
+                    pageOcrMap.set(idx + 1, trimmed);
+                }
+            });
+        }
+        return pageOcrMap;
+    }
+
     @Threaded()
     async localFileToSnapshot(options: {
         filePath: string;
@@ -268,6 +294,23 @@ export class BinaryExtractorService extends AsyncService {
                 const isPdf = contentType.startsWith('application/pdf');
                 const isSparseOrEmpty = !markdown || markdown.trim().length < 50;
                 let ocrApplied = false;
+                const pageOcrMap = new Map<number, string>();
+                let totalPages = 3;
+
+                if (isPdf) {
+                    try {
+                        const fileBuf = await readFile(filePath);
+                        const loadingTask = this.pdfExtractor.pdfjs.getDocument({
+                            data: new Uint8Array(fileBuf),
+                            useSystemFonts: true,
+                            verbosity: 0,
+                        });
+                        const doc = await loadingTask.promise;
+                        totalPages = Math.min(doc.numPages, 20);
+                    } catch {
+                        totalPages = 3;
+                    }
+                }
 
                 // Optical Character Recognition (OCR) opt-in or smart fallback for scanned PDFs
                 if ((withOcr || isSparseOrEmpty) && isPdf && this.ocrClientService.isConfigured()) {
@@ -278,24 +321,14 @@ export class BinaryExtractorService extends AsyncService {
                             const ocrResult = await this.ocrClientService.predict(fileBuf, fileName, { extractTables: true });
                             if (ocrResult.markdown && ocrResult.markdown.trim()) {
                                 ocrMarkdown = ocrResult.markdown.trim();
+                                const parsedPages = this.parseOcrPages(ocrMarkdown);
+                                parsedPages.forEach((val, key) => pageOcrMap.set(key, val));
                             }
                         } catch (directPdfErr) {
                             this.logger.warn(`Direct PDF OCR via microservice failed, falling back to page rendering`, { directPdfErr, fileName });
                         }
 
                         if (!ocrMarkdown) {
-                            let totalPages = 3;
-                            try {
-                                const loadingTask = this.pdfExtractor.pdfjs.getDocument({
-                                    data: new Uint8Array(fileBuf),
-                                    useSystemFonts: true,
-                                    verbosity: 0,
-                                });
-                                const doc = await loadingTask.promise;
-                                totalPages = Math.min(doc.numPages, 20);
-                            } catch {
-                                totalPages = 3;
-                            }
                             const pagesToRender = pageNumber ? [pageNumber, pageNumber + 1, pageNumber + 2] : _.range(1, totalPages + 1);
                             const extracted = await this.pdfExtractor.extractRendered(filePath, outPath, pagesToRender);
                             const ocrResults: string[] = [];
@@ -309,6 +342,7 @@ export class BinaryExtractorService extends AsyncService {
                                             page.text = pageOcr.text;
                                             page.content = pageOcr.markdown;
                                             ocrResults.push(pageOcr.markdown.trim());
+                                            pageOcrMap.set(page.page, pageOcr.markdown.trim());
                                         }
                                     } catch (pageOcrErr) {
                                         this.logger.warn(`OCR extraction failed for PDF page ${page.page}`, { pageOcrErr, fileName });
@@ -346,7 +380,7 @@ export class BinaryExtractorService extends AsyncService {
 
                     if (contentType.startsWith('application/pdf')) {
                         try {
-                            const pagesToRender = pageNumber ? [pageNumber, pageNumber + 1, pageNumber + 2] : [1, 2, 3];
+                            const pagesToRender = pageNumber ? [pageNumber, pageNumber + 1, pageNumber + 2] : _.range(1, totalPages + 1);
                             const extracted = await this.pdfExtractor.extractRendered(filePath, outPath, pagesToRender);
                             if (extracted.meta?.title) {
                                 snapshot.title = extracted.meta.title;
@@ -358,14 +392,17 @@ export class BinaryExtractorService extends AsyncService {
                             snapshot.childFrames = extracted.pages.map((page) => {
                                 const childUrl = new URL(urlCopy.href);
                                 childUrl.hash = `#${page.page}`;
+                                const ocrText = pageOcrMap.get(page.page);
+                                const content = (ocrApplied && ocrText) ? ocrText : page.content;
+                                const text = (ocrApplied && ocrText) ? ocrText : page.text;
 
                                 return {
                                     title: `${snapshot.title}#${page.page}`,
                                     href: childUrl.href,
                                     html: '',
-                                    text: page.text,
+                                    text,
                                     parsed: {
-                                        content: page.content,
+                                        content,
                                     },
                                     screenshotUrl: page.pngPath ? pathToFileURL(page.pngPath).href : undefined,
                                 } as PageSnapshot;
@@ -373,6 +410,24 @@ export class BinaryExtractorService extends AsyncService {
                             snapshot.traits!.push('pdf');
                         } catch (pdfErr) {
                             this.logger.debug(`PDF extra metadata extraction skipped`, { pdfErr });
+                        }
+
+                        if ((!snapshot.childFrames || snapshot.childFrames.length === 0) && pageOcrMap.size > 0) {
+                            snapshot.childFrames = Array.from(pageOcrMap.entries())
+                                .sort((a, b) => a[0] - b[0])
+                                .map(([pageNum, pContent]) => {
+                                    const childUrl = new URL(urlCopy.href);
+                                    childUrl.hash = `#${pageNum}`;
+                                    return {
+                                        title: `${snapshot.title}#${pageNum}`,
+                                        href: childUrl.href,
+                                        html: '',
+                                        text: pContent,
+                                        parsed: {
+                                            content: pContent,
+                                        },
+                                    } as PageSnapshot;
+                                });
                         }
                     }
 
@@ -400,6 +455,7 @@ export class BinaryExtractorService extends AsyncService {
             const pagesToRender = pageNumber ? [pageNumber, pageNumber + 1, pageNumber + 2] : _.range(1, totalPages + 1);
             const extracted = await this.pdfExtractor.extractRendered(filePath, outPath, pagesToRender);
             const isSparseOrEmpty = !extracted.content || extracted.content.trim().length < 50;
+            const pageOcrMap = new Map<number, string>();
 
             if ((withOcr || isSparseOrEmpty) && this.ocrClientService.isConfigured()) {
                 try {
@@ -412,6 +468,8 @@ export class BinaryExtractorService extends AsyncService {
                             extracted.text = directOcr.text || directOcr.markdown;
                             snapshot.traits!.push('ocr');
                             ocrDone = true;
+                            const directPageMap = this.parseOcrPages(directOcr.markdown);
+                            directPageMap.forEach((v, k) => pageOcrMap.set(k, v));
                         }
                     } catch (directErr) {
                         this.logger.debug(`Direct PDF OCR failed in legacy branch, falling back to per-page`, { directErr, fileName });
@@ -428,6 +486,7 @@ export class BinaryExtractorService extends AsyncService {
                                         page.text = pageOcr.text;
                                         page.content = pageOcr.markdown;
                                         ocrResults.push(pageOcr.markdown.trim());
+                                        pageOcrMap.set(page.page, pageOcr.markdown.trim());
                                     }
                                 } catch (pageOcrErr) {
                                     this.logger.warn(`Legacy PDF OCR failed for page ${page.page}`, { pageOcrErr });
@@ -460,18 +519,40 @@ export class BinaryExtractorService extends AsyncService {
             snapshot.childFrames = extracted.pages.map((page) => {
                 const childUrl = new URL(urlCopy.href);
                 childUrl.hash = `#${page.page}`;
+                const ocrText = pageOcrMap.get(page.page);
+                const content = ocrText || page.content;
+                const text = ocrText || page.text;
 
                 return {
                     title: `${snapshot.title}#${page.page}`,
                     href: childUrl.href,
                     html: '',
-                    text: page.text,
+                    text,
                     parsed: {
-                        content: page.content,
+                        content,
                     },
                     screenshotUrl: page.pngPath ? pathToFileURL(page.pngPath).href : undefined,
                 } as PageSnapshot;
             });
+
+            if ((!snapshot.childFrames || snapshot.childFrames.length === 0) && pageOcrMap.size > 0) {
+                snapshot.childFrames = Array.from(pageOcrMap.entries())
+                    .sort((a, b) => a[0] - b[0])
+                    .map(([pageNum, pContent]) => {
+                        const childUrl = new URL(urlCopy.href);
+                        childUrl.hash = `#${pageNum}`;
+                        return {
+                            title: `${snapshot.title}#${pageNum}`,
+                            href: childUrl.href,
+                            html: '',
+                            text: pContent,
+                            parsed: {
+                                content: pContent,
+                            },
+                        } as PageSnapshot;
+                    });
+            }
+
             snapshot.traits!.push('pdf');
 
             return snapshot;
