@@ -2,6 +2,26 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.09.28.1] - 2026-09-28 - OCR 支援 PDF 解析與 AnyDoc OCR 選項整合 (OCR PDF Parsing Support & AnyDoc OCR Option Integration)
+
+### Added
+- **OCR 完整支援 PDF 文件解析（Native PDF Document OCR & Multi-page Aggregation）**：
+  - `/api/ocr` API 端點與前端 Tab 4（「圖片與 PDF 文件辨識」）現在原生支援上傳 `.pdf` 文件（MIME `application/pdf`）。
+  - 後端 PaddleOCR 微服務整合 `pymupdf` 高效能 PDF 渲染引擎，支援高解析度（150~200 DPI）逐頁轉譯、文字與二維表格辨識，並將多頁內容串接為結構化 Markdown（`<!-- Page N -->`、`\n\n---\n\n` 與表格清單）。
+  - `888-url2md` 增加 PDF 自動檢測與雙層容錯（優先由微服務高效渲染，若異常自動轉由本地 `PDFExtractor` 逐頁分流推論）。
+- **AnyDoc 前端新增 OCR 辨識選項（AnyDoc Scanned PDF OCR Option & Toggle）**：
+  - 前端 Tab 3「文檔解析 (AnyDoc)」表單新增「`[x] 啟用 OCR 圖片/掃描文檔文字辨識 (強制調用 PaddleOCR 繁中 & 表格模型)`」選項。
+  - 勾選時自動傳送 `X-With-Ocr: true` 請求標頭與 `?ocr=true` 參數，讓掃描型 PDF 或包含圖表的文檔能由使用者強制啟動 PaddleOCR 繁中與表格模型進行深層辨識。
+
+### Fixed & Performance
+- **解除 FastAPI Event Loop 阻塞（Non-blocking Threadpool Offloading）**：
+  - 將 PaddleOCR 微服務（`deploy/ocr/main.py`）之 CPU 密集型推論操作透過 Starlette `run_in_threadpool` 移至獨立背景工作執行緒，徹底防止同步 CPU 計算阻斷 asyncio 事件迴圈。
+  - `/health` 健康檢查探針在滿載推論時依然能保持 < 2ms 瞬時回應，不再因推論耗時觸發 888-url2md 客戶端探測超時或熔斷。
+- **容器記憶體擴展與 OpenMP 資源配置最佳化**：
+  - `paddleocr-server` 容器記憶體限制由 4GB 調升至 8GB，消除處理高解析度大圖時因 Linux cgroup 記憶體上限觸發頻繁 swap 抖動與 I/O 阻塞問題。
+  - 調整 `OMP_NUM_THREADS=1`，防止 OpenBlas 多執行緒資源競爭與日誌警告。
+- **`package.json`**：版本號更新至 `2026.09.28.1`。
+
 ## [2026.09.14.16] - 2026-09-14 - 建立 OCR 自動重試、自我修復與 30 秒彈性逾時機制 (OCR Automatic Retry, Self-Healing Resilience & 30s Timeout)
 
 ### Fixed & Hardened

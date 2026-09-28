@@ -20,3 +20,4 @@ scipy
 imgaug
 imageio
 packaging
+pymupdf

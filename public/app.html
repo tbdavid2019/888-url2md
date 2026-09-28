@@ -499,6 +499,12 @@
               <div class="dropzone-text" id="file-name-display" data-i18n="dropzonePrompt">拖曳檔案至此，或點擊選擇檔案上傳</div>
               <div class="file-types-hint" data-i18n="dropzoneHint">支援 PDF, Word (.docx/.doc), Excel (.xlsx/.xls), PowerPoint (.pptx/.ppt), EPUB, RTF, CSV, ODT...</div>
             </div>
+            <div class="option-row" style="margin-top: 14px; display: flex; align-items: center; justify-content: flex-start;">
+              <label class="switch-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.92rem; user-select: none;">
+                <input type="checkbox" id="upload-with-ocr" name="ocr" value="true" style="width: 16px; height: 16px; cursor: pointer;">
+                <span data-i18n="uploadOcrOption">啟用 OCR 圖片/掃描文檔文字辨識 (強制調用 PaddleOCR 繁中 & 表格模型)</span>
+              </label>
+            </div>
             <div class="actions" style="margin-top: 18px">
               <button class="primary-btn" id="upload-btn" type="submit">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
@@ -511,14 +517,14 @@
         <!-- 4. Image OCR Tab -->
         <div id="tab-ocr" class="tab-content" role="tabpanel">
           <form id="ocr-form" enctype="multipart/form-data">
-            <label for="ocr-file-input" data-i18n="ocrLabel">圖片文字辨識 (PaddleOCR 繁中 & 表格引擎)</label>
+            <label for="ocr-file-input" data-i18n="ocrLabel">圖片與 PDF 文件辨識 (PaddleOCR 繁中 & 表格引擎)</label>
             <div id="ocr-dropzone" class="dropzone" tabindex="0">
-              <input type="file" id="ocr-file-input" name="file" accept=".png,.jpg,.jpeg,.webp,.bmp,.gif" style="display: none">
+              <input type="file" id="ocr-file-input" name="file" accept=".png,.jpg,.jpeg,.webp,.bmp,.gif,.pdf,application/pdf" style="display: none">
               <div class="dropzone-icon">
                 <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2m10 0h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2m4-9h8m-8 4h10M7 16h6"/></svg>
               </div>
               <div class="dropzone-text" id="ocr-file-name-display" data-i18n="ocrDropzonePrompt">拖曳圖片至此，點擊選擇檔案，或直接 Ctrl+V / Cmd+V 貼上截圖</div>
-              <div class="file-types-hint" data-i18n="ocrDropzoneHint">支援 PNG, JPG, JPEG, WEBP, BMP，以及剪貼簿截圖直接貼上...</div>
+              <div class="file-types-hint" data-i18n="ocrDropzoneHint">支援 PNG, JPG, JPEG, WEBP, BMP, PDF 文件，以及剪貼簿截圖直接貼上...</div>
             </div>
             <div class="actions" style="margin-top: 18px">
               <button class="primary-btn" id="ocr-btn" type="submit">
@@ -581,6 +587,7 @@
         const dropzone = document.querySelector('#dropzone');
         const fileNameDisplay = document.querySelector('#file-name-display');
         const uploadBtn = document.querySelector('#upload-btn');
+        const uploadWithOcrCheckbox = document.querySelector('#upload-with-ocr');
 
         const ocrTabBtn = document.querySelector('#tab-ocr-btn');
         const ocrForm = document.querySelector('#ocr-form');
@@ -615,10 +622,11 @@
             uploadLabel: '文件檔案解析 (AnyDoc 超極速引擎)',
             dropzonePrompt: '拖曳檔案至此，或點擊選擇檔案上傳',
             dropzoneHint: '支援 PDF, Word (.docx/.doc), Excel (.xlsx/.xls), PowerPoint (.pptx/.ppt), EPUB, RTF, CSV, ODT...',
+            uploadOcrOption: '啟用 OCR 圖片/掃描文檔文字辨識 (強制調用 PaddleOCR 繁中 & 表格模型)',
             uploadAction: '上傳文檔並轉成 Markdown',
-            ocrLabel: '圖片文字辨識 (PaddleOCR 繁中 & 表格引擎)',
-            ocrDropzonePrompt: '拖曳圖片至此，點擊選擇檔案，或直接 Ctrl+V / Cmd+V 貼上截圖',
-            ocrDropzoneHint: '支援 PNG, JPG, JPEG, WEBP, BMP，以及剪貼簿截圖直接貼上...',
+            ocrLabel: '圖片與 PDF 文件辨識 (PaddleOCR 繁中 & 表格引擎)',
+            ocrDropzonePrompt: '拖曳圖片或 PDF 至此，點擊選擇檔案，或直接 Ctrl+V / Cmd+V 貼上截圖',
+            ocrDropzoneHint: '支援 PNG, JPG, JPEG, WEBP, BMP, PDF 文件，以及剪貼簿截圖直接貼上...',
             ocrAction: '辨識圖片並轉成 Markdown',
             resultTitle: '轉換結果 (Markdown)',
             copyBtn: '複製內容',
@@ -628,15 +636,15 @@
             queryRequired: '請輸入搜尋關鍵字。',
             urlsRequired: '請至少輸入一個網址。',
             fileRequired: '請選擇要上傳的文檔檔案。',
-            ocrFileRequired: '請選擇圖片檔案或貼上截圖。',
+            ocrFileRequired: '請選擇圖片或 PDF 檔案，或貼上截圖。',
             searching: query => `正在搜尋「${query}」…`,
             searched: query => `已完成「${query}」的網頁搜尋。`,
             converting: count => `正在轉換 ${count} 個網址…`,
             converted: count => `已完成 ${count} 個網址的轉譯。`,
             uploading: name => `正在解析文檔「${name}」…`,
             uploaded: name => `已完成文檔「${name}」的極速轉譯。`,
-            ocrUploading: name => `正在透過 PaddleOCR 辨識圖片「${name}」…`,
-            ocrUploaded: name => `已完成圖片「${name}」的文字轉譯。`,
+            ocrUploading: name => name.toLowerCase().endsWith('.pdf') ? `正在透過 PaddleOCR 逐頁辨識 PDF 文件「${name}」…` : `正在透過 PaddleOCR 辨識「${name}」…`,
+            ocrUploaded: name => `已完成「${name}」的文字與表格轉譯。`,
             copied: '已複製 Markdown 到剪貼簿！',
             copyFailed: '無法自動複製，請手動選取內容。',
             errorMsg: err => `發生錯誤：${err}`
@@ -646,7 +654,7 @@
             searchTab: 'Web Search (SERP)',
             urlsTab: 'URL Converter',
             uploadTab: 'Document Parser (AnyDoc)',
-            ocrTab: 'Image OCR',
+            ocrTab: 'Image & PDF OCR',
             searchLabel: 'Live Web Search',
             searchPlaceholder: 'e.g. TSMC earnings report 2026',
             searchHelp: 'Search the web by keyword and convert search results into structured Markdown.',
@@ -657,10 +665,11 @@
             uploadLabel: 'Document File Parsing (AnyDoc)',
             dropzonePrompt: 'Drag & drop file here, or click to choose file',
             dropzoneHint: 'Supports PDF, Word (.docx/.doc), Excel (.xlsx/.xls), PowerPoint (.pptx/.ppt), EPUB, RTF, CSV...',
+            uploadOcrOption: 'Enable OCR for scanned documents & embedded images (PaddleOCR Engine)',
             uploadAction: 'Upload & Parse',
-            ocrLabel: 'Image OCR & Extraction (PaddleOCR Engine)',
-            ocrDropzonePrompt: 'Drag & drop image here, click to choose file, or paste screenshot (Ctrl+V / Cmd+V)',
-            ocrDropzoneHint: 'Supports PNG, JPG, JPEG, WEBP, BMP, and clipboard screenshot pasting...',
+            ocrLabel: 'Image & PDF OCR (PaddleOCR Engine)',
+            ocrDropzonePrompt: 'Drag & drop image or PDF here, click to choose file, or paste screenshot (Ctrl+V / Cmd+V)',
+            ocrDropzoneHint: 'Supports PNG, JPG, JPEG, WEBP, BMP, PDF documents, and clipboard screenshot pasting...',
             ocrAction: 'OCR & Convert to Markdown',
             resultTitle: 'Conversion Result (Markdown)',
             copyBtn: 'Copy Markdown',
@@ -670,15 +679,15 @@
             queryRequired: 'Please enter a search query.',
             urlsRequired: 'Please enter at least one URL.',
             fileRequired: 'Please select a document file to upload.',
-            ocrFileRequired: 'Please select an image file or paste a screenshot.',
+            ocrFileRequired: 'Please select an image or PDF file, or paste a screenshot.',
             searching: query => `Searching for “${query}”…`,
             searched: query => `Search complete for “${query}”.`,
             converting: count => `Converting ${count} URL${count === 1 ? '' : 's'}…`,
             converted: count => `Converted ${count} URL${count === 1 ? '' : 's'}.`,
             uploading: name => `Parsing file “${name}”…`,
             uploaded: name => `Successfully parsed file “${name}”.`,
-            ocrUploading: name => `Processing image “${name}” with PaddleOCR…`,
-            ocrUploaded: name => `Successfully converted image “${name}” to Markdown.`,
+            ocrUploading: name => name.toLowerCase().endsWith('.pdf') ? `Processing PDF document “${name}” with PaddleOCR…` : `Processing “${name}” with PaddleOCR…`,
+            ocrUploaded: name => `Successfully converted “${name}” to Markdown.`,
             copied: 'Copied Markdown to clipboard!',
             copyFailed: 'Failed to copy automatically. Please select text manually.',
             errorMsg: err => `Error: ${err}`
@@ -871,22 +880,31 @@
             return;
           }
           const file = fileInput.files[0];
+          const withOcr = Boolean(uploadWithOcrCheckbox && uploadWithOcrCheckbox.checked);
           uploadBtn.disabled = true;
-          setStatus(text('uploading')(file.name), false, true);
+          setStatus(text('uploading')(file.name) + (withOcr ? ' (OCR enabled)' : ''), false, true);
           resultArea.hidden = true;
 
           try {
             const formData = new FormData();
             formData.append('file', file);
-            const response = await fetch('/', {
+            if (withOcr) {
+              formData.append('ocr', 'true');
+            }
+            const headers = { 'Accept': 'text/plain' };
+            if (withOcr) {
+              headers['X-With-Ocr'] = 'true';
+            }
+            const endpoint = withOcr ? '/?ocr=true' : '/';
+            const response = await fetch(endpoint, {
               method: 'POST',
-              headers: { 'Accept': 'text/plain' },
+              headers,
               body: formData
             });
             const markdown = await response.text();
             if (!response.ok) throw new Error(markdown || `Server error ${response.status}`);
             showResult(markdown);
-            setStatus(text('uploaded')(file.name));
+            setStatus(text('uploaded')(file.name) + (withOcr ? ' (OCR完成)' : ''));
           } catch (err) {
             setStatus(text('errorMsg')(err.message || 'Upload failed'), true);
           } finally {
@@ -911,7 +929,9 @@
         function updateOcrFileNameDisplay() {
           if (ocrFileInput.files && ocrFileInput.files[0]) {
             const f = ocrFileInput.files[0];
-            ocrFileNameDisplay.textContent = `已選擇圖片 / Selected: ${f.name} (${(f.size / 1024).toFixed(1)} KB)`;
+            const isPdf = f.name.toLowerCase().endsWith('.pdf');
+            const typeLabel = isPdf ? '檔案 / PDF' : '圖片 / Image';
+            ocrFileNameDisplay.textContent = `已選擇${typeLabel}: ${f.name} (${(f.size / 1024).toFixed(1)} KB)`;
           } else {
             ocrFileNameDisplay.textContent = text('ocrDropzonePrompt');
           }

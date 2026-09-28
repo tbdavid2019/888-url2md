@@ -40,7 +40,8 @@ import {
     ServiceDisabledError,
     ServiceNodeResourceDrainError,
 } from '../services/errors';
-import { OcrClientService, selectOcrMarkdown } from '../services/ocr-client';
+import { OcrClientService, OcrPredictionResult, selectOcrMarkdown } from '../services/ocr-client';
+import { PDFExtractor } from '../services/pdf-extract';
 
 import { countGPTToken as estimateToken } from '../utils/openai';
 import { ProxyProviderService } from '../services/proxy-provider';
@@ -50,7 +51,7 @@ import { TempFileManager } from '../services/temp-file';
 import { MiscService } from '../services/misc';
 import { HTTPServiceError } from 'civkit/http';
 import { GeoIPService } from '../services/geoip';
-import { readFile } from 'fs/promises';
+import { readFile, writeFile, mkdir } from 'fs/promises';
 import { openAsBlob } from 'fs';
 import { AltTextService } from '../services/alt-text';
 import '../config';
@@ -139,6 +140,7 @@ export class CrawlerHost extends RPCHost {
         protected jobQueue: JobQueueService,
         protected adaptiveSelectorService: AdaptiveSelectorService,
         protected ocrClientService: OcrClientService,
+        protected pdfExtractor: PDFExtractor,
     ) {
         super(...arguments);
 
@@ -2647,12 +2649,35 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
             ctx.get('x-ocr-mode') === 'table' || ctx.get('x-table-only') === 'true' ||
             (crawlerOptionsParamsAllowed as any).tableOnly === true || (crawlerOptionsParamsAllowed as any).mode === 'table';
 
-        const result = await this.ocrClientService.predict(imageBuffer, fileName, {
-            lang,
-            tableOnly: isTableMode,
-            mode: isTableMode ? 'table' : undefined,
-            extractTables: true,
-        });
+        const totalT0 = Date.now();
+        const isPdf = fileName.toLowerCase().endsWith('.pdf') ||
+            (imageBuffer.length >= 5 && imageBuffer.subarray(0, 5).toString('ascii') === '%PDF-');
+
+        if (isPdf && fileName === 'image.png') {
+            fileName = 'document.pdf';
+        }
+
+        let result: OcrPredictionResult;
+        try {
+            result = await this.ocrClientService.predict(imageBuffer, fileName, {
+                lang,
+                tableOnly: isTableMode,
+                mode: isTableMode ? 'table' : undefined,
+                extractTables: true,
+            });
+        } catch (predictErr: any) {
+            if (isPdf) {
+                this.logger.warn(`Upstream direct PDF OCR failed, falling back to local page rendering`, { err: predictErr, fileName });
+                result = await this.renderAndOcrPdfPages(imageBuffer, fileName, {
+                    lang,
+                    isTableMode,
+                    maxPages: query.max_pages || query.maxPages,
+                    totalT0,
+                });
+            } else {
+                throw predictErr;
+            }
+        }
 
         const tables = result.tables || [];
         const tableMarkdown = result.tableMarkdown || (tables.length > 0 ? tables[0] : null);
@@ -2673,6 +2698,111 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
             contentType: 'text/markdown; charset=utf-8',
             envelope: null,
         });
+    }
+
+    protected async renderAndOcrPdfPages(
+        imageBuffer: Buffer,
+        fileName: string,
+        opts: { lang?: string; isTableMode: boolean; maxPages?: string; totalT0: number }
+    ): Promise<OcrPredictionResult> {
+        const tempFilePath = this.tempFileManager.alloc();
+        this.threadLocal.ctx && this.tempFileManager.bindPathTo(this.threadLocal.ctx, tempFilePath);
+        await writeFile(tempFilePath, imageBuffer);
+
+        const tempDir = this.tempFileManager.alloc();
+        this.threadLocal.ctx && this.tempFileManager.bindPathTo(this.threadLocal.ctx, tempDir);
+        await mkdir(tempDir);
+
+        let maxPagesToOcr = 20;
+        if (opts.maxPages) {
+            const parsedMax = parseInt(opts.maxPages, 10);
+            if (!Number.isNaN(parsedMax) && parsedMax > 0) {
+                maxPagesToOcr = Math.min(parsedMax, 50);
+            }
+        }
+
+        let pagesToRender: number[] = [];
+        try {
+            const loadingTask = this.pdfExtractor.pdfjs.getDocument({
+                data: new Uint8Array(imageBuffer),
+                useSystemFonts: true,
+                verbosity: 0,
+            });
+            const doc = await loadingTask.promise;
+            const totalPages = doc.numPages;
+            const renderCount = Math.min(totalPages, maxPagesToOcr);
+            pagesToRender = _.range(1, renderCount + 1);
+        } catch (inspectErr) {
+            this.logger.warn(`Failed to inspect PDF page count, defaulting to first 5 pages`, { err: inspectErr });
+            pagesToRender = [1, 2, 3, 4, 5];
+        }
+
+        const extracted = await this.pdfExtractor.extractRendered(tempFilePath, tempDir, pagesToRender);
+        const pageResults: OcrPredictionResult[] = [];
+
+        for (const page of extracted.pages) {
+            if (page.pngPath) {
+                try {
+                    const pageBuf = await readFile(page.pngPath);
+                    const pageOcr = await this.ocrClientService.predict(pageBuf, `${fileName}#${page.page}.png`, {
+                        lang: opts.lang,
+                        tableOnly: opts.isTableMode,
+                        mode: opts.isTableMode ? 'table' : undefined,
+                        extractTables: true,
+                    });
+                    pageResults.push(pageOcr);
+                } catch (pageErr) {
+                    this.logger.warn(`OCR failed for PDF page ${page.page}`, { err: pageErr, fileName });
+                }
+            }
+        }
+
+        if (pageResults.length === 0) {
+            throw new AssertionFailureError({
+                message: 'Failed to process OCR request on PDF pages. Please verify the PDF is readable or not corrupted.',
+            });
+        }
+
+        const allTables: string[] = [];
+        const pageTableMarkdowns: string[] = [];
+        const pageMarkdowns: string[] = [];
+        const pageTexts: string[] = [];
+        const allLines: any[] = [];
+
+        for (let idx = 0; idx < pageResults.length; idx++) {
+            const pr = pageResults[idx];
+            const pageNum = idx + 1;
+            if (pr.tables && pr.tables.length > 0) {
+                allTables.push(...pr.tables);
+            }
+            if (pr.tableMarkdown && pr.tableMarkdown.trim()) {
+                pageTableMarkdowns.push(`<!-- Table (Page ${pageNum}) -->\n${pr.tableMarkdown.trim()}`);
+            }
+            if (pr.markdown && pr.markdown.trim()) {
+                pageMarkdowns.push(`<!-- Page ${pageNum} -->\n${pr.markdown.trim()}`);
+            }
+            if (pr.text && pr.text.trim()) {
+                pageTexts.push(pr.text.trim());
+            }
+            if (pr.lines && pr.lines.length > 0) {
+                allLines.push(...pr.lines);
+            }
+        }
+
+        const combinedTableMarkdown = pageTableMarkdowns.length > 0 ? pageTableMarkdowns.join('\n\n') : null;
+        const combinedMarkdown = opts.isTableMode
+            ? (combinedTableMarkdown || '')
+            : (pageMarkdowns.join('\n\n---\n\n') || combinedTableMarkdown || '');
+        const combinedText = pageTexts.join('\n\n');
+
+        return {
+            text: combinedText,
+            markdown: combinedMarkdown,
+            tableMarkdown: combinedTableMarkdown,
+            tables: allTables,
+            lines: allLines,
+            durationMs: Date.now() - opts.totalT0,
+        };
     }
 
     async getFinalSnapshot(url: URL, opts?: ExtraScrappingOptions, crawlerOptions?: CrawlerOptions): Promise<PageSnapshot | undefined> {

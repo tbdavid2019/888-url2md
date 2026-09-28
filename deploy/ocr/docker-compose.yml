@@ -13,7 +13,7 @@ services:
     environment:
       - PORT=8088
       - OCR_LANG=ch
-      - OMP_NUM_THREADS=4
+      - OMP_NUM_THREADS=1
       # - OCR_SECRET_KEY=your_cluster_secret_token
     volumes:
       - ./main.py:/app/main.py
@@ -21,7 +21,7 @@ services:
     deploy:
       resources:
         limits:
-          memory: 4G
+          memory: 8G
           cpus: '6.0'
         reservations:
           memory: 1G

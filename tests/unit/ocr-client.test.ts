@@ -184,4 +184,28 @@ describe('OcrClientService: Multi-endpoint cluster & anti-thundering-herd logic'
             await service.predict(Buffer.from('data'), 'test.png');
         }, /All OCR nodes are currently offline/);
     });
+
+    it('aggregates multi-page and multi-table OCR structured responses', () => {
+        const service = createService();
+        const multiPageData = {
+            markdown: '<!-- Page 1 -->\n# 第一頁\n\n| 項目 | 數值 |\n|---|---|\n| 甲 | 10 |\n\n---\n\n<!-- Page 2 -->\n# 第二頁\n\n| 項目 | 數值 |\n|---|---|\n| 乙 | 20 |',
+            tableMarkdown: '<!-- Table (Page 1) -->\n| 項目 | 數值 |\n|---|---|\n| 甲 | 10 |\n\n<!-- Table (Page 2) -->\n| 項目 | 數值 |\n|---|---|\n| 乙 | 20 |',
+            tables: [
+                '| 項目 | 數值 |\n|---|---|\n| 甲 | 10 |',
+                '| 項目 | 數值 |\n|---|---|\n| 乙 | 20 |'
+            ],
+            lines: [
+                { text: '第一頁', page: 1 },
+                { text: '第二頁', page: 2 }
+            ]
+        };
+
+        const res = service.formatOcrResponse(multiPageData, 'https://ocr.aiurl.tw');
+        assert.ok(res.markdown.includes('<!-- Page 1 -->'));
+        assert.ok(res.markdown.includes('<!-- Page 2 -->'));
+        assert.equal(res.tables?.length, 2);
+        assert.ok(res.tableMarkdown?.includes('Page 1'));
+        assert.ok(res.tableMarkdown?.includes('Page 2'));
+        assert.equal(res.lines.length, 2);
+    });
 });

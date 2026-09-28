@@ -350,7 +350,9 @@ export class OcrClientService extends AsyncService {
         const ocrUrlObj = new URL(`${node.url}/ocr`);
         const formData = new FormData();
 
-        const blob = new Blob([image as any], { type: 'image/png' });
+        const isPdf = fileName.toLowerCase().endsWith('.pdf') ||
+            (image.length >= 5 && (Buffer.isBuffer(image) ? image.subarray(0, 5).toString('ascii') === '%PDF-' : String.fromCharCode(...image.slice(0, 5)) === '%PDF-'));
+        const blob = new Blob([image as any], { type: isPdf ? 'application/pdf' : 'image/png' });
         formData.append('file', blob, fileName);
 
         if (options?.lang) {

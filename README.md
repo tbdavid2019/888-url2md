@@ -44,11 +44,11 @@ Currently deployed at: [**create360.ai**](https://create360.ai) (or easily self-
   - 可選用 `contentFilter: "pruning"` 或 `"bm25"` 產生較精簡的 `fitMarkdown`。
   - 支援有上限的 BFS deep crawl、prefetch、session cookie 延續與 virtual scroll。
   - 長任務支援 `asyncJob`、進度查詢、取消與 HTTPS webhook。
-10. **PaddleOCR 繁簡中英圖片辨識與高可用容錯叢集 (PaddleOCR PP-OCRv4 & Failover Cluster)**
-  - 支援 `POST /api/ocr` 與首頁第 4 個專屬頁籤 `[ 圖片辨識 (OCR) ]`，支援直接上傳圖片或貼上截圖（Ctrl+V / Cmd+V）。
+10. **PaddleOCR 繁簡中英圖片與 PDF 文件辨識與高可用容錯叢集 (PaddleOCR PP-OCRv4 & Failover Cluster)**
+  - 支援 `POST /api/ocr` 與首頁專屬頁籤 `[ 圖片與 PDF 辨識 (OCR) ]`，支援直接上傳圖片、貼上截圖（Ctrl+V / Cmd+V）以及原生 **PDF 文件 (`.pdf`)** 多頁光學辨識。
   - **PP-OCRv4 旗艦雙向引擎**：預設採用中英文雙向增強模型，精準辨識繁體中文、簡體中文、大小寫英文字母、數字與表格結構，並支援動態語系快取。
-  - **二維幾何表格重建 (GFM Markdown Table Reconstruction)**：內建 2D 空間邊界分析與縱向通道（Gutters）偵測算法，自動將圖片與掃描文檔中的多欄多列數據精準轉換為標準 GitHub-Flavored Markdown 表格，告別單純逐行堆疊。
-  - **AnyDoc + OCR 協同整合與 Opt-in 機制**：支援透過 Header `X-With-Ocr: true`、`X-Ocr: true` 或 Query `ocr=true` 顯式開啟光學字符識別；針對無文字圖層的純圖片型掃描 PDF（Scanned PDF，抽取字元 < 50），系統會自動平滑降級調用 OCR 引擎逐頁抽取並重構 Markdown 表格。
+  - **二維幾何表格重建 (GFM Markdown Table Reconstruction)**：內建 2D 空間邊界分析與縱向通道（Gutters）偵測算法，自動將圖片、截圖與掃描 PDF 中的多欄多列數據精準轉換為標準 GitHub-Flavored Markdown 表格，告別單純逐行堆疊。
+  - **AnyDoc + OCR 協同整合與手動切換開關**：前端 Tab 3「文檔解析 (AnyDoc)」提供「`[x] 啟用 OCR 圖片/掃描文檔文字辨識`」開關；API 亦支援 Header `X-With-Ocr: true`、`X-Ocr: true` 或 Query `ocr=true` 顯式強制啟動 PaddleOCR。針對無文字圖層的純圖片型掃描 PDF（抽取字元 < 50），系統亦會自動平滑降級調用 OCR 引擎逐頁抽取並重構 Markdown 表格。
   - **高可用備援池（Failover Pool）**：支援以逗號分隔多個節點（`OCR_SERVICE_URLS`，如 `https://ocr.aiurl.tw,https://ocr2.aiurl.tw`），主節點異常自動平滑故障轉移。
   - **防驚群效應（Anti-Thundering Herd）**：內建 Single-Flight 請求合併、隨機抖動背景輪詢（Jittered Probing）與熔斷冷卻期（Circuit Breaker Cooldown）。
   - **動態特性探測**：節點在線時自動點亮前端頁籤，全部離線時乾淨隱藏。
@@ -376,12 +376,13 @@ LLM 應每 2–5 秒以 `GET /jobs/{data.id}` 搭配 `X-Job-Token: {data.accessT
 - **退避與隨機抖動 (Exponential Backoff with Jitter)**：串接多爬蟲 Fallback 時，切勿在失敗時立即同時轉發，應加上隨機延遲（Jitter, 如 200ms ~ 800ms），打散請求洪峰。
 - **熔斷機制 (Circuit Breaker)**：若特定目標網站因停機或強烈反爬導致連續 Timeout，應觸發熔斷，避免源源不絕的請求衝垮最後的 Fallback 節點。
 
-### 1.11 圖片 OCR 與 Markdown 結構轉譯 (PaddleOCR Image-to-Markdown)
+### 1.11 圖片與 PDF OCR 文字與表格轉譯 (PaddleOCR PP-OCRv4)
 
-當配置 `OCR_SERVICE_URLS` 且叢集節點在線時，可直接辨識圖片並轉譯為乾淨 Markdown：
+當配置 `OCR_SERVICE_URLS` 且叢集節點在線時，可直接辨識圖片與 PDF 文件並轉譯為乾淨 Markdown：
 
-#### **A. 透過 API 辨識本機圖片 (`POST /api/ocr` 或 `POST /v1/ocr`)**
-- **檔案大小限制**：最高支援 **50MB** 上傳（支援視網膜超高解析度 PNG 截圖、多百萬畫素掃描件與長圖；Nginx 與後端微服務均已配置 50MB 傳輸通道）。
+#### **A. 透過 API 辨識本機圖片與 PDF 文件 (`POST /api/ocr` 或 `POST /v1/ocr`)**
+- **支援格式**：支援常見圖片（`.png`, `.jpg`, `.jpeg`, `.webp`, `.bmp`, `.tiff`）以及原生多頁 **PDF 文件 (`.pdf`)**。
+- **檔案大小限制**：最高支援 **50MB** 上傳（支援視網膜超高解析度 PNG 截圖、多百萬畫素掃描件與多頁 PDF 文件；Nginx 與後端微服務均已配置 50MB 傳輸通道）。
 - **純前端直連 (CORS)**：已全域啟用 CORS，前端 SPA（React, Vue, Vite, Next.js, BlockNote 編輯器）可直接在瀏覽器以 `fetch` 呼叫。
 
 ```bash
@@ -548,6 +549,7 @@ curl -X POST 'https://create360.ai/v1/batch' \
 - `X-Content-Query`: 搭配 BM25 評分的關鍵詞搜尋字串
 - `X-Session-Id`: 跨請求共用 Cookie 會話 UUID
 - `X-Detach-Invisibles: true`: 產生 Markdown 前徹底剔除 `display:none` 隱形元素
+- `X-With-Ocr: true` / `X-Ocr: true`: 啟用 AnyDoc 文檔解析的光學字符辨識（OCR）
 - `X-Adaptive: true`: 啟用 CSS 結構化抽取的保守式 adaptive selector
 - `X-Adaptive-Id`: adaptive profile 識別名稱，只允許安全識別字元
 - `X-Adaptive-Threshold`: adaptive selector 信心門檻，範圍 `0.5`–`0.95`
@@ -648,10 +650,10 @@ Currently deployed at: [**create360.ai**](https://create360.ai) (or easily self-
    - Opt into `contentFilter: "pruning"` or `"bm25"` for compact `fitMarkdown`.
    - Supports bounded BFS deep crawling, prefetch, session cookies, and virtual scrolling.
    - Long-running crawls support `asyncJob`, progress polling, cancellation, and HTTPS webhooks.
-10. **PaddleOCR Chinese & English Image/Table Extraction (PP-OCRv4 Failover Cluster)**
-   - High-accuracy OCR engine powered by official flagship `PP-OCRv4` (`ch`) with support for Traditional Chinese (`chinese_cht`), English, numbers, symbols, and table structures via `POST /api/ocr` and Web UI Tab 4.
+10. **PaddleOCR Chinese & English Image and PDF Extraction (PP-OCRv4 Failover Cluster)**
+   - High-accuracy OCR engine powered by official flagship `PP-OCRv4` (`ch`) with support for Traditional Chinese (`chinese_cht`), English, numbers, symbols, and table structures via `POST /api/ocr` and Web UI Tab 4. Directly supports images and native multi-page **PDF files (`.pdf`)**.
    - **2D Spatial Markdown Table Reconstruction**: Built-in 2D bounding-box spatial clustering and vertical gutter detection automatically format tabular cells into clean GitHub-Flavored Markdown (GFM) tables rather than naive vertical line dumps.
-   - **AnyDoc + OCR Opt-in Integration & Scanned PDF Fallback**: Explicitly opt into OCR via `X-With-Ocr: true`, `X-Ocr: true`, or query parameter `ocr=true`. For scanned PDFs lacking text layers (extracting < 50 characters), the pipeline automatically renders pages and performs multi-page OCR table extraction with full metadata enrichment.
+   - **AnyDoc + OCR Opt-in Integration & Scanned PDF Fallback**: Frontend Tab 3 (AnyDoc) includes an explicit `[x] Enable OCR for Images / Scanned Documents` toggle; the backend API supports `X-With-Ocr: true`, `X-Ocr: true`, or query parameter `ocr=true`. For scanned PDFs lacking text layers (extracting < 50 characters), the pipeline automatically renders pages and performs multi-page OCR table extraction with full metadata enrichment.
    - **Multi-Node Failover Pool**: Define fallback endpoints with `OCR_SERVICE_URLS` (e.g. `https://ocr.aiurl.tw,https://ocr2.aiurl.tw`) with seamless in-flight retry.
    - **Anti-Thundering-Herd Architecture**: Single-Flight promise coalescing, jittered background health probes, and 30-second circuit breaker cooldown.
    - **Dynamic Feature Flagging**: The Web UI automatically shows Tab 4 when healthy OCR nodes exist, and hides it cleanly when offline.
@@ -963,19 +965,20 @@ When architecting AI Agents, RAG ingestion pipelines, or LLM web tools, engineer
 - **Exponential Backoff with Jitter**: When falling over between scrapers, introduce randomized jitter (e.g., 200ms – 800ms) rather than firing synchronized requests to the next tier.
 - **Circuit Breaker**: Implement domain-level circuit breakers when targets are down or rate-limiting to prevent stampeding downstream fallback nodes.
 
-### 1.11 Image OCR & Table-to-Markdown (PaddleOCR)
+### 1.11 Image & PDF OCR & Table-to-Markdown (PaddleOCR)
 
 When `OCR_SERVICE_URLS` is configured and at least one node is online:
 
 #### **A. OCR via API (`POST /api/ocr` or `POST /v1/ocr`)**
-- **Upload Size Limit**: Up to **50MB** per file (supports ultra-high resolution retina PNG screenshots, multi-megapixel document scans, and raw photos; reverse proxy configured for 50MB).
+- **Supported Formats**: Common images (`.png`, `.jpg`, `.jpeg`, `.webp`, `.bmp`, `.tiff`) and native multi-page **PDF documents (`.pdf`)**.
+- **Upload Size Limit**: Up to **50MB** per file (supports ultra-high resolution retina PNG screenshots, multi-megapixel document scans, and multi-page PDF documents; reverse proxy configured for 50MB).
 - **Pure Frontend Direct Access (CORS)**: Full CORS enabled (`Access-Control-Allow-Origin: *`, credentials, preflight OPTIONS); browser SPAs (React, Vue, Vite, BlockNote editor) can invoke directly via `fetch`.
 
 ```bash
-# Upload an image and receive clean Markdown
+# Upload an image or PDF document and receive clean Markdown
 curl -X POST "https://create360.ai/api/ocr" \
   -H "Accept: text/plain" \
-  -F "file=@screenshot.png"
+  -F "file=@document.pdf"
 
 # Return structured JSON with bounding boxes, confidence scores, full Markdown, clean isolated table (data.tableMarkdown), and tables array (data.tables)
 curl -X POST "https://create360.ai/api/ocr" \
@@ -1047,21 +1050,27 @@ curl -X POST 'https://create360.ai/v1/batch' \
 Upload documents via `multipart/form-data` to `/v1/upload`, `/upload`, or `/`:
 
 ```bash
+# Standard document parsing
 curl -X POST 'https://create360.ai/upload' \
   -F 'file=@/path/to/document.pdf'
+
+# Parse with OCR enabled for images and scanned pages
+curl -X POST 'https://create360.ai/upload' \
+  -H 'X-With-Ocr: true' \
+  -F 'file=@/path/to/scanned_document.pdf'
 ```
 
 ---
 
-### 5. Image OCR (PaddleOCR PP-OCRv4 Engine)
+### 5. Image & PDF OCR (PaddleOCR PP-OCRv4 Engine)
 
-Upload images via `multipart/form-data` to `/api/ocr` or `/v1/ocr`:
+Upload images or PDF documents via `multipart/form-data` to `/api/ocr` or `/v1/ocr`:
 
 ```bash
-# Extract Markdown text from image
+# Extract Markdown text from image or PDF
 curl -X POST 'https://create360.ai/api/ocr' \
   -H 'Accept: text/plain' \
-  -F 'file=@screenshot.png'
+  -F 'file=@invoice.pdf'
 
 # Return line-level bounding box coordinates and confidence JSON
 curl -X POST 'https://create360.ai/api/ocr' \
@@ -1085,6 +1094,7 @@ Control crawler behavior via request headers:
 - `X-Content-Query`: Query string used for BM25 score ranking
 - `X-Session-Id`: Persistent session UUID to share cookies across sequential requests
 - `X-Detach-Invisibles: true`: Strip `display:none` and invisible DOM nodes prior to markdown generation
+- `X-With-Ocr: true` / `X-Ocr: true`: Enable OCR image and scanned document text/table recognition in AnyDoc parsing
 - `X-Adaptive: true`: Enable conservative adaptive selectors for CSS structured extraction
 - `X-Adaptive-Id`: Adaptive profile identifier; only safe identifier characters are accepted
 - `X-Adaptive-Threshold`: Adaptive selector confidence threshold from `0.5` to `0.95`

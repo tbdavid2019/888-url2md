@@ -4,8 +4,17 @@ import time
 from typing import Optional, List, Dict, Any
 from fastapi import FastAPI, File, UploadFile, Header, HTTPException, Query, Form, Request
 from fastapi.responses import JSONResponse
+from starlette.concurrency import run_in_threadpool
 from PIL import Image
 import numpy as np
+
+try:
+    import pymupdf
+except ImportError:
+    try:
+        import fitz as pymupdf
+    except ImportError:
+        pymupdf = None
 
 from ocr_markdown import reconstruct_markdown
 
@@ -98,47 +107,116 @@ async def perform_ocr(
         if not content:
             raise HTTPException(status_code=400, detail="Uploaded file is empty")
 
-        image = Image.open(io.BytesIO(content)).convert("RGB")
-        img_np = np.array(image)
-
-        # Run PaddleOCR inference with requested or default engine
-        engine = get_engine(lang)
-        result = engine.ocr(img_np, cls=use_angle_cls)
-
-        extracted_lines: List[Dict[str, Any]] = []
-        if result and len(result) > 0 and result[0]:
-            for line in result[0]:
-                box = line[0]  # [[x1,y1],[x2,y2],[x3,y3],[x4,y4]]
-                text = line[1][0].strip() if line[1] and len(line[1]) > 0 else ""
-                score = float(line[1][1]) if line[1] and len(line[1]) > 1 else 1.0
-                if text:
-                    extracted_lines.append({
-                        "text": text,
-                        "confidence": round(score, 4),
-                        "box": [[int(coord[0]), int(coord[1])] for coord in box] if box else None
-                    })
-
-
-        raw_text = "\n".join([line["text"] for line in extracted_lines])
+        filename = file.filename or "file.png"
+        is_pdf = content.startswith(b"%PDF-") or filename.lower().endswith(".pdf")
 
         # Check table mode across query parameters, explicit arguments, and request headers
         req_mode = request.query_params.get("mode") or mode or request.headers.get("x-ocr-mode")
         req_table_only = (request.query_params.get("table_only") == "true") or table_only or (request.headers.get("x-table-only") == "true")
         is_table_mode = bool(req_table_only or (req_mode == "table"))
 
-        markdown, tables = reconstruct_markdown(extracted_lines, table_only=is_table_mode)
-        table_markdown = "\n\n".join(tables) if tables else None
+        def _sync_ocr() -> Dict[str, Any]:
+            engine = get_engine(lang)
 
-        duration_ms = int((time.time() - t0) * 1000)
+            if is_pdf:
+                if pymupdf is None:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="PDF processing requires 'pymupdf' in the OCR microservice. Please install pymupdf or route via 888-url2md."
+                    )
+                doc = pymupdf.open(stream=content, filetype="pdf")
+                total_pages = len(doc)
+                max_pages = min(total_pages, 20)
 
-        return {
-            "text": raw_text,
-            "markdown": markdown,
-            "tableMarkdown": table_markdown,
-            "tables": tables,
-            "lines": extracted_lines,
-            "durationMs": duration_ms
-        }
+                all_extracted_lines: List[Dict[str, Any]] = []
+                page_markdowns: List[str] = []
+                all_tables: List[str] = []
+                page_table_markdowns: List[str] = []
+                all_raw_texts: List[str] = []
+
+                for pno in range(max_pages):
+                    page = doc[pno]
+                    pix = page.get_pixmap(dpi=150)
+                    page_img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+                    page_np = np.array(page_img)
+
+                    result = engine.ocr(page_np, cls=use_angle_cls)
+                    page_lines: List[Dict[str, Any]] = []
+                    if result and len(result) > 0 and result[0]:
+                        for line in result[0]:
+                            box = line[0]
+                            text = line[1][0].strip() if line[1] and len(line[1]) > 0 else ""
+                            score = float(line[1][1]) if line[1] and len(line[1]) > 1 else 1.0
+                            if text:
+                                page_lines.append({
+                                    "text": text,
+                                    "confidence": round(score, 4),
+                                    "box": [[int(coord[0]), int(coord[1])] for coord in box] if box else None,
+                                    "page": pno + 1
+                                })
+
+                    all_extracted_lines.extend(page_lines)
+                    page_text = "\n".join([l["text"] for l in page_lines])
+                    if page_text:
+                        all_raw_texts.append(page_text)
+
+                    md, tables = reconstruct_markdown(page_lines, table_only=is_table_mode)
+                    if tables:
+                        all_tables.extend(tables)
+                        page_table_markdowns.append(f"<!-- Table (Page {pno + 1}) -->\n" + "\n\n".join(tables))
+                    if md and md.strip():
+                        page_markdowns.append(f"<!-- Page {pno + 1} -->\n{md.strip()}")
+
+                doc.close()
+
+                combined_table_md = "\n\n".join(page_table_markdowns) if page_table_markdowns else None
+                combined_markdown = combined_table_md if is_table_mode else ("\n\n---\n\n".join(page_markdowns) if page_markdowns else (combined_table_md or ""))
+                combined_text = "\n\n".join(all_raw_texts)
+                duration_ms = int((time.time() - t0) * 1000)
+
+                return {
+                    "text": combined_text,
+                    "markdown": combined_markdown or "",
+                    "tableMarkdown": combined_table_md,
+                    "tables": all_tables,
+                    "lines": all_extracted_lines,
+                    "durationMs": duration_ms
+                }
+
+            # Standard Single Image OCR
+            image = Image.open(io.BytesIO(content)).convert("RGB")
+            img_np = np.array(image)
+
+            result = engine.ocr(img_np, cls=use_angle_cls)
+
+            extracted_lines: List[Dict[str, Any]] = []
+            if result and len(result) > 0 and result[0]:
+                for line in result[0]:
+                    box = line[0]  # [[x1,y1],[x2,y2],[x3,y3],[x4,y4]]
+                    text = line[1][0].strip() if line[1] and len(line[1]) > 0 else ""
+                    score = float(line[1][1]) if line[1] and len(line[1]) > 1 else 1.0
+                    if text:
+                        extracted_lines.append({
+                            "text": text,
+                            "confidence": round(score, 4),
+                            "box": [[int(coord[0]), int(coord[1])] for coord in box] if box else None
+                        })
+
+            raw_text = "\n".join([line["text"] for line in extracted_lines])
+            markdown, tables = reconstruct_markdown(extracted_lines, table_only=is_table_mode)
+            table_markdown = "\n\n".join(tables) if tables else None
+            duration_ms = int((time.time() - t0) * 1000)
+
+            return {
+                "text": raw_text,
+                "markdown": markdown,
+                "tableMarkdown": table_markdown,
+                "tables": tables,
+                "lines": extracted_lines,
+                "durationMs": duration_ms
+            }
+
+        return await run_in_threadpool(_sync_ocr)
     except HTTPException:
         raise
     except Exception as e:
