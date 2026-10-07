@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { BrowserAdmission, BrowserCapacityError, BrowserCircuit, BrowserEngineError, browserFallback, usableBrowserSnapshot } from '../../build/services/browser-policy.js';
+import { BrowserAdmission, BrowserCapacityError, BrowserCircuit, BrowserEngineError, browserFallback, usableBrowserSnapshot, waitForBrowserStartup } from '../../build/services/browser-policy.js';
 
 const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 async function collect<T>(iterator: AsyncGenerator<T>) {
@@ -10,6 +10,14 @@ async function collect<T>(iterator: AsyncGenerator<T>) {
 }
 
 describe('browser admission', () => {
+    it('bounds startup waits without cancelling another shared caller', async () => {
+        const startup = pause(30).then(() => 'ready');
+        const controller = new AbortController();
+        const waiting = waitForBrowserStartup(startup, controller.signal);
+        controller.abort(new Error('request deadline'));
+        await assert.rejects(waiting, /request deadline/);
+        assert.equal(await waitForBrowserStartup(startup), 'ready');
+    });
     it('bounds concurrent fallback pages and the queue during a failure burst', async () => {
         const gate = new BrowserAdmission(2, 8, 1000);
         let active = 0, peak = 0, rejected = 0;

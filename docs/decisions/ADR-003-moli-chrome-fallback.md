@@ -18,6 +18,10 @@ adapter skips the extra `about:blank` navigation that its Fetch transport reject
 Startup is shared across concurrent callers. Layout, image and font resources
 are enabled because snapshot extraction uses geometry and captures screenshots.
 The existing private-network policy also configures Moli's transport filter.
+Moli observes CDP requests without Fetch interception, whose HTTPS pause/resume
+path stalls on the pinned release. Its native transport caps concurrent requests
+at 100 and per-origin transfers at 16; blocked domains and abuse close the page.
+Per-request proxies use Chrome; custom headers use the native Network API.
 Upstream documentation: <https://github.com/lexmount/moli/tree/v1.1.14>.
 Pinned archives are SHA-256 verified and their license notices stay in the image.
 

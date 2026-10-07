@@ -26,7 +26,7 @@ import { Finalizer } from './finalizer';
 import { isPrivateIpForbidden } from './misc';
 import { isIPInNonPublicRange } from '../utils/ip';
 import type { VirtualScrollOptions } from '../dto/advanced-crawl-options';
-import { BrowserAdmission, BrowserCapacityError, BrowserCircuit, BrowserEngine, BrowserEngineError, browserFallback, browserLimit, usableBrowserSnapshot } from './browser-policy';
+import { BrowserAdmission, BrowserCapacityError, BrowserCircuit, BrowserEngine, BrowserEngineError, browserFallback, browserLimit, usableBrowserSnapshot, waitForBrowserStartup } from './browser-policy';
 import { MoliBrowser } from './moli-browser';
 const tldExtract = require('tld-extract');
 
@@ -777,12 +777,16 @@ export class PuppeteerControl extends AsyncService {
             '--no-zygote',
             '--disable-gpu',
         ];
+        const startupTimeout = browserLimit('CHROME_STARTUP_TIMEOUT_MS', 10000, 30000);
+        const startupController = new AbortController();
+        const startupTimer = setTimeout(() => startupController.abort(new TimeoutError('Chrome startup deadline expired')), startupTimeout);
         const browser = await puppeteer.launch({
-            timeout: 30_000,
+            timeout: startupTimeout,
+            signal: startupController.signal,
             headless: !Boolean(process.env.DEBUG_BROWSER),
             executablePath: process.env.OVERRIDE_CHROME_EXECUTABLE_PATH,
             args,
-        });
+        }).finally(() => clearTimeout(startupTimer));
         this.browser = browser;
 
         if (this.browser) {
@@ -850,7 +854,7 @@ export class PuppeteerControl extends AsyncService {
         let dedicatedContext: BrowserContext | undefined;
         try {
             signal?.throwIfAborted();
-            const browser = engine === 'moli' ? await this.moli.connect() : await this.ensureChromeBrowser();
+            const browser = await waitForBrowserStartup(engine === 'moli' ? this.moli.connect() : this.ensureChromeBrowser(), signal);
             signal?.throwIfAborted();
             try {
                 dedicatedContext = await browser.createBrowserContext();
@@ -918,16 +922,18 @@ export class PuppeteerControl extends AsyncService {
                 preparations.push(page.evaluateOnNewDocument(sideChanelScript));
             }
             preparations.push(page.evaluateOnNewDocument(SCRIPT_TO_INJECT_INTO_FRAME));
-            preparations.push(page.setRequestInterception(true));
+            if (engine === 'chrome') preparations.push(page.setRequestInterception(true));
 
             await Promise.all(preparations);
 
             const domainSet = new Set<string>();
             let halt = false;
+            const stopRequest = (req: HTTPRequest) => engine === 'moli'
+                ? this.ditchPage(page) : req.abort('blockedbyclient', 1000);
 
             page.on('request', async (req) => {
                 const requestUrl = req.url();
-                if (requestUrl.startsWith('https://reader.internal') && req.frame() === page.mainFrame()) {
+                if (engine === 'chrome' && requestUrl.startsWith('https://reader.internal') && req.frame() === page.mainFrame()) {
                     do {
                         const txt = await req.fetchPostData() || '[]';
                         const [key, cmd, ...args] = JSON.parse(txt) as [string, string, ...unknown[]];
@@ -954,10 +960,10 @@ export class PuppeteerControl extends AsyncService {
                     return;
                 }
                 if (halt) {
-                    return req.abort('blockedbyclient', 1000);
+                    return stopRequest(req);
                 }
                 if (!requestUrl.startsWith('http:') && !requestUrl.startsWith('https:') && !requestUrl.startsWith('chrome-extension:') && !requestUrl.startsWith('chrome:') && requestUrl !== 'about:blank') {
-                    return req.abort('blockedbyclient', 1000);
+                    return stopRequest(req);
                 }
 
                 const parsedUrl = new URL(requestUrl);
@@ -974,7 +980,7 @@ export class PuppeteerControl extends AsyncService {
 
                 if (this.circuitBreakerHosts.has(parsedUrl.hostname.toLowerCase())) {
                     page.emit('abuse', { url: requestUrl, page, sn, reason: `Abusive request: ${requestUrl}` });
-                    return req.abort('blockedbyclient', 1000);
+                    return stopRequest(req);
                 }
 
                 const isLocal = parsedUrl.hostname === 'localhost' || parsedUrl.hostname.endsWith('.localhost');
@@ -984,7 +990,7 @@ export class PuppeteerControl extends AsyncService {
                 ) {
                     page.emit('abuse', { url: requestUrl, page, sn, reason: `Suspicious action: Request to localhost or non-public IP: ${requestUrl}` });
 
-                    return req.abort('blockedbyclient', 1000);
+                    return stopRequest(req);
                 }
 
                 if (requestUrl.startsWith('http')) {
@@ -993,18 +999,22 @@ export class PuppeteerControl extends AsyncService {
                         page.emit('abuse', { url: requestUrl, page, sn, reason: `DDoS attack suspected: Too many requests` });
                         halt = true;
 
-                        return req.abort('blockedbyclient', 1000);
+                        return stopRequest(req);
                     }
 
                     if (domainSet.size > 200) {
                         page.emit('abuse', { url: requestUrl, page, sn, reason: `DDoS attack suspected: Too many domains` });
                         halt = true;
 
-                        return req.abort('blockedbyclient', 1000);
+                        return stopRequest(req);
                     }
 
                     await kit.onNewRequest(req);
                 }
+
+                // Moli enforces transport limits and private-address filtering
+                // natively. Observe requests without pausing its HTTPS transport.
+                if (engine === 'moli') return;
 
                 if (req.isInterceptResolutionHandled()) {
                     return;
@@ -1151,7 +1161,10 @@ export class PuppeteerControl extends AsyncService {
     }
 
     async *scrap(parsedUrl: URL, options: ScrappingOptions = {}): AsyncGenerator<PageSnapshot | undefined> {
-        if (!this.moliEnabled) { yield* this.scrapWithEngine(parsedUrl, options, 'chrome'); return; }
+        if (!this.moliEnabled || options.proxyUrl || !_.isEmpty(options.sideLoad?.proxyOrigin)) {
+            const timeoutMs = options.timeoutMs || 30000;
+            yield* this.scrapWithEngine(parsedUrl, { ...options, timeoutMs }, 'chrome', AbortSignal.timeout(timeoutMs)); return;
+        }
         const deadline = Date.now() + (options.timeoutMs || 30000);
         const attempt = (engine: BrowserEngine) => {
             const remaining = deadline - Date.now();
@@ -1172,9 +1185,10 @@ export class PuppeteerControl extends AsyncService {
             (error) => {
                 if (error instanceof SecurityCompromiseError || error instanceof ParamValidationError
                     || error instanceof ServiceNodeResourceDrainError) return false;
-                if (error instanceof BrowserEngineError || error instanceof TimeoutError) return true;
+                if (error instanceof BrowserEngineError || error instanceof TimeoutError || error instanceof ServiceCrashedError) return true;
                 const name = error instanceof Error ? error.name : '';
                 const message = error instanceof Error ? error.message : '';
+                if (/blocked.*(private|non-public|cidr)|private (network|address)|non-public.*(address|ip)/i.test(message)) return false;
                 return name === 'ProtocolError' || name === 'TargetCloseError' || name === 'TimeoutError'
                     || /Could not extract any meaningful content|Protocol error|Session closed|Target closed|timed out|Unsupported/i.test(message);
             },
@@ -1185,6 +1199,7 @@ export class PuppeteerControl extends AsyncService {
     }
 
     private async *scrapWithEngine(parsedUrl: URL, options: ScrappingOptions, engine: BrowserEngine, signal?: AbortSignal): AsyncGenerator<PageSnapshot | undefined> {
+        const attemptDeadline = Date.now() + (options.timeoutMs || 15000);
         // parsedUrl.search = '';
         const url = parsedUrl.toString();
         let snapshot: PageSnapshot | undefined;
@@ -1196,6 +1211,10 @@ export class PuppeteerControl extends AsyncService {
         let frameScriptEvaluations: Promise<unknown>[] = [];
         const preparations: Promise<unknown>[] = [];
         const page = await this.getNextPage(engine, signal);
+        if (engine === 'moli' && !_.isEmpty(options.extraHeaders)) {
+            try { await page.setExtraHTTPHeaders(options.extraHeaders!); }
+            catch (error) { await this.ditchPage(page); throw error; }
+        }
         const sessionCookies = options.sessionId && !options.cookies
             ? this.sessionCookies.get(options.sessionId)
             : undefined;
@@ -1281,7 +1300,7 @@ export class PuppeteerControl extends AsyncService {
                 }
             }
         });
-        page.on('request', async (req) => {
+        if (engine === 'chrome') page.on('request', async (req) => {
             if (req.isInterceptResolutionHandled()) {
                 return;
             };
@@ -1729,7 +1748,12 @@ export class PuppeteerControl extends AsyncService {
             }
             let lastHTML = snapshot?.html;
             while (true) {
-                const ckpt = [nextSnapshotDeferred.promise, waitForPromise ?? gotoPromise];
+                signal?.throwIfAborted();
+                if (Date.now() >= attemptDeadline) throw new TimeoutError('Browser attempt deadline expired');
+                if (page.isClosed() || this.closingPages.has(page)) throw new ServiceCrashedError('Browser page closed before completion');
+                // A resolved navigation promise can otherwise spin while finalization
+                // is still pending. Wait for extraction/selector finalization itself.
+                const ckpt = [nextSnapshotDeferred.promise, finalizationPromise];
 
                 if (options.minIntervalMs) {
                     ckpt.push(delay(options.minIntervalMs));
@@ -1737,9 +1761,7 @@ export class PuppeteerControl extends AsyncService {
                 let error;
                 await Promise.race(ckpt).catch((err) => error = err);
                 if (successfullyDone && !error) {
-                    if (!snapshot && !screenshot) {
-                        await finalizationPromise;
-                    }
+                    await finalizationPromise;
                     if (!snapshot && !screenshot) {
                         throw new AssertionFailureError(`Could not extract any meaningful content from the page`);
                     }

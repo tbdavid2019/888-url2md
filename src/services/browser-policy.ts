@@ -10,6 +10,23 @@ export function browserLimit(name: string, fallback: number, max: number, min = 
 export class BrowserCapacityError extends Error { }
 export class BrowserEngineError extends Error { }
 
+/** A caller may stop waiting without cancelling another caller's shared startup. */
+export function waitForBrowserStartup<T>(startup: Promise<T>, signal?: AbortSignal): Promise<T> {
+    if (!signal) return startup;
+    return new Promise((resolve, reject) => {
+        const onAbort = () => reject(signal.reason);
+        signal.addEventListener('abort', onAbort, { once: true });
+        startup.then((browser) => {
+            signal.removeEventListener('abort', onAbort);
+            resolve(browser);
+        }, (error) => {
+            signal.removeEventListener('abort', onAbort);
+            reject(error);
+        });
+        if (signal.aborted) onAbort();
+    });
+}
+
 export function usableBrowserSnapshot(snapshot: {
     text?: string; parsed?: { textContent?: string } | null; blobs?: unknown[];
     screenshot?: unknown; pageshot?: unknown; status?: number;

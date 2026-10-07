@@ -2,6 +2,14 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.10.07.2] - 2026-10-07 - 瀏覽器啟動預算與收尾等待修正 (Browser Startup Budget & Finalization Wait)
+
+### Fixed
+- Moli 採原生 HTTPS 網路流程與 CDP 事件觀察，使用 native private-network 過濾與連線上限，避開 Fetch 暫停／繼續造成 HTTPS 卡住；每請求代理使用 Chrome，額外 headers 透過原生介面設定。
+- Chrome 冷啟動預設限制為 10 秒，使用可取消的啟動控制器關閉逾時程序；個別請求的剩餘時間限制亦適用等待共用啟動，避免超出瀏覽器總預算。
+- 快照迴圈等待最終擷取流程完成，補上頁面關閉與絕對逾時檢查，避免已結束的導覽 Promise 造成反覆等待。
+- 新增共用啟動的請求取消測試及公開 HTTPS 回歸腳本；遠端 497 項單元與 405 項 API 測試通過，正式私有網路政策下的 HTTPS 擷取由 Moli 完成（889 ms、Chrome 使用量 0），洪峰仍受 2 個 Chrome 頁面與排隊逾時上限保護。
+
 ## [2026.10.07.1] - 2026-10-07 - Moli 優先與受控 Chrome 備援 (Moli Priority & Bounded Chrome Fallback)
 
 ### Added & Changed
