@@ -16,6 +16,14 @@ async function main() {
     const expected = process.env.EXPECTED_BROWSER || 'moli';
     const fixture = http.createServer((_request, response) => {
         response.setHeader('Content-Type', 'text/html; charset=utf-8');
+        if (new URL(_request.url, 'http://127.0.0.1').pathname === '/deep-dom') {
+            response.end(`<html><body><article><h1>DEEP_DOM_RENDERER_FIXTURE</h1>${'<div>'.repeat(400)}nested${'</div>'.repeat(400)}</article></body></html>`);
+            return;
+        }
+        if (new URL(_request.url, 'http://127.0.0.1').pathname === '/deep-dom-visual') {
+            response.end(`<html><body><article><h1>DEEP_DOM_VISUAL_FIXTURE</h1>${'<div>'.repeat(1300)}nested${'</div>'.repeat(1300)}</article></body></html>`);
+            return;
+        }
         response.end(`<html><head><title>Browser integration fixture</title></head><body><article>
             <h1>Browser engine fixture</h1><p>${'A deterministic article for browser integration. '.repeat(30)}</p>
             <p id="result"></p></article><script>
@@ -28,13 +36,13 @@ async function main() {
     const sampling = setInterval(() => { peakChrome = Math.max(peakChrome, browsers.browserCapacity.chrome.active); }, 5);
     try {
         await server.serviceReady();
-        const request = () => supertest(server.httpServer).post('/')
+        const request = (extra = {}, targetUrl = url) => supertest(server.httpServer).post('/')
             .set('Accept', 'application/json').set('Host', 'reader-test.invalid').send({
-                url, engine: 'browser', timeout: 30, waitForSelector: '#result:not(:empty)',
-                cacheTolerance: 0,
+                url: targetUrl, engine: 'browser', timeout: 30, waitForSelector: '#result:not(:empty)',
+                cacheTolerance: 0, ...extra,
             });
         // Start the failure burst from a cold Chrome process to exercise shared launch.
-        const responses = expected === 'moli' ? [await request()] : await Promise.all(Array.from({ length: 6 }, request));
+        const responses = expected === 'moli' ? [await request()] : await Promise.all(Array.from({ length: 6 }, () => request()));
         const successful = responses.filter((response) => response.status === 200);
         assert.ok(successful.length > 0, JSON.stringify(responses.map((response) => response.body)));
         const first = successful[0];
@@ -42,14 +50,12 @@ async function main() {
         assert.match(first.body.data.content, /DYNAMIC_BROWSER_MARKER/);
         if (expected === 'moli') {
             assert.equal(browsers.browser, undefined, 'Moli success should leave Chrome unstarted');
-            const page = await browsers.newPage(false, 'moli');
-            try {
-                await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 });
-                const png = await page.screenshot();
-                assert.ok(png.length > 100, 'Moli must return real screenshot bytes');
-                assert.equal(await page.title(), 'Browser integration fixture');
-            } finally { await browsers.ditchPage(page); }
-        } else {
+            const deep = await request({ waitForSelector: undefined }, `http://127.0.0.1:${fixture.address().port}/deep-dom`);
+            assert.equal(deep.status, 200, JSON.stringify(deep.body));
+            assert.match(deep.body.data.content, /DEEP_DOM_RENDERER_FIXTURE/);
+            assert.equal(browsers.browser, undefined, 'deep DOM text extraction should stay on Moli without painting');
+        }
+        if (expected === 'chrome') {
             assert.ok(browsers.browser?.connected, 'Chrome fallback should be running');
             for (const response of responses) {
                 if (response.status === 200) {
@@ -64,6 +70,9 @@ async function main() {
             assert.ok(peakChrome <= Number(process.env.CHROME_CONCURRENCY || 2));
             assert.ok(peakChrome > 0);
         }
+        const visual = await request({ respondWith: 'screenshot', waitForSelector: undefined }, `http://127.0.0.1:${fixture.address().port}/deep-dom-visual`);
+        assert.equal(visual.status, 200, JSON.stringify(visual.body));
+        assert.ok(browsers.browser?.connected, 'visual requests must use Chrome');
         // Give abandoned intermediate HTTP streams time to close their pages.
         for (let i = 0; i < 100 && (browsers.browserCapacity.chrome.active || browsers.browserCapacity.moli.active); i++) {
             await new Promise((resolve) => setTimeout(resolve, 20));
@@ -71,6 +80,7 @@ async function main() {
         assert.equal(browsers.browserCapacity.chrome.active, 0);
         assert.equal(browsers.browserCapacity.moli.active, 0);
         console.log(JSON.stringify({ expected, successful: successful.length, overloaded: responses.length - successful.length,
+            visualChrome: true,
             peakChrome, capacity: browsers.browserCapacity, passed: true }));
     } finally {
         clearInterval(sampling);

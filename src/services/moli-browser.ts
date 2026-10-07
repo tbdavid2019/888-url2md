@@ -30,7 +30,7 @@ export class MoliBrowser {
             probe.listen(port, '127.0.0.1', () => probe.close((error) => error ? reject(error) : resolve()));
         }).catch((error) => { throw new BrowserEngineError(`Moli port unavailable: ${error.code || 'bind error'}`); });
         const args = ['serve', '--host', '127.0.0.1', '--port', String(port),
-            '--layout', '--image', '--font', '--timeout', '180', '--log-level', 'warn',
+            '--image', '--font', '--timeout', '180', '--log-level', 'warn',
             '--http-max-concurrent', '100', '--http-max-host-open', '16'];
         if (this.blockPrivateNetworks()) args.push('--block-private-networks');
         const child = this.child = spawn(process.env.MOLI_EXECUTABLE_PATH || 'moli', args, { stdio: ['ignore', 'ignore', 'pipe'] });

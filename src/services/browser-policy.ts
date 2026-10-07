@@ -37,6 +37,20 @@ export function usableBrowserSnapshot(snapshot: {
     return Boolean(snapshot.text?.trim() || snapshot.parsed?.textContent?.trim() || snapshot.blobs?.length);
 }
 
+export function requiresChromeForMoli(options: {
+    proxyUrl?: string;
+    sideLoad?: { proxyOrigin?: Record<string, string> };
+    favorScreenshot?: boolean;
+    virtualScroll?: unknown;
+    detachInvisibles?: boolean;
+    viewport?: unknown;
+    waitForSelector?: string | string[];
+}): boolean {
+    return Boolean(options.proxyUrl || options.favorScreenshot || options.virtualScroll
+        || options.detachInvisibles || options.viewport
+        || Object.keys(options.sideLoad?.proxyOrigin || {}).length);
+}
+
 type Waiter = {
     resolve: (release: () => void) => void;
     cleanup: () => void;

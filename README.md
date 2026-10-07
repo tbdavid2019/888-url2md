@@ -154,7 +154,7 @@ services:
 
 Docker 映像檔內建固定版本 Moli v1.1.14（amd64 / arm64），下載時驗證 SHA-256，並保留第三方授權文件。`MOLI_ENABLED=true` 時，需要瀏覽器渲染的網頁先使用 Moli，遇到引擎或協定故障、逾時或缺少可用快照時，再排入 Chrome，最多一次。HTTP／靜態 HTML 和檔案轉換仍走原有快速路徑。SERP 專用瀏覽器操作使用 Chrome，與備援擷取共用 Chrome 容量。
 
-Moli 以自管程序啟動，只監聽容器內 `127.0.0.1`；既有私有網路封鎖政策同步套用到 Moli。Moli 使用原生網路流程與 CDP 事件觀察，透過 transport 封鎖私有地址與限制連線；發現禁止網域或濫用時關閉該頁面。每請求代理沿用 Chrome。版面計算、圖片和字型資源已啟用，支援現有快照與截圖用途。Chrome 採共用啟動程序，避免大量失敗請求同時啟動多個瀏覽器。設定 `MOLI_ENABLED=false` 可切回 Chrome。
+Moli 以自管程序啟動，只監聽容器內 `127.0.0.1`；既有私有網路封鎖政策同步套用到 Moli。Moli 使用原生網路流程與 CDP 事件觀察，透過 transport 封鎖私有地址與限制連線；發現禁止網域或濫用時關閉該頁面。每請求代理、截圖、虛擬捲動、隱形元素幾何處理與自訂 viewport 使用 Chrome。一般 Moli 文字擷取不執行實際 layout/paint，也不產生截圖；圖片和字型資源仍供文字快照使用。這避免深 DOM renderer 崩潰，並避開 mutation 後的過期 geometry。Chrome 採共用啟動程序，避免大量失敗請求同時啟動多個瀏覽器。設定 `MOLI_ENABLED=false` 可切回 Chrome。
 
 | 變數 | 用途 | 預設值 |
 | :--- | :--- | :--- |
@@ -173,6 +173,8 @@ Moli 以自管程序啟動，只監聽容器內 `127.0.0.1`；既有私有網路
 瀏覽器階段共用 `X-Timeout`／`timeout` 預算，未指定時為 30 秒。Moli 最多使用剩餘預算的 60%，亦受 `MOLI_TIMEOUT_MS` 上限限制；Chrome 使用剩餘時間，亦包含等待啟動與排隊。首份可用快照送出後，後續錯誤直接回報，保留串流順序。安全／參數錯誤、一般 HTTP 錯誤結果與引擎排隊過載沿原有錯誤路徑處理。
 
 **驚群控制**：Chrome 備援受併發、開始速率、有限佇列及排隊逾時限制；Moli 熔斷後仍依相同 Chrome 配額處理，恢復時只允許一個探測請求。排隊滿載或逾時時，既有快取／side-load 備援可提供結果，否則回傳 HTTP 503（`50303`）資源不足錯誤。這些上限適用每個 Node 程序／容器；三個實例使用預設值時，總 Chrome 上限為 6 頁、Moli 為 12 頁。跨實例共享配額需另設協調服務。
+
+**Moli 版本更新**：先檢查上游 release notes 與已知 issue，再取得 amd64、arm64 發行檔並核對 SHA-256。將版本 URL 與兩個 checksum 一起更新到 `scripts/install-moli.sh`，更新本文件與 ADR/CHANGELOG，並在遠端隔離容器執行建置、單元/API 回歸、HTTPS、Moli 文字擷取、Chrome 視覺路由與冷啟動故障備援 smoke。合併到 `main` 後，GitHub Actions 建置多架構映像並更新 GHCR `latest`；三個主機上的 Watchtower 依序偵測映像並重建服務。部署後核對三台映像 digest、應用版本及公開端點。若新版回歸失敗，將安裝腳本版本與 checksum 還原到上一版後重新建置推送；緊急時可設定 `MOLI_ENABLED=false`，讓瀏覽器工作改走 Chrome。
 
 `node scripts/smoke-browser-https.cjs` 另外驗證正式私有網路政策下的公開 HTTPS 擷取與 Moli 路由。
 
@@ -784,7 +786,7 @@ services:
 
 Docker bundles Moli v1.1.14 for amd64 and arm64, verifies release archives with SHA-256, and preserves bundled license notices. With `MOLI_ENABLED=true`, browser rendering tries Moli first and queues a single Chrome attempt after an engine/protocol failure, timeout, or missing usable snapshot. Existing HTTP/static HTML and file conversion paths still run first. Specialized SERP browser operations use Chrome and share its admission budget with fallback rendering.
 
-Moli is an owned process bound to container loopback (`127.0.0.1`), with the existing private-network policy also applied to its transport. Moli uses native networking and CDP request observation, with private-address filtering and connection limits; blocked domains or abuse close the page. Per-request proxies use Chrome. Layout, image and font resources are enabled for snapshot extraction and screenshots. Concurrent fallback requests share one Chrome startup. Set `MOLI_ENABLED=false` to select Chrome.
+Moli is an owned process bound to container loopback (`127.0.0.1`), with the existing private-network policy also applied to its transport. Moli uses native networking and CDP request observation, with private-address filtering and connection limits; blocked domains or abuse close the page. Moli text extraction runs without real layout or paint; image and font resources remain enabled. Per-request proxies, screenshots, virtual scrolling, invisible-element geometry, and custom viewports use Chrome for accurate geometry and to avoid Moli deep-DOM paint and layout invalidation issues. Concurrent fallback requests share one Chrome startup. Set `MOLI_ENABLED=false` to select Chrome.
 
 | Variable | Purpose | Default |
 | :--- | :--- | :--- |
@@ -803,6 +805,8 @@ Moli is an owned process bound to container loopback (`127.0.0.1`), with the exi
 The browser stage shares the `X-Timeout` / `timeout` budget between engines, defaulting to 30 seconds. Moli gets at most 60% of the remaining budget, capped by `MOLI_TIMEOUT_MS`; Chrome receives the remainder, including startup and queue waits. Once usable snapshots are emitted, later errors propagate without replaying output. Security/parameter errors, ordinary HTTP error results and engine admission overload follow the existing error path.
 
 **Herd containment:** Chrome fallback obeys page concurrency, admission spacing, a bounded FIFO and queue expiry. Opening the Moli circuit keeps the same Chrome budget; recovery permits one probe. Queue overflow/expiry can use existing stale-cache/side-load results or return HTTP 503 (`50303`), the resource-drain error. Limits are per Node process/container: three default replicas permit 6 Chrome pages and 12 Moli pages in total. A shared coordinator is required for a distributed global quota.
+
+**Moli version updates:** Review upstream release notes and open issues, then download and verify the amd64 and arm64 release archives. Update the version URL and both SHA-256 values in `scripts/install-moli.sh`, update this section plus the ADR and changelog, and run the build, unit/API regressions, HTTPS, Moli text extraction, Chrome visual routing, and cold-start failure-fallback smoke checks in a remote isolated container. Merging to `main` triggers a multi-architecture GitHub Actions build and publishes GHCR `latest`; Watchtower on the three hosts detects the image and recreates the service. Verify the image digest, app version, and public endpoints on all hosts. If the release fails regression, restore the prior pinned version and checksums and publish a replacement image. For an urgent rollback, set `MOLI_ENABLED=false` to route browser work through Chrome.
 
 `node scripts/smoke-browser-https.cjs` additionally verifies public HTTPS extraction under the production private-network policy and checks the Moli route.
 

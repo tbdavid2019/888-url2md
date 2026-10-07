@@ -2,6 +2,12 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.10.07.3] - 2026-10-07 - Moli 截圖風險隔離與視覺路由 (Moli Screenshot Risk Isolation & Visual Routing)
+
+### Fixed & Hardened
+- Moli 一般文字擷取改在沒有實際 layout/paint 的模式執行，也不拍 viewport 或 full-page 截圖；截圖、虛擬捲動、隱形元素幾何處理與自訂 viewport 請求改由 Chrome 執行。
+- 新增視覺與幾何路由測試及深 DOM 截圖走 Chrome 的整合驗證。正式 Moli v1.1.14 遠端重現深 DOM renderer stack overflow 與 DOM mutation 後 geometry 過期；遠端回歸通過 498 項單元測試、405 項 API 測試、公開 HTTPS、Moli 文字路徑及冷啟動 Chrome fallback。
+
 ## [2026.10.07.2] - 2026-10-07 - 瀏覽器啟動預算與收尾等待修正 (Browser Startup Budget & Finalization Wait)
 
 ### Fixed

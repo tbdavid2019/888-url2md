@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { BrowserAdmission, BrowserCapacityError, BrowserCircuit, BrowserEngineError, browserFallback, usableBrowserSnapshot, waitForBrowserStartup } from '../../build/services/browser-policy.js';
+import { BrowserAdmission, BrowserCapacityError, BrowserCircuit, BrowserEngineError, browserFallback, requiresChromeForMoli, usableBrowserSnapshot, waitForBrowserStartup } from '../../build/services/browser-policy.js';
 
 const pause = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 async function collect<T>(iterator: AsyncGenerator<T>) {
@@ -70,6 +70,17 @@ describe('browser admission', () => {
 });
 
 describe('browser circuit and fallback', () => {
+    it('routes visual and geometry-dependent requests through Chrome', () => {
+        assert.equal(requiresChromeForMoli({}), false);
+        assert.equal(requiresChromeForMoli({ waitForSelector: 'main article' }), false);
+        assert.equal(requiresChromeForMoli({ favorScreenshot: true }), true);
+        assert.equal(requiresChromeForMoli({ virtualScroll: { maxScrolls: 5 } }), true);
+        assert.equal(requiresChromeForMoli({ detachInvisibles: true }), true);
+        assert.equal(requiresChromeForMoli({ viewport: { width: 375, height: 812 } }), true);
+        assert.equal(requiresChromeForMoli({ proxyUrl: 'http://proxy.example' }), true);
+        assert.equal(requiresChromeForMoli({ sideLoad: { proxyOrigin: { 'https://example.com': 'http://proxy.example' } } }), true);
+    });
+
     it('requires screenshot bytes instead of text for a visual request', () => {
         assert.equal(usableBrowserSnapshot({ text: 'article' }, true), false);
         assert.equal(usableBrowserSnapshot({ text: 'article', screenshot: Buffer.from('png') }, true), false);

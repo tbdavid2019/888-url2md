@@ -26,7 +26,7 @@ import { Finalizer } from './finalizer';
 import { isPrivateIpForbidden } from './misc';
 import { isIPInNonPublicRange } from '../utils/ip';
 import type { VirtualScrollOptions } from '../dto/advanced-crawl-options';
-import { BrowserAdmission, BrowserCapacityError, BrowserCircuit, BrowserEngine, BrowserEngineError, browserFallback, browserLimit, usableBrowserSnapshot, waitForBrowserStartup } from './browser-policy';
+import { BrowserAdmission, BrowserCapacityError, BrowserCircuit, BrowserEngine, BrowserEngineError, browserFallback, browserLimit, requiresChromeForMoli, usableBrowserSnapshot, waitForBrowserStartup } from './browser-policy';
 import { MoliBrowser } from './moli-browser';
 const tldExtract = require('tld-extract');
 
@@ -1161,7 +1161,7 @@ export class PuppeteerControl extends AsyncService {
     }
 
     async *scrap(parsedUrl: URL, options: ScrappingOptions = {}): AsyncGenerator<PageSnapshot | undefined> {
-        if (!this.moliEnabled || options.proxyUrl || !_.isEmpty(options.sideLoad?.proxyOrigin)) {
+        if (!this.moliEnabled || requiresChromeForMoli(options)) {
             const timeoutMs = options.timeoutMs || 30000;
             yield* this.scrapWithEngine(parsedUrl, { ...options, timeoutMs }, 'chrome', AbortSignal.timeout(timeoutMs)); return;
         }
@@ -1624,8 +1624,10 @@ export class PuppeteerControl extends AsyncService {
                 const pSubFrameSnapshots = this.snapshotChildFrames(page);
                 const detachFlag = options.detachInvisibles ? 'true' : 'false';
                 snapshot = await page.evaluate(`giveSnapshot(true, undefined, ${detachFlag})`) as PageSnapshot;
-                screenshot = (await this.takeScreenShot(page)) || screenshot;
-                pageshot = (await this.takeScreenShot(page, { fullPage: true })) || pageshot;
+                if (engine === 'chrome') {
+                    screenshot = (await this.takeScreenShot(page)) || screenshot;
+                    pageshot = (await this.takeScreenShot(page, { fullPage: true })) || pageshot;
+                }
                 if (snapshot) {
                     snapshot.childFrames = await pSubFrameSnapshots;
                 }

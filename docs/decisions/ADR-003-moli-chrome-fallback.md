@@ -15,8 +15,11 @@ Moli runs as an owned process on loopback, using Puppeteer's CDP attach API.
 Snapshot RPC uses CDP bindings on Moli; Chrome retains its intercepted POST
 channel. Newly created Moli targets already have a blank document, so the
 adapter skips the extra `about:blank` navigation that its Fetch transport rejects.
-Startup is shared across concurrent callers. Layout, image and font resources
-are enabled because snapshot extraction uses geometry and captures screenshots.
+Startup is shared across concurrent callers. Image and font resources remain
+enabled. Moli serves text extraction without real layout or paint; screenshot,
+virtual-scroll, invisible-element geometry, and custom-viewport requests use
+Chrome. This limits the impact of upstream deep-DOM renderer and stale-layout
+issues observed on Moli v1.1.14.
 The existing private-network policy also configures Moli's transport filter.
 Moli observes CDP requests without Fetch interception, whose HTTPS pause/resume
 path stalls on the pinned release. Its native transport caps concurrent requests
@@ -54,7 +57,7 @@ When capacity is exhausted the existing caller can use stale cache/side-loaded
 content or receive the resource-drain error; a growing queue is not retained.
 
 Verify with the browser-policy unit tests, normal API regression suite, and
-`scripts/smoke-browser-fallback.cjs` inside an isolated remote container. Run the
+`scripts/smoke-browser-fallback.cjs` plus `scripts/smoke-browser-https.cjs` inside an isolated remote container. The fallback smoke checks that deep-DOM text stays on Moli without layout/paint, and that screenshot requests use Chrome. Run the
 smoke once with the bundled Moli binary, then with
 `EXPECTED_BROWSER=chrome MOLI_EXECUTABLE_PATH=/missing/moli` to check a failure
 burst and fallback cleanup. Production rollout is separate from remote testing.
