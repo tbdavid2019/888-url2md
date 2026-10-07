@@ -2,6 +2,12 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.10.07.5] - 2026-10-07 - 2md Grafana 請求監控 (2md Grafana Request Analytics)
+
+### Added
+- 新增 SQLite request log 的唯讀分鐘彙總，經 Telegraf 寫入既有 InfluxDB，並建立獨立的 `2md.aiurl.tw` Grafana dashboard。
+- Dashboard 顯示 API request/target 數量、狀態碼、錯誤率、耗時、網域排行與批次流量；原始 IP、URL、User-Agent 和錯誤訊息不匯入 InfluxDB。
+
 ## [2026.10.07.4] - 2026-10-07 - Moli 每週版本檢查與候選建置 (Weekly Moli Release Check & Candidate Build)
 
 ### Added

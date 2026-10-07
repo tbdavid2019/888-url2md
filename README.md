@@ -252,6 +252,9 @@ duckdb -c "
 "
 ```
 
+#### **E. 2md.aiurl.tw Grafana 請求監控**
+在既有 Grafana 的 `2md.aiurl.tw` 資料夾提供獨立 dashboard。主機 Telegraf 每分鐘以唯讀方式彙總 SQLite request log，寫入既有 InfluxDB `telegraf` bucket；監控內容包含 HTTP request 數、批次目標數、狀態碼、錯誤率、延遲秒數與網域排行。資料只保留彙總欄位，不匯入原始 IP、完整 URL、User-Agent 或錯誤訊息。SQLite 保留期間目前為 7 天，dashboard 可查詢已回填資料與之後的 Influx 時序資料。批次請求的網域歸屬沿用記錄中的第一個 URL，批次總目標數另行統計。
+
 ## 📖 API 使用指南 (Usage)
 
 ### 1. 單網址抓取 (Single URL Reading)
@@ -888,6 +891,9 @@ duckdb -c "
   ORDER BY errors DESC;
 "
 ```
+
+#### **E. 2md.aiurl.tw Grafana Request Analytics**
+An independent dashboard lives in the existing Grafana instance under the `2md.aiurl.tw` folder. Host Telegraf reads SQLite request logs in read-only mode every minute, aggregates them, and writes to the existing InfluxDB `telegraf` bucket. Panels show HTTP request and batch-target counts, status codes, error rate, latency in seconds, and target-domain rankings. Only aggregate fields are exported; raw IP addresses, full URLs, user agents, and error messages stay in SQLite. SQLite retention is currently 7 days; Grafana can query the backfilled data and subsequent Influx time series. Batch-domain attribution follows the first URL recorded for each batch, while the batch target total is counted separately.
 
 ## 📖 API Usage Guide
 
