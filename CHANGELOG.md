@@ -2,6 +2,16 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.10.07.1] - 2026-10-07 - Moli 優先與受控 Chrome 備援 (Moli Priority & Bounded Chrome Fallback)
+
+### Added & Changed
+- Docker 內建 SHA-256 驗證的 Moli v1.1.14（amd64 / arm64），預設啟用 `MOLI_ENABLED=true`；網頁瀏覽器渲染採 Moli 優先，可用 `MOLI_ENABLED=false` 切回 Chrome。
+- 透過 Puppeteer CDP 共用既有擷取、請求攔截與安全檢查；Moli 採 loopback-only 自管程序與共用啟動流程。SERP 專用操作沿用 Chrome 並共用容量限制。
+- Moli 與 Chrome 分別設有頁面併發、有限 FIFO 與排隊逾時；Chrome 預設 2 個頁面、16 個排隊請求，透過啟動間隔與 jitter 控制 fallback 洪峰。
+- Moli 引擎失敗加入熔斷、冷卻及單一恢復探測；fallback 在首份可用快照送出前最多一次，先關閉主引擎頁面，再使用共同剩餘時間預算執行 Chrome。
+- 新增容量／熔斷／串流重試測試、遠端容器整合測試腳本、雙語設定文件與 ADR-003。容量限制範圍為每個程序／容器；叢集總上限需依實例數加總。
+- **遠端驗證**：完整 amd64 Docker 映像編譯成功，496 項單元測試與 405 項 API 測試通過；Moli 動態內容與實際截圖成功，Chrome 冷啟動洪峰受併發上限與 `50303` 排隊逾時保護。
+
 ## [2026.09.28.7] - 2026-09-28 - 阿拉伯數字題目大題誤判隔離與邊緣橫幅佔用防禦 (Arabic Question Header Isolation & Robust Banner Exclusion)
 
 ### Fixed & Hardened

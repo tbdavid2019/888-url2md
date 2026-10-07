@@ -337,6 +337,7 @@ export class GoogleSERP extends AsyncService {
 export class GoogleSERPOldFashion extends GoogleSERP {
     override async createContext() {
         await this.serviceReady();
+        await this.puppeteerControl.ensureBrowser();
         this.asyncLocalContext.ctx.ctxIsNew = true;
 
         return {

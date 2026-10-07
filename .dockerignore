@@ -1,0 +1,16 @@
+.git
+node_modules
+build
+tests-build
+coverage
+data
+local.md
+local*.md
+.env
+.secret.*
+*.local
+.claude
+.moli
+*.log
+__pycache__
+*.pyc

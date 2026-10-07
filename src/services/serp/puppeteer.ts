@@ -239,6 +239,7 @@ export class SERPSpecializedPuppeteerControl extends AsyncService {
     protected _REPORT_FUNCTION_NAME = 'bingo';
 
     lifeCycleTrack = new WeakMap();
+    private readonly ownedContexts = new WeakMap<Page, boolean>();
 
     constructor(
         protected globalLogger: GlobalLogger,
@@ -258,6 +259,7 @@ export class SERPSpecializedPuppeteerControl extends AsyncService {
 
     async ensureBrowser() {
         await this.mainPuppeteerControl.serviceReady();
+        await this.mainPuppeteerControl.ensureChromeBrowser();
         if (this.mainPuppeteerControl.browser?.connected) {
             this.browser = this.mainPuppeteerControl.browser;
             this.ua = this.mainPuppeteerControl.ua;
@@ -273,38 +275,49 @@ export class SERPSpecializedPuppeteerControl extends AsyncService {
             throw new ServiceNodeResourceDrainError(`Failed to initialize SERP browser`);
         }
         const sn = this._sn++;
-        let page;
-        context ??= await this.browser.createBrowserContext();
+        let page!: Page;
+        const release = await this.mainPuppeteerControl.acquireBrowserSlot('chrome');
+        const ownsContext = !context;
         try {
-            page = await context.newPage();
-        } catch (err: any) {
-            this.logger.warn(`Failed to create page ${sn}`, { err });
-            this.browser.process()?.kill('SIGKILL');
-            throw new ServiceNodeResourceDrainError(`This specific worker node failed to open a new page, try again.`);
+            context ??= await this.browser.createBrowserContext();
+            try {
+                page = await context.newPage();
+            } catch (err: any) {
+                this.logger.warn(`Failed to create page ${sn}`, { err });
+                this.browser.process()?.kill('SIGKILL');
+                throw new ServiceNodeResourceDrainError(`This specific worker node failed to open a new page, try again.`);
+            }
+            this.mainPuppeteerControl.trackBrowserPage(page, 'chrome', release);
+            this.ownedContexts.set(page, ownsContext);
+            const preparations = [];
+
+            preparations.push(page.setUserAgent(this.effectiveUA));
+            // preparations.push(page.setUserAgent(`Slackbot-LinkExpanding 1.0 (+https://api.slack.com/robots)`));
+            // preparations.push(page.setUserAgent(`Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; GPTBot/1.0; +https://openai.com/gptbot)`));
+            preparations.push(page.setBypassCSP(true));
+            preparations.push(page.setViewport({ width: 1280, height: 1280 }));
+            preparations.push(page.exposeFunction(this._REPORT_FUNCTION_NAME, (thing: T) => {
+                page.emit(this._REPORT_FUNCTION_NAME, thing);
+            }));
+            preparations.push(page.exposeFunction('setViewport', (viewport: Viewport | null) => {
+                page.setViewport(viewport).catch(() => undefined);
+            }));
+            preparations.push(page.evaluateOnNewDocument(SCRIPT_TO_INJECT_INTO_FRAME));
+
+            await Promise.all(preparations);
+
+            this.snMap.set(page, sn);
+            this.logger.debug(`Page ${sn} created.`);
+            this.lastPageCreatedAt = Date.now();
+            this.livePages.add(page);
+
+            return page;
+        } catch (error) {
+            if (page) await this.mainPuppeteerControl.ditchPage(page, ownsContext);
+            else if (ownsContext) await context?.close().catch(() => undefined);
+            release();
+            throw error;
         }
-        const preparations = [];
-
-        preparations.push(page.setUserAgent(this.effectiveUA));
-        // preparations.push(page.setUserAgent(`Slackbot-LinkExpanding 1.0 (+https://api.slack.com/robots)`));
-        // preparations.push(page.setUserAgent(`Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; GPTBot/1.0; +https://openai.com/gptbot)`));
-        preparations.push(page.setBypassCSP(true));
-        preparations.push(page.setViewport({ width: 1280, height: 1280 }));
-        preparations.push(page.exposeFunction(this._REPORT_FUNCTION_NAME, (thing: T) => {
-            page.emit(this._REPORT_FUNCTION_NAME, thing);
-        }));
-        preparations.push(page.exposeFunction('setViewport', (viewport: Viewport | null) => {
-            page.setViewport(viewport).catch(() => undefined);
-        }));
-        preparations.push(page.evaluateOnNewDocument(SCRIPT_TO_INJECT_INTO_FRAME));
-
-        await Promise.all(preparations);
-
-        this.snMap.set(page, sn);
-        this.logger.debug(`Page ${sn} created.`);
-        this.lastPageCreatedAt = Date.now();
-        this.livePages.add(page);
-
-        return page;
     }
 
     async getNextPage(context?: BrowserContext) {
@@ -332,12 +345,7 @@ export class SERPSpecializedPuppeteerControl extends AsyncService {
         }
         const sn = this.snMap.get(page);
         this.logger.debug(`Closing page ${sn}`);
-        await Promise.race([
-            page.close(),
-            delay(5000)
-        ]).catch((err) => {
-            this.logger.error(`Failed to destroy page ${sn}`, { err });
-        });
+        await this.mainPuppeteerControl.ditchPage(page, this.ownedContexts.get(page) === true);
         this.livePages.delete(page);
     }
 
@@ -625,7 +633,7 @@ func().then((result) => {
             return resultDeferred.promise;
         } finally {
             page.off(this._REPORT_FUNCTION_NAME, hdl as any);
-            this.ditchPage(page);
+            await this.ditchPage(page);
             resultDeferred.resolve();
         }
     }

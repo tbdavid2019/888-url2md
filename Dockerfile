@@ -1,6 +1,11 @@
 # syntax=docker/dockerfile:1
 FROM node:24 AS base
 
+FROM base AS moli-runtime
+ARG TARGETARCH
+COPY scripts/install-moli.sh /tmp/install-moli.sh
+RUN bash /tmp/install-moli.sh "$TARGETARCH" /opt/moli
+
 FROM base AS build-amd64
 RUN apt-get update \
     && apt-get install -y wget gnupg \
@@ -20,6 +25,10 @@ RUN apt-get update \
 ENV OVERRIDE_CHROME_EXECUTABLE_PATH=/usr/bin/chromium
 
 FROM build-${TARGETARCH} AS final
+COPY --from=moli-runtime /opt/moli /opt/moli
+ENV MOLI_EXECUTABLE_PATH=/opt/moli/moli
+ENV MOLI_ENABLED=true
+ENV PUPPETEER_SKIP_DOWNLOAD=true
 RUN groupadd -r jina
 RUN useradd -g jina  -G audio,video -m jina
 USER jina

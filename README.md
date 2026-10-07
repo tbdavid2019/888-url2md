@@ -150,6 +150,31 @@ services:
 
 ---
 
+### 4.1 Moli 優先與 Chrome 備援
+
+Docker 映像檔內建固定版本 Moli v1.1.14（amd64 / arm64），下載時驗證 SHA-256，並保留第三方授權文件。`MOLI_ENABLED=true` 時，需要瀏覽器渲染的網頁先使用 Moli，遇到引擎或協定故障、逾時或缺少可用快照時，再排入 Chrome，最多一次。HTTP／靜態 HTML 和檔案轉換仍走原有快速路徑。SERP 專用瀏覽器操作使用 Chrome，與備援擷取共用 Chrome 容量。
+
+Moli 以自管程序啟動，只監聽容器內 `127.0.0.1`；既有私有網路封鎖政策同步套用到 Moli。版面計算、圖片和字型資源已啟用，支援現有快照與截圖用途。Chrome 採共用啟動程序，避免大量失敗請求同時啟動多個瀏覽器。設定 `MOLI_ENABLED=false` 可切回 Chrome。
+
+| 變數 | 用途 | 預設值 |
+| :--- | :--- | :--- |
+| `MOLI_ENABLED` | Moli 優先與 Chrome fallback | 獨立執行 `false`；Docker `true` |
+| `MOLI_EXECUTABLE_PATH` | Moli 執行檔位置 | `moli`；Docker `/opt/moli/moli` |
+| `MOLI_PORT` | 容器內 CDP loopback port | `9222` |
+| `MOLI_CONCURRENCY` / `MOLI_QUEUE_SIZE` | Moli 同時頁面數／排隊數 | `4` / `32` |
+| `CHROME_CONCURRENCY` / `CHROME_QUEUE_SIZE` | Chrome 同時頁面數／排隊數 | `2` / `16` |
+| `CHROME_START_INTERVAL_MS` | Chrome 頁面開始間隔；另加 0–250 ms jitter | `250` |
+| `BROWSER_QUEUE_TIMEOUT_MS` | 兩個引擎最長排隊時間 | `5000` |
+| `MOLI_TIMEOUT_MS` | Moli 單次嘗試上限，亦受共同預算限制 | `15000` |
+| `MOLI_FAILURE_THRESHOLD` / `MOLI_COOLDOWN_MS` | 連續引擎失敗熔斷門檻／冷卻時間；冷卻另加 jitter | `3` / `30000` |
+| `MOLI_STARTUP_TIMEOUT_MS` / `MOLI_PROTOCOL_TIMEOUT_MS` | Moli 啟動／CDP 指令逾時 | `5000` / `10000` |
+
+瀏覽器階段共用 `X-Timeout`／`timeout` 預算，未指定時為 30 秒。Moli 最多使用剩餘預算的 60%，亦受 `MOLI_TIMEOUT_MS` 上限限制；Chrome 使用剩餘時間。首份可用快照送出後，後續錯誤直接回報，保留串流順序。安全／參數錯誤、一般 HTTP 錯誤結果與引擎排隊過載沿原有錯誤路徑處理。
+
+**驚群控制**：Chrome 備援受併發、開始速率、有限佇列及排隊逾時限制；Moli 熔斷後仍依相同 Chrome 配額處理，恢復時只允許一個探測請求。排隊滿載或逾時時，既有快取／side-load 備援可提供結果，否則回傳 HTTP 503（`50303`）資源不足錯誤。這些上限適用每個 Node 程序／容器；三個實例使用預設值時，總 Chrome 上限為 6 頁、Moli 為 12 頁。跨實例共享配額需另設協調服務。
+
+遠端隔離容器驗證：先執行 `npm run build`、單元測試與 API 回歸測試，再執行 `node scripts/smoke-browser-fallback.cjs`；以 `EXPECTED_BROWSER=chrome MOLI_EXECUTABLE_PATH=/missing/moli node scripts/smoke-browser-fallback.cjs` 驗證 Moli 故障與併發 Chrome fallback。測試腳本只在測試程序允許私有網路，以存取容器內 fixture。
+
 ### 5. SRE 防濫用監控、日誌統計與 DuckDB 分析 (Anti-Abuse & Analytics)
 
 當 SRE 啟用 `REQUEST_LOG_ENABLED=true` 時，系統會透過高效能 SQLite WAL (Write-Ahead Logging) 模式非同步寫入請求日誌，零延遲影響 API 回應，並提供完整的防濫用控制、即時統計與資料分析介面：
@@ -751,6 +776,32 @@ services:
 | `OCR_HEALTH_TIMEOUT_MS` | (Optional) Health check probe timeout in milliseconds | `2000` (2 seconds) |
 | `OCR_POLL_INTERVAL_MS` | (Optional) Background probing interval in milliseconds | `30000` (30 seconds) |
 | `OCR_SECRET_KEY` | (Optional) API key passed via `X-API-Key` header | Cluster secret |
+
+### 4.1 Moli Priority and Chrome Fallback
+
+Docker bundles Moli v1.1.14 for amd64 and arm64, verifies release archives with SHA-256, and preserves bundled license notices. With `MOLI_ENABLED=true`, browser rendering tries Moli first and queues a single Chrome attempt after an engine/protocol failure, timeout, or missing usable snapshot. Existing HTTP/static HTML and file conversion paths still run first. Specialized SERP browser operations use Chrome and share its admission budget with fallback rendering.
+
+Moli is an owned process bound to container loopback (`127.0.0.1`), with the existing private-network policy also applied to its transport. Layout, image and font resources are enabled for snapshot extraction and screenshots. Concurrent fallback requests share one Chrome startup. Set `MOLI_ENABLED=false` to select Chrome.
+
+| Variable | Purpose | Default |
+| :--- | :--- | :--- |
+| `MOLI_ENABLED` | Moli priority with Chrome fallback | Standalone `false`; Docker `true` |
+| `MOLI_EXECUTABLE_PATH` | Moli binary | `moli`; Docker `/opt/moli/moli` |
+| `MOLI_PORT` | Internal loopback CDP port | `9222` |
+| `MOLI_CONCURRENCY` / `MOLI_QUEUE_SIZE` | Moli live pages / queued requests | `4` / `32` |
+| `CHROME_CONCURRENCY` / `CHROME_QUEUE_SIZE` | Chrome live pages / queued requests | `2` / `16` |
+| `CHROME_START_INTERVAL_MS` | Chrome admission interval, plus 0–250 ms jitter | `250` |
+| `BROWSER_QUEUE_TIMEOUT_MS` | Maximum queue wait for either engine | `5000` |
+| `MOLI_TIMEOUT_MS` | Moli attempt ceiling, also limited by the shared deadline | `15000` |
+| `MOLI_FAILURE_THRESHOLD` / `MOLI_COOLDOWN_MS` | Engine failure circuit threshold / cooldown, plus jitter | `3` / `30000` |
+| `MOLI_STARTUP_TIMEOUT_MS` / `MOLI_PROTOCOL_TIMEOUT_MS` | Startup / CDP command timeout | `5000` / `10000` |
+
+The browser stage shares the `X-Timeout` / `timeout` budget between engines, defaulting to 30 seconds. Moli gets at most 60% of the remaining budget, capped by `MOLI_TIMEOUT_MS`; Chrome receives the remainder. Once usable snapshots are emitted, later errors propagate without replaying output. Security/parameter errors, ordinary HTTP error results and engine admission overload follow the existing error path.
+
+**Herd containment:** Chrome fallback obeys page concurrency, admission spacing, a bounded FIFO and queue expiry. Opening the Moli circuit keeps the same Chrome budget; recovery permits one probe. Queue overflow/expiry can use existing stale-cache/side-load results or return HTTP 503 (`50303`), the resource-drain error. Limits are per Node process/container: three default replicas permit 6 Chrome pages and 12 Moli pages in total. A shared coordinator is required for a distributed global quota.
+
+Verify in an isolated remote container: run `npm run build`, unit tests and API regression tests, then `node scripts/smoke-browser-fallback.cjs`. Run `EXPECTED_BROWSER=chrome MOLI_EXECUTABLE_PATH=/missing/moli node scripts/smoke-browser-fallback.cjs` to exercise a Moli failure and concurrent Chrome fallback. The smoke script enables private-network access only in its test process for the container-local fixture.
+
 
 ---
 

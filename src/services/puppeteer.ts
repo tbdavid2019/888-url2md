@@ -5,7 +5,7 @@ import fs from 'fs';
 import { Blob } from 'buffer';
 import { container, singleton } from 'tsyringe';
 
-import type { Browser, CookieParam, GoToOptions, HTTPRequest, HTTPResponse, Page, Viewport } from 'puppeteer';
+import type { Browser, BrowserContext, CookieParam, GoToOptions, HTTPRequest, HTTPResponse, Page, Viewport } from 'puppeteer';
 import type { Cookie } from 'set-cookie-parser';
 import puppeteer, { TimeoutError } from 'puppeteer';
 
@@ -26,6 +26,8 @@ import { Finalizer } from './finalizer';
 import { isPrivateIpForbidden } from './misc';
 import { isIPInNonPublicRange } from '../utils/ip';
 import type { VirtualScrollOptions } from '../dto/advanced-crawl-options';
+import { BrowserAdmission, BrowserCapacityError, BrowserCircuit, BrowserEngine, BrowserEngineError, browserFallback, browserLimit, usableBrowserSnapshot } from './browser-policy';
+import { MoliBrowser } from './moli-browser';
 const tldExtract = require('tld-extract');
 
 const READABILITY_JS = fs.readFileSync(require.resolve('@mozilla/readability/Readability.js'), 'utf-8');
@@ -679,7 +681,22 @@ export class PuppeteerControl extends AsyncService {
     browser?: Browser;
     logger = this.globalLogger.child({ service: this.constructor.name });
 
-    __loadedPage: Page[] = [];
+    readonly moliEnabled = process.env.MOLI_ENABLED === 'true';
+    private chromeStarting?: Promise<Browser>;
+    private stopping = false;
+    private readonly moli = new MoliBrowser(isPrivateIpForbidden, (message) => this.logger.info(message));
+    private readonly moliCircuit = new BrowserCircuit(
+        browserLimit('MOLI_FAILURE_THRESHOLD', 3, 100), browserLimit('MOLI_COOLDOWN_MS', 30000, 300000),
+    );
+    private readonly admissions = {
+        chrome: new BrowserAdmission(browserLimit('CHROME_CONCURRENCY', 2, 32), browserLimit('CHROME_QUEUE_SIZE', 16, 256),
+            browserLimit('BROWSER_QUEUE_TIMEOUT_MS', 5000, 60000), browserLimit('CHROME_START_INTERVAL_MS', 250, 10000, 0), 250),
+        moli: new BrowserAdmission(browserLimit('MOLI_CONCURRENCY', 4, 32), browserLimit('MOLI_QUEUE_SIZE', 32, 256),
+            browserLimit('BROWSER_QUEUE_TIMEOUT_MS', 5000, 60000)),
+    };
+    private readonly pageEngines = new WeakMap<Page, BrowserEngine>();
+    private readonly pageReleases = new WeakMap<Page, () => void>();
+    private readonly closingPages = new WeakMap<Page, Promise<void>>();
 
     finalizerMap = new WeakMap<Page, ReturnType<typeof setTimeout>>();
     snMap = new WeakMap<Page, number>();
@@ -720,7 +737,6 @@ export class PuppeteerControl extends AsyncService {
         let crippledTimes = 0;
         this.on('crippled', () => {
             crippledTimes += 1;
-            this.__loadedPage.length = 0;
             this.livePages.clear();
             if (crippledTimes > 5) {
                 process.nextTick(() => {
@@ -738,13 +754,21 @@ export class PuppeteerControl extends AsyncService {
             return;
         }
 
-        if (this.browser) {
-            if (this.browser.connected) {
-                await this.browser.close();
-            } else {
-                this.browser.process()?.kill('SIGKILL');
-            }
+        if (!this.moliEnabled) await this.ensureChromeBrowser().catch((err) => this.logger.error('Failed to launch browser', { err }));
+        this.emit('ready');
+    }
+
+    /** Single-flight launch: concurrent fallbacks share one Chrome startup. */
+    async ensureChromeBrowser(): Promise<Browser> {
+        if (this.stopping) throw new ServiceNodeResourceDrainError('Browser service is stopping');
+        if (this.browser?.connected) return this.browser;
+        if (!this.chromeStarting) {
+            this.chromeStarting = this.launchChrome().finally(() => { this.chromeStarting = undefined; });
         }
+        return this.chromeStarting;
+    }
+
+    private async launchChrome(): Promise<Browser> {
         const args = [
             '--disable-dev-shm-usage',
             '--disable-blink-features=AutomationControlled',
@@ -753,34 +777,31 @@ export class PuppeteerControl extends AsyncService {
             '--no-zygote',
             '--disable-gpu',
         ];
-        this.browser = (await puppeteer.launch({
+        const browser = await puppeteer.launch({
             timeout: 30_000,
             headless: !Boolean(process.env.DEBUG_BROWSER),
             executablePath: process.env.OVERRIDE_CHROME_EXECUTABLE_PATH,
             args,
-        }).catch((err: any) => {
-            this.logger.error(`Failed to launch browser`, { err });
-            return undefined;
-        })) as any;
+        });
+        this.browser = browser;
 
         if (this.browser) {
-            this.browser.once('disconnected', () => {
+            browser.once('disconnected', () => {
                 this.logger.warn(`Browser disconnected`);
-                this.browser = undefined;
+                if (this.browser === browser) this.browser = undefined;
             });
             this.ua = await this.browser.userAgent().catch(() => '');
             this.logger.info(`Browser launched: ${this.browser.process()?.pid}, ${this.ua}`);
             this.effectiveUA = (this.ua || '').replace(/Headless/i, '').replace('Mozilla/5.0 (X11; Linux x86_64)', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)');
-            process.nextTick(() => {
-                this.newPage('beware_deadlock').then((r) => this.__loadedPage.push(r)).catch(() => undefined);
-            });
         }
-
-        this.emit('ready');
+        return browser;
     }
 
     @Finalizer()
     override async standDown() {
+        this.stopping = true;
+        await this.chromeStarting?.catch(() => undefined);
+        await this.moli.stop();
         const browser = this.browser;
         delete this.browser;
         if (browser) {
@@ -793,6 +814,22 @@ export class PuppeteerControl extends AsyncService {
         super.standDown();
     }
 
+    get browserCapacity() { return { moli: this.admissions.moli.stats, chrome: this.admissions.chrome.stats }; }
+
+    async acquireBrowserSlot(engine: BrowserEngine = 'chrome', signal?: AbortSignal) {
+        try { return await this.admissions[engine].acquire(signal); }
+        catch (error) {
+            if (error instanceof BrowserCapacityError) throw new ServiceNodeResourceDrainError(error.message);
+            throw error;
+        }
+    }
+
+    trackBrowserPage(page: Page, engine: BrowserEngine, release: () => void) {
+        this.pageEngines.set(page, engine);
+        this.pageReleases.set(page, release);
+        page.once('close', release);
+    }
+
     protected getRpsControlKit(page: Page) {
         let kit = this.pageReqCtrl.get(page);
         if (!kit) {
@@ -803,251 +840,263 @@ export class PuppeteerControl extends AsyncService {
         return kit;
     }
 
-    async newPage(bewareDeadLock: any = false) {
+    async newPage(bewareDeadLock: any = false, engine: BrowserEngine = 'chrome', signal?: AbortSignal) {
         if (!bewareDeadLock) {
             await this.serviceReady();
         }
         const sn = this._sn++;
-        let page;
-        if (!this.browser || !this.browser.connected) {
-            await this.init();
-        }
+        const release = await this.acquireBrowserSlot(engine, signal);
+        let page!: Page;
+        let dedicatedContext: BrowserContext | undefined;
         try {
-            const dedicatedContext = await this.browser!.createBrowserContext();
-            page = await dedicatedContext.newPage();
-        } catch (err: any) {
-            this.logger.warn(`Failed to create page ${sn}`, { err });
-            this.browser!.process()?.kill('SIGKILL');
-            throw new ServiceNodeResourceDrainError(`This specific worker node failed to open a new page, try again.`);
+            signal?.throwIfAborted();
+            const browser = engine === 'moli' ? await this.moli.connect() : await this.ensureChromeBrowser();
+            signal?.throwIfAborted();
+            try {
+                dedicatedContext = await browser.createBrowserContext();
+                page = await dedicatedContext.newPage();
+            } catch (err: any) {
+                this.logger.warn(`Failed to create page ${sn}`, { err });
+                if (engine === 'moli') throw new BrowserEngineError('Moli failed to create a page');
+                throw new ServiceNodeResourceDrainError(`This specific worker node failed to open a new page, try again.`);
+            }
+            this.trackBrowserPage(page, engine, release);
+            const openedPage = page;
+            const onAbort = () => { void this.ditchPage(openedPage); };
+            signal?.addEventListener('abort', onAbort, { once: true });
+            page.once('close', () => signal?.removeEventListener('abort', onAbort));
+            signal?.throwIfAborted();
+            const preparations = [];
+
+            // preparations.push(page.setUserAgent(`Slackbot-LinkExpanding 1.0 (+https://api.slack.com/robots)`));
+            // preparations.push(page.setUserAgent(`Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; GPTBot/1.0; +https://openai.com/gptbot)`));
+            const userAgent = engine === 'moli' ? await browser.userAgent() : this.effectiveUA;
+            preparations.push(page.setUserAgent(userAgent));
+            preparations.push(page.setBypassCSP(true));
+            preparations.push(page.setViewport({ width: 1280, height: 1280 }));
+            // preparations.push(page.exposeFunction('reportSnapshot', (snapshot: PageSnapshot) => {
+            //     if (snapshot.href === 'about:blank') {
+            //         return;
+            //     }
+            //     page.emit('snapshot', snapshot);
+            // }));
+            // preparations.push(page.exposeFunction('setViewport', (viewport: Viewport | null) => {
+            //     page.setViewport(viewport).catch(() => undefined);
+            // }));
+            const pageKey = randomBytes(8).toString('base64url');
+            const sideChanelScript = `
+    (function () {
+        function magicRPC() {
+            fetch('https://reader.internal', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                mode: 'no-cors',
+                body: JSON.stringify(Array.from(arguments))
+            });
         }
-        const preparations = [];
 
-        // preparations.push(page.setUserAgent(`Slackbot-LinkExpanding 1.0 (+https://api.slack.com/robots)`));
-        // preparations.push(page.setUserAgent(`Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; GPTBot/1.0; +https://openai.com/gptbot)`));
-        preparations.push(page.setUserAgent(this.effectiveUA));
-        preparations.push(page.setBypassCSP(true));
-        preparations.push(page.setViewport({ width: 1280, height: 1280 }));
-        // preparations.push(page.exposeFunction('reportSnapshot', (snapshot: PageSnapshot) => {
-        //     if (snapshot.href === 'about:blank') {
-        //         return;
-        //     }
-        //     page.emit('snapshot', snapshot);
-        // }));
-        // preparations.push(page.exposeFunction('setViewport', (viewport: Viewport | null) => {
-        //     page.setViewport(viewport).catch(() => undefined);
-        // }));
-        const pageKey = randomBytes(8).toString('base64url');
-        const sideChanelScript = `
-(function () {
-    function magicRPC() {
-        fetch('https://reader.internal', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            mode: 'no-cors',
-            body: JSON.stringify(Array.from(arguments))
-        });
-    }
-
-    function rpcFactory(name) {
-        return function () {
-            magicRPC('${pageKey}', name, ...arguments);
-        };
-    }
-
-    window.reportSnapshot = rpcFactory('reportSnapshot');
-    window.setViewport = rpcFactory('setViewport');
-})();
-`;
-        preparations.push(page.evaluateOnNewDocument(sideChanelScript));
-        preparations.push(page.evaluateOnNewDocument(SCRIPT_TO_INJECT_INTO_FRAME));
-        preparations.push(page.setRequestInterception(true));
-
-        await Promise.all(preparations);
-
-        await page.goto('about:blank', { waitUntil: 'domcontentloaded' });
-
-        const domainSet = new Set<string>();
-        let halt = false;
-
-        page.on('request', async (req) => {
-            const requestUrl = req.url();
-            if (requestUrl.startsWith('https://reader.internal') && req.frame() === page.mainFrame()) {
-                do {
-                    const txt = await req.fetchPostData() || '[]';
-                    const [key, cmd, ...args] = JSON.parse(txt) as [string, string, ...unknown[]];
-                    if (key !== pageKey) {
-                        break;
-                    }
-
-                    switch (cmd) {
-                        case 'reportSnapshot': {
-                            Reflect.apply(page.emit, page, ['snapshot', ...args]);
-                            break;
-                        }
-                        case 'setViewport': {
-                            Reflect.apply(page.setViewport, page, args);
-                            break;
-                        }
-                    }
-                } while (false);
-                req.respond({
-                    status: 200,
-                    contentType: 'text/plain',
-                    body: 'it-works'
-                });
-                return;
-            }
-            if (halt) {
-                return req.abort('blockedbyclient', 1000);
-            }
-            if (!requestUrl.startsWith('http:') && !requestUrl.startsWith('https:') && !requestUrl.startsWith('chrome-extension:') && !requestUrl.startsWith('chrome:') && requestUrl !== 'about:blank') {
-                return req.abort('blockedbyclient', 1000);
-            }
-
-            const parsedUrl = new URL(requestUrl);
-            if (isIP(parsedUrl.hostname)) {
-                domainSet.add(parsedUrl.hostname);
-            } else {
-                try {
-                    const tldParsed = tldExtract(requestUrl);
-                    domainSet.add(tldParsed.domain);
-                } catch (_err) {
-                    domainSet.add(parsedUrl.hostname);
-                }
-            }
-
-            if (this.circuitBreakerHosts.has(parsedUrl.hostname.toLowerCase())) {
-                page.emit('abuse', { url: requestUrl, page, sn, reason: `Abusive request: ${requestUrl}` });
-                return req.abort('blockedbyclient', 1000);
-            }
-
-            const isLocal = parsedUrl.hostname === 'localhost' || parsedUrl.hostname.endsWith('.localhost');
-            const isNonPublic = (isIP(parsedUrl.hostname) && isIPInNonPublicRange(parsedUrl.hostname)) || parsedUrl.hostname.startsWith('127.');
-            if (
-                isPrivateIpForbidden() && (isLocal || isNonPublic)
-            ) {
-                page.emit('abuse', { url: requestUrl, page, sn, reason: `Suspicious action: Request to localhost or non-public IP: ${requestUrl}` });
-
-                return req.abort('blockedbyclient', 1000);
-            }
-
-            if (requestUrl.startsWith('http')) {
-                const kit = this.getRpsControlKit(page);
-                if (kit.totalRequests > 3300 || kit.totalDocumentalRequests > 1000) {
-                    page.emit('abuse', { url: requestUrl, page, sn, reason: `DDoS attack suspected: Too many requests` });
-                    halt = true;
-
-                    return req.abort('blockedbyclient', 1000);
-                }
-
-                if (domainSet.size > 200) {
-                    page.emit('abuse', { url: requestUrl, page, sn, reason: `DDoS attack suspected: Too many domains` });
-                    halt = true;
-
-                    return req.abort('blockedbyclient', 1000);
-                }
-
-                await kit.onNewRequest(req);
-            }
-
-            if (req.isInterceptResolutionHandled()) {
-                return;
+        function rpcFactory(name) {
+            return function () {
+                magicRPC('${pageKey}', name, ...arguments);
             };
-
-            const continueArgs = req.continueRequestOverrides
-                ? [req.continueRequestOverrides(), 0] as const
-                : [];
-
-            return req.continue(continueArgs[0], continueArgs[1]);
-        });
-        const reqFinishHandler = (req: HTTPRequest) => {
-            if (req?.url().startsWith('https://reader.internal')) {
-                return;
-            }
-            const kit = this.getRpsControlKit(page);
-            kit.onFinishRequest(req);
-        };
-        page.on('requestfinished', reqFinishHandler);
-        page.on('requestfailed', reqFinishHandler);
-        page.on('requestservedfromcache', reqFinishHandler);
-
-        await page.evaluateOnNewDocument(`
-(function () {
-    if (window.self === window.top) {
-        let lastAnalytics;
-        let lastReportedAt = 0;
-        const handlePageLoad = () => {
-            const now = Date.now();
-            const dt = now - lastReportedAt;
-            const previousAnalytics = lastAnalytics;
-            const thisAnalytics = getMaxDepthAndElemCountUsingTreeWalker();
-            let dElem = 0;
-
-            if (window.haltSnapshot) {
-                return;
-            }
-
-            const thisElemCount = thisAnalytics.elementCount;
-            if (previousAnalytics) {
-                const previousElemCount = previousAnalytics.elementCount;
-
-                const delta = Math.abs(thisElemCount - previousElemCount);
-                dElem = delta /(previousElemCount + Number.EPSILON);
-            }
-
-            if (dt < 1200 && dElem < 0.05) {
-                return;
-            }
-
-            lastAnalytics = thisAnalytics;
-            lastReportedAt = now;
-
-            const r = giveSnapshot(false, lastAnalytics);
-            window.reportSnapshot(r);
-        };
-        const handler = ()=> setTimeout(handlePageLoad);
-        document.addEventListener('readystatechange', ()=> {
-            if (document.readyState === 'interactive') {
-                handlePageLoad();
-            }
-        });
-        document.addEventListener('load', handler);
-        window.addEventListener('load', handler);
-        document.addEventListener('DOMContentLoaded', handler);
-        document.addEventListener('mutationIdle', handler);
-    }
-    document.addEventListener('DOMContentLoaded', ()=> window.simulateScroll(), { once: true });
-})();
-`);
-
-        this.snMap.set(page, sn);
-        this.logger.debug(`Page ${sn} created.`);
-        this.lastPageCreatedAt = Date.now();
-        this.livePages.add(page);
-
-        return page;
-    }
-
-    async getNextPage() {
-        let thePage: Page | undefined;
-        if (this.__loadedPage.length) {
-            thePage = this.__loadedPage.shift();
-            if (this.__loadedPage.length <= 1) {
-                process.nextTick(() => {
-                    this.newPage()
-                        .then((r) => this.__loadedPage.push(r))
-                        .catch((err) => {
-                            this.logger.warn(`Failed to load new page ahead of time`, { err });
-                        });
-                });
-            }
         }
 
-        if (!thePage) {
-            thePage = await this.newPage();
+        window.reportSnapshot = rpcFactory('reportSnapshot');
+        window.setViewport = rpcFactory('setViewport');
+    })();
+    `;
+            if (engine === 'moli') {
+                // Moli's intercepted Fetch requests do not reliably expose POST
+                // payloads. Use CDP bindings for snapshot RPC on this engine.
+                preparations.push(page.exposeFunction('reportSnapshot', (snapshot: PageSnapshot) => {
+                    page.emit('snapshot', snapshot);
+                }));
+                preparations.push(page.exposeFunction('setViewport', (viewport: Viewport | null) => page.setViewport(viewport)));
+            } else {
+                preparations.push(page.evaluateOnNewDocument(sideChanelScript));
+            }
+            preparations.push(page.evaluateOnNewDocument(SCRIPT_TO_INJECT_INTO_FRAME));
+            preparations.push(page.setRequestInterception(true));
+
+            await Promise.all(preparations);
+
+            const domainSet = new Set<string>();
+            let halt = false;
+
+            page.on('request', async (req) => {
+                const requestUrl = req.url();
+                if (requestUrl.startsWith('https://reader.internal') && req.frame() === page.mainFrame()) {
+                    do {
+                        const txt = await req.fetchPostData() || '[]';
+                        const [key, cmd, ...args] = JSON.parse(txt) as [string, string, ...unknown[]];
+                        if (key !== pageKey) {
+                            break;
+                        }
+
+                        switch (cmd) {
+                            case 'reportSnapshot': {
+                                Reflect.apply(page.emit, page, ['snapshot', ...args]);
+                                break;
+                            }
+                            case 'setViewport': {
+                                Reflect.apply(page.setViewport, page, args);
+                                break;
+                            }
+                        }
+                    } while (false);
+                    req.respond({
+                        status: 200,
+                        contentType: 'text/plain',
+                        body: 'it-works'
+                    });
+                    return;
+                }
+                if (halt) {
+                    return req.abort('blockedbyclient', 1000);
+                }
+                if (!requestUrl.startsWith('http:') && !requestUrl.startsWith('https:') && !requestUrl.startsWith('chrome-extension:') && !requestUrl.startsWith('chrome:') && requestUrl !== 'about:blank') {
+                    return req.abort('blockedbyclient', 1000);
+                }
+
+                const parsedUrl = new URL(requestUrl);
+                if (isIP(parsedUrl.hostname)) {
+                    domainSet.add(parsedUrl.hostname);
+                } else {
+                    try {
+                        const tldParsed = tldExtract(requestUrl);
+                        domainSet.add(tldParsed.domain);
+                    } catch (_err) {
+                        domainSet.add(parsedUrl.hostname);
+                    }
+                }
+
+                if (this.circuitBreakerHosts.has(parsedUrl.hostname.toLowerCase())) {
+                    page.emit('abuse', { url: requestUrl, page, sn, reason: `Abusive request: ${requestUrl}` });
+                    return req.abort('blockedbyclient', 1000);
+                }
+
+                const isLocal = parsedUrl.hostname === 'localhost' || parsedUrl.hostname.endsWith('.localhost');
+                const isNonPublic = (isIP(parsedUrl.hostname) && isIPInNonPublicRange(parsedUrl.hostname)) || parsedUrl.hostname.startsWith('127.');
+                if (
+                    isPrivateIpForbidden() && (isLocal || isNonPublic)
+                ) {
+                    page.emit('abuse', { url: requestUrl, page, sn, reason: `Suspicious action: Request to localhost or non-public IP: ${requestUrl}` });
+
+                    return req.abort('blockedbyclient', 1000);
+                }
+
+                if (requestUrl.startsWith('http')) {
+                    const kit = this.getRpsControlKit(page);
+                    if (kit.totalRequests > 3300 || kit.totalDocumentalRequests > 1000) {
+                        page.emit('abuse', { url: requestUrl, page, sn, reason: `DDoS attack suspected: Too many requests` });
+                        halt = true;
+
+                        return req.abort('blockedbyclient', 1000);
+                    }
+
+                    if (domainSet.size > 200) {
+                        page.emit('abuse', { url: requestUrl, page, sn, reason: `DDoS attack suspected: Too many domains` });
+                        halt = true;
+
+                        return req.abort('blockedbyclient', 1000);
+                    }
+
+                    await kit.onNewRequest(req);
+                }
+
+                if (req.isInterceptResolutionHandled()) {
+                    return;
+                };
+
+                const continueArgs = req.continueRequestOverrides
+                    ? [req.continueRequestOverrides(), 0] as const
+                    : [];
+
+                return req.continue(continueArgs[0], continueArgs[1]);
+            });
+            const reqFinishHandler = (req: HTTPRequest) => {
+                if (req?.url().startsWith('https://reader.internal')) {
+                    return;
+                }
+                const kit = this.getRpsControlKit(page);
+                kit.onFinishRequest(req);
+            };
+            page.on('requestfinished', reqFinishHandler);
+            page.on('requestfailed', reqFinishHandler);
+            page.on('requestservedfromcache', reqFinishHandler);
+
+            await page.evaluateOnNewDocument(`
+    (function () {
+        if (window.self === window.top) {
+            let lastAnalytics;
+            let lastReportedAt = 0;
+            const handlePageLoad = () => {
+                const now = Date.now();
+                const dt = now - lastReportedAt;
+                const previousAnalytics = lastAnalytics;
+                const thisAnalytics = getMaxDepthAndElemCountUsingTreeWalker();
+                let dElem = 0;
+
+                if (window.haltSnapshot) {
+                    return;
+                }
+
+                const thisElemCount = thisAnalytics.elementCount;
+                if (previousAnalytics) {
+                    const previousElemCount = previousAnalytics.elementCount;
+
+                    const delta = Math.abs(thisElemCount - previousElemCount);
+                    dElem = delta /(previousElemCount + Number.EPSILON);
+                }
+
+                if (dt < 1200 && dElem < 0.05) {
+                    return;
+                }
+
+                lastAnalytics = thisAnalytics;
+                lastReportedAt = now;
+
+                const r = giveSnapshot(false, lastAnalytics);
+                window.reportSnapshot(r);
+            };
+            const handler = ()=> setTimeout(handlePageLoad);
+            document.addEventListener('readystatechange', ()=> {
+                if (document.readyState === 'interactive') {
+                    handlePageLoad();
+                }
+            });
+            document.addEventListener('load', handler);
+            window.addEventListener('load', handler);
+            document.addEventListener('DOMContentLoaded', handler);
+            document.addEventListener('mutationIdle', handler);
         }
+        document.addEventListener('DOMContentLoaded', ()=> window.simulateScroll(), { once: true });
+    })();
+    `);
+
+            // New Moli targets already have a blank document. Its intercepted
+            // navigation transport only supports HTTP(S), so avoid a second blank navigation.
+            if (engine === 'chrome') await page.goto('about:blank', { waitUntil: 'domcontentloaded' });
+            this.snMap.set(page, sn);
+            this.logger.debug(`Page ${sn} created.`);
+            this.lastPageCreatedAt = Date.now();
+            this.livePages.add(page);
+
+            return page;
+        } catch (error) {
+            if (page) await this.ditchPage(page);
+            else {
+                await dedicatedContext?.close().catch(() => undefined);
+                release();
+            }
+            throw error;
+        }
+    }
+
+    async getNextPage(engine: BrowserEngine = 'chrome', signal?: AbortSignal) {
+        const thePage = await this.newPage(false, engine, signal);
 
         const timer = setTimeout(() => {
             this.logger.warn(`Page is not allowed to live past 5 minutes, ditching page ${this.snMap.get(thePage!)}...`);
@@ -1059,33 +1108,83 @@ export class PuppeteerControl extends AsyncService {
         return thePage;
     }
 
-    async ditchPage(page: Page) {
+    async ditchPage(page: Page, closeContext = true): Promise<void> {
+        const closing = this.closingPages.get(page);
+        if (closing) return closing;
+        const cleanup = this.closePage(page, closeContext);
+        this.closingPages.set(page, cleanup);
+        return cleanup;
+    }
+
+    private async closePage(page: Page, closeContext: boolean) {
         if (this.finalizerMap.has(page)) {
             clearTimeout(this.finalizerMap.get(page)!);
             this.finalizerMap.delete(page);
         }
         if (page.isClosed()) {
+            this.pageReleases.get(page)?.();
+            this.livePages.delete(page);
             return;
         }
         const sn = this.snMap.get(page);
         this.logger.debug(`Closing page ${sn}`);
-        await Promise.race([
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        try { await Promise.race([
             (async () => {
                 const ctx = page.browserContext();
                 try {
                     await page.close();
                 } finally {
-                    await ctx.close();
+                    if (closeContext) await ctx.close();
                 }
             })(),
-            delay(5000)
-        ]).catch((err) => {
+            new Promise<never>((_resolve, reject) => { timer = setTimeout(() => reject(new Error('Browser page cleanup timed out')), 5000); })
+        ]); } catch (err) {
             this.logger.error(`Failed to destroy page ${sn}`, { err });
-        });
+            if (this.pageEngines.get(page) === 'moli') this.moli.kill();
+            else page.browser().process()?.kill('SIGKILL');
+        } finally {
+            clearTimeout(timer);
+            this.pageReleases.get(page)?.();
+        }
         this.livePages.delete(page);
     }
 
     async *scrap(parsedUrl: URL, options: ScrappingOptions = {}): AsyncGenerator<PageSnapshot | undefined> {
+        if (!this.moliEnabled) { yield* this.scrapWithEngine(parsedUrl, options, 'chrome'); return; }
+        const deadline = Date.now() + (options.timeoutMs || 30000);
+        const attempt = (engine: BrowserEngine) => {
+            const remaining = deadline - Date.now();
+            if (remaining <= 0) throw new ServiceNodeResourceDrainError('Browser request deadline expired');
+            const timeoutMs = engine === 'moli'
+                ? Math.min(browserLimit('MOLI_TIMEOUT_MS', 15000, 180000), Math.max(1, Math.floor(remaining * 0.6)))
+                : remaining;
+            // Isolate response bodies and hints collected by failed attempts.
+            const attemptOptions = { ...options, timeoutMs, sideLoad: options.sideLoad && {
+                ...options.sideLoad, impersonate: { ...options.sideLoad.impersonate },
+                proxyOrigin: { ...options.sideLoad.proxyOrigin }, hint: { ...options.sideLoad.hint },
+            } };
+            return this.scrapWithEngine(parsedUrl, attemptOptions, engine, AbortSignal.timeout(timeoutMs));
+        };
+        yield* browserFallback(
+            () => attempt('moli'), () => attempt('chrome'), this.moliCircuit,
+            (snapshot) => usableBrowserSnapshot(snapshot, options.favorScreenshot),
+            (error) => {
+                if (error instanceof SecurityCompromiseError || error instanceof ParamValidationError
+                    || error instanceof ServiceNodeResourceDrainError) return false;
+                if (error instanceof BrowserEngineError || error instanceof TimeoutError) return true;
+                const name = error instanceof Error ? error.name : '';
+                const message = error instanceof Error ? error.message : '';
+                return name === 'ProtocolError' || name === 'TargetCloseError' || name === 'TimeoutError'
+                    || /Could not extract any meaningful content|Protocol error|Session closed|Target closed|timed out|Unsupported/i.test(message);
+            },
+            (reason) => this.logger.warn('Browser fallback admitted to Chrome queue', {
+                reason: reason instanceof Error ? reason.message : 'engine failure', capacity: this.browserCapacity,
+            }),
+        );
+    }
+
+    private async *scrapWithEngine(parsedUrl: URL, options: ScrappingOptions, engine: BrowserEngine, signal?: AbortSignal): AsyncGenerator<PageSnapshot | undefined> {
         // parsedUrl.search = '';
         const url = parsedUrl.toString();
         let snapshot: PageSnapshot | undefined;
@@ -1096,7 +1195,7 @@ export class PuppeteerControl extends AsyncService {
         let pageScriptEvaluations: Promise<unknown>[] = [];
         let frameScriptEvaluations: Promise<unknown>[] = [];
         const preparations: Promise<unknown>[] = [];
-        const page = await this.getNextPage();
+        const page = await this.getNextPage(engine, signal);
         const sessionCookies = options.sessionId && !options.cookies
             ? this.sessionCookies.get(options.sessionId)
             : undefined;
@@ -1417,6 +1516,7 @@ export class PuppeteerControl extends AsyncService {
                     await page.setCookie(...mapped);
                 } catch (err: any) {
                     this.logger.warn(`Page ${sn}: Failed to set cookies`, { err });
+                    if (engine === 'moli' && err?.name === 'ProtocolError') throw err;
                     throw new ParamValidationError({
                         path: 'cookies',
                         message: `Failed to set cookies: ${err?.message}`
@@ -1436,11 +1536,14 @@ export class PuppeteerControl extends AsyncService {
         }
 
         let nextSnapshotDeferred = Defer();
+        const onAttemptAbort = () => nextSnapshotDeferred.reject(signal!.reason);
+        signal?.addEventListener('abort', onAttemptAbort, { once: true });
+        if (signal?.aborted) onAttemptAbort();
         const crippleListener = () => nextSnapshotDeferred.reject(new ServiceCrashedError({ message: `Browser crashed, try again` }));
         this.once('crippled', crippleListener);
         nextSnapshotDeferred.promise.finally(() => {
             this.off('crippled', crippleListener);
-        });
+        }).catch(() => undefined);
         let successfullyDone;
         const hdl = (s: any) => {
             if (snapshot === s) {
@@ -1463,7 +1566,7 @@ export class PuppeteerControl extends AsyncService {
             this.once('crippled', crippleListener);
             nextSnapshotDeferred.promise.finally(() => {
                 this.off('crippled', crippleListener);
-            });
+            }).catch(() => undefined);
         };
         page.on('snapshot', hdl);
         page.once('abuse', (event: any) => {
@@ -1490,11 +1593,13 @@ export class PuppeteerControl extends AsyncService {
         let waitForPromise: Promise<any> | undefined;
         let finalizationPromise: Promise<any> | undefined;
         const doFinalization = async () => {
+            if (page.isClosed() || this.closingPages.has(page) || signal?.aborted) return;
             if (waitForPromise) {
                 // SuccessfullyDone is meant for the finish of the page.
                 // It doesn't matter if you are expecting something and it didn't show up.
                 await waitForPromise.catch(() => void 0);
             }
+            if (page.isClosed() || this.closingPages.has(page) || signal?.aborted) return;
             successfullyDone ??= true;
             try {
                 const pSubFrameSnapshots = this.snapshotChildFrames(page);
@@ -1506,6 +1611,7 @@ export class PuppeteerControl extends AsyncService {
                     snapshot.childFrames = await pSubFrameSnapshots;
                 }
             } catch (err: any) {
+                if (page.isClosed() || this.closingPages.has(page) || signal?.aborted) return;
                 this.logger.warn(`Page ${sn}: Failed to finalize ${url}`, { err });
             }
             if (!snapshot?.html) {
@@ -1545,6 +1651,7 @@ export class PuppeteerControl extends AsyncService {
             await Promise.all(preparations);
             gotoPromise = page.goto(url, goToOptions)
                 .catch((err) => {
+                    if (page.isClosed() || this.closingPages.has(page) || signal?.aborted) return undefined;
                     if (err instanceof TimeoutError) {
                         this.logger.warn(`Page ${sn}: Browsing of ${url} timed out`, { err });
                         return new AssertionFailureError({
@@ -1676,17 +1783,18 @@ export class PuppeteerControl extends AsyncService {
                 blobs, screenshot, pageshot
             } as PageSnapshot;
         } finally {
-            Promise.allSettled([gotoPromise, waitForPromise, finalizationPromise]).finally(() => {
-                page.off('snapshot', hdl);
-                this.ditchPage(page);
-            });
+            signal?.removeEventListener('abort', onAttemptAbort);
+            void Promise.allSettled([gotoPromise, waitForPromise, finalizationPromise]);
+            page.off('snapshot', hdl);
             nextSnapshotDeferred.resolve();
+            // Close primary work before the routing layer can start a fallback.
+            await this.ditchPage(page);
         }
     }
 
     protected async takeScreenShot(page: Page, opts?: Parameters<typeof Page.prototype.screenshot>[0]): Promise<Buffer | undefined> {
         const r = await page.screenshot(opts).catch((err) => {
-            this.logger.warn(`Failed to take screenshot`, { err });
+            if (!page.isClosed() && !this.closingPages.has(page)) this.logger.warn(`Failed to take screenshot`, { err });
         });
 
         if (r) {
