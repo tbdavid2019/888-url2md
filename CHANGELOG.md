@@ -2,6 +2,12 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.10.07.4] - 2026-10-07 - Moli 每週版本檢查與候選建置 (Weekly Moli Release Check & Candidate Build)
+
+### Added
+- 新增每週 Moli stable release 檢查；新版本會驗證 amd64 / arm64 官方檔案、SHA-256 與 ELF 架構，執行遠端回歸和多架構候選映像建置，通過後自動建立或更新 PR。
+- PR 合併後沿用現有 GHCR `latest` 發布及三台 Watchtower 更新流程。
+
 ## [2026.10.07.3] - 2026-10-07 - Moli 截圖風險隔離與視覺路由 (Moli Screenshot Risk Isolation & Visual Routing)
 
 ### Fixed & Hardened

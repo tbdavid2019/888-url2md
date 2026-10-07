@@ -61,3 +61,13 @@ Verify with the browser-policy unit tests, normal API regression suite, and
 smoke once with the bundled Moli binary, then with
 `EXPECTED_BROWSER=chrome MOLI_EXECUTABLE_PATH=/missing/moli` to check a failure
 burst and fallback cleanup. Production rollout is separate from remote testing.
+
+## Upstream release maintenance
+
+`.github/workflows/moli-upstream.yml` checks the latest stable release weekly and
+supports manual dispatch. `scripts/update-moli-release.py` verifies the amd64
+and arm64 archive checksums and ELF machine types before updating the pinned
+release, CalVer, README, and changelog. The workflow runs the unit/API suite,
+builds a multi-architecture candidate image, and smoke-tests the amd64 image.
+It opens or updates a PR only after all checks pass. Merging the PR uses the
+existing GHCR `latest` publication and three-host Watchtower rollout.

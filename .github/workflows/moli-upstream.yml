@@ -1,0 +1,125 @@
+name: Check and Build Moli Update
+
+on:
+  schedule:
+    # Monday 11:17 Asia/Taipei; avoid the top of the hour Actions load.
+    - cron: '17 3 * * 1'
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+concurrency:
+  group: moli-upstream-check
+  cancel-in-progress: false
+
+jobs:
+  update-candidate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          lfs: true
+          submodules: true
+          fetch-depth: 0
+
+      - name: Compare with any open Moli update PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          branch=automation/moli-upstream
+          open_pr=$(gh pr list --state open --head "$branch" --json number --jq '.[0].number // empty')
+          if [ -n "$open_pr" ] && git ls-remote --exit-code origin "refs/heads/$branch" >/dev/null 2>&1; then
+            git fetch --no-tags origin "$branch"
+            baseline=$(git show FETCH_HEAD:scripts/install-moli.sh | sed -nE 's#.*releases/download/(v[0-9]+\.[0-9]+\.[0-9]+)/moli-.*#\1#p' | head -n 1)
+            test -n "$baseline"
+            echo "MOLI_BASELINE_PIN=$baseline" >> "$GITHUB_ENV"
+            echo "Existing candidate branch is pinned to $baseline"
+          fi
+
+      - name: Update pin if upstream has a newer stable release
+        id: update
+        run: python3 scripts/update-moli-release.py
+
+      - name: Summarize no-op check
+        if: steps.update.outputs.changed != 'true'
+        run: echo "Moli ${{ steps.update.outputs.moli_version }} is already pinned; no candidate build is needed." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Set up Node.js
+        if: steps.update.outputs.changed == 'true'
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install dependencies
+        if: steps.update.outputs.changed == 'true'
+        run: npm ci
+
+      - name: Download test assets
+        if: steps.update.outputs.changed == 'true'
+        run: npm run assets:download
+
+      - name: Build and run unit/API regressions
+        if: steps.update.outputs.changed == 'true'
+        run: |
+          npm run build
+          npm run test:coverage
+
+      - name: Set up QEMU
+        if: steps.update.outputs.changed == 'true'
+        uses: docker/setup-qemu-action@v4
+
+      - name: Set up Docker Buildx
+        if: steps.update.outputs.changed == 'true'
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build multi-architecture candidate image
+        if: steps.update.outputs.changed == 'true'
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: false
+          tags: 888-url2md:moli-candidate-${{ steps.update.outputs.moli_version }}
+          platforms: linux/amd64,linux/arm64
+
+      - name: Build amd64 image for browser smoke tests
+        if: steps.update.outputs.changed == 'true'
+        env:
+          MOLI_VERSION: ${{ steps.update.outputs.moli_version }}
+        run: docker buildx build --platform linux/amd64 --load -t "888-url2md:moli-candidate-${MOLI_VERSION}" .
+
+      - name: Smoke-test Moli, Chrome fallback, herd limit, and HTTPS
+        if: steps.update.outputs.changed == 'true'
+        env:
+          MOLI_VERSION: ${{ steps.update.outputs.moli_version }}
+        run: |
+          image="888-url2md:moli-candidate-${MOLI_VERSION}"
+          docker run --rm --entrypoint /bin/bash \
+            -e NODE_ENV=test -e ALLOW_PRIVATE_NETWORK=true -e MOLI_ENABLED=true \
+            "$image" -lc 'node scripts/smoke-browser-fallback.cjs && EXPECTED_BROWSER=chrome MOLI_EXECUTABLE_PATH=/missing/moli node scripts/smoke-browser-fallback.cjs'
+          docker run --rm --entrypoint node -e NODE_ENV=production -e MOLI_ENABLED=true \
+            "$image" scripts/smoke-browser-https.cjs
+
+      - name: Open or update Moli upgrade PR
+        if: steps.update.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: automation/moli-upstream
+          delete-branch: true
+          title: "chore(moli): update upstream to v${{ steps.update.outputs.moli_version }}"
+          commit-message: "chore(moli): update upstream to v${{ steps.update.outputs.moli_version }}"
+          body: |
+            ## Moli upstream update candidate
+
+            - Verified the upstream stable release and both Linux ELF architectures.
+            - Pinned both release archives by SHA-256.
+            - Passed remote unit/API regressions and the multi-architecture image build.
+            - Passed Moli text, deep-DOM screenshot routing, Chrome fallback, concurrency, and public HTTPS smoke checks.
+
+            Merge this PR to publish GHCR `latest`; Watchtower then updates the three production hosts.

@@ -176,6 +176,8 @@ Moli 以自管程序啟動，只監聽容器內 `127.0.0.1`；既有私有網路
 
 **Moli 版本更新**：先檢查上游 release notes 與已知 issue，再取得 amd64、arm64 發行檔並核對 SHA-256。將版本 URL 與兩個 checksum 一起更新到 `scripts/install-moli.sh`，更新本文件與 ADR/CHANGELOG，並在遠端隔離容器執行建置、單元/API 回歸、HTTPS、Moli 文字擷取、Chrome 視覺路由與冷啟動故障備援 smoke。合併到 `main` 後，GitHub Actions 建置多架構映像並更新 GHCR `latest`；三個主機上的 Watchtower 依序偵測映像並重建服務。部署後核對三台映像 digest、應用版本及公開端點。若新版回歸失敗，將安裝腳本版本與 checksum 還原到上一版後重新建置推送；緊急時可設定 `MOLI_ENABLED=false`，讓瀏覽器工作改走 Chrome。
 
+**每週自動檢查**：GitHub Actions 每週一 11:17（台北時間）查詢 Moli 最新 stable release。發現新版本後，工作流程下載 amd64 / arm64 檔案、驗證 SHA-256 與 ELF 架構，更新 pin 與 CalVer，執行單元/API 回歸、多架構候選映像建置及瀏覽器 smoke，通過後自動建立或更新 PR。合併 PR 才會發布 GHCR `latest` 並觸發三台 Watchtower；可用 `workflow_dispatch` 手動檢查。GitHub Actions 的排程在高流量時可能延後。
+
 `node scripts/smoke-browser-https.cjs` 另外驗證正式私有網路政策下的公開 HTTPS 擷取與 Moli 路由。
 
 遠端隔離容器驗證：先執行 `npm run build`、單元測試與 API 回歸測試，再執行 `node scripts/smoke-browser-fallback.cjs`；以 `EXPECTED_BROWSER=chrome MOLI_EXECUTABLE_PATH=/missing/moli node scripts/smoke-browser-fallback.cjs` 驗證 Moli 故障與併發 Chrome fallback。測試腳本只在測試程序允許私有網路，以存取容器內 fixture。
@@ -807,6 +809,8 @@ The browser stage shares the `X-Timeout` / `timeout` budget between engines, def
 **Herd containment:** Chrome fallback obeys page concurrency, admission spacing, a bounded FIFO and queue expiry. Opening the Moli circuit keeps the same Chrome budget; recovery permits one probe. Queue overflow/expiry can use existing stale-cache/side-load results or return HTTP 503 (`50303`), the resource-drain error. Limits are per Node process/container: three default replicas permit 6 Chrome pages and 12 Moli pages in total. A shared coordinator is required for a distributed global quota.
 
 **Moli version updates:** Review upstream release notes and open issues, then download and verify the amd64 and arm64 release archives. Update the version URL and both SHA-256 values in `scripts/install-moli.sh`, update this section plus the ADR and changelog, and run the build, unit/API regressions, HTTPS, Moli text extraction, Chrome visual routing, and cold-start failure-fallback smoke checks in a remote isolated container. Merging to `main` triggers a multi-architecture GitHub Actions build and publishes GHCR `latest`; Watchtower on the three hosts detects the image and recreates the service. Verify the image digest, app version, and public endpoints on all hosts. If the release fails regression, restore the prior pinned version and checksums and publish a replacement image. For an urgent rollback, set `MOLI_ENABLED=false` to route browser work through Chrome.
+
+**Weekly automatic check:** GitHub Actions checks Moli's latest stable release every Monday at 11:17 Asia/Taipei. When a newer release exists, it downloads the amd64 and arm64 archives, verifies SHA-256 and ELF architecture, updates the pin and CalVer, runs unit/API regressions, builds a multi-architecture candidate image, and runs browser smoke checks. A passing run opens or updates a PR. Merging the PR publishes GHCR `latest` and triggers Watchtower on all three hosts. Use `workflow_dispatch` to check manually. GitHub may delay scheduled runs during periods of high load.
 
 `node scripts/smoke-browser-https.cjs` additionally verifies public HTTPS extraction under the production private-network policy and checks the Moli route.
 
