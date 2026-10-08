@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## [2026.10.08.1] - 2026-10-08 - Grafana 網域表格欄位修正 (Grafana Domain Table Columns)
+
+### Fixed
+- 修正 Top target domains 與 Average request latency by target domain 的 Flux 分組，讓 Grafana 表格以每個網域一列顯示網域名稱和對應數值，並套用全域排序與前 20 名限制。
+
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
 ## [2026.10.07.5] - 2026-10-07 - 2md Grafana 請求監控 (2md Grafana Request Analytics)

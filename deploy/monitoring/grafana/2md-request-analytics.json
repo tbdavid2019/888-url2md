@@ -102,7 +102,7 @@
       "datasource": {"type": "influxdb", "uid": "__INFLUX_DS_UID__"},
       "fieldConfig": {"defaults": {"custom": {"align": "auto", "displayMode": "auto", "filterable": true}, "unit": "short"}, "overrides": []},
       "options": {"showHeader": true, "cellHeight": "sm", "footer": {"show": false, "reducer": ["sum"], "countRows": false}},
-      "targets": [{"refId": "A", "rawQuery": true, "resultFormat": "table", "query": "from(bucket: \"telegraf\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"url2md_request_minute\" and r._field == \"request_count\" and r.domain != \"unknown\" and r.domain != \"serp:search\")\n  |> group(columns: [\"domain\"])\n  |> sum()\n  |> sort(columns: [\"_value\"], desc: true)\n  |> limit(n: 20)\n  |> keep(columns: [\"domain\", \"_value\"])"}]
+      "targets": [{"refId": "A", "rawQuery": true, "resultFormat": "table", "query": "from(bucket: \"telegraf\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"url2md_request_minute\" and r._field == \"request_count\" and r.domain != \"unknown\" and r.domain != \"serp:search\")\n  |> group(columns: [\"domain\"])\n  |> sum()\n  |> group()\n  |> sort(columns: [\"_value\"], desc: true)\n  |> limit(n: 20)\n  |> keep(columns: [\"domain\", \"_value\"])"}]
     },
     {
       "id": 8,
@@ -113,7 +113,7 @@
       "datasource": {"type": "influxdb", "uid": "__INFLUX_DS_UID__"},
       "fieldConfig": {"defaults": {"custom": {"align": "auto", "displayMode": "auto", "filterable": true}, "decimals": 2, "unit": "s"}, "overrides": []},
       "options": {"showHeader": true, "cellHeight": "sm", "footer": {"show": false, "reducer": ["mean"], "countRows": false}},
-      "targets": [{"refId": "A", "rawQuery": true, "resultFormat": "table", "query": "from(bucket: \"telegraf\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"url2md_request_minute\" and (r._field == \"duration_ms_sum\" or r._field == \"request_count\") and r.domain != \"unknown\" and r.domain != \"serp:search\")\n  |> group(columns: [\"domain\", \"_field\"])\n  |> sum()\n  |> group(columns: [\"domain\"])\n  |> pivot(rowKey: [\"domain\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> map(fn: (r) => ({domain: r.domain, _value: float(v: r.duration_ms_sum) / float(v: r.request_count) / 1000.0}))\n  |> sort(columns: [\"_value\"], desc: true)\n  |> limit(n: 20)"}]
+      "targets": [{"refId": "A", "rawQuery": true, "resultFormat": "table", "query": "from(bucket: \"telegraf\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"url2md_request_minute\" and (r._field == \"duration_ms_sum\" or r._field == \"request_count\") and r.domain != \"unknown\" and r.domain != \"serp:search\")\n  |> group(columns: [\"domain\", \"_field\"])\n  |> sum()\n  |> group(columns: [\"domain\"])\n  |> pivot(rowKey: [\"domain\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> map(fn: (r) => ({domain: r.domain, _value: float(v: r.duration_ms_sum) / float(v: r.request_count) / 1000.0}))\n  |> group()\n  |> sort(columns: [\"_value\"], desc: true)\n  |> limit(n: 20)"}]
     },
     {
       "id": 9,
