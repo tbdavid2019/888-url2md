@@ -2,6 +2,12 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.10.16.5] - 2026-10-16 - 手機版響應式優化 (Mobile Responsive Polish)
+
+### Changed
+- 700px 以下改用 2×2 工具導覽、16px 表單字級與滿版主要按鈕，調整上傳區高度／內距和 OCR 選項字級，並重排結果工具列與頁尾；400px 以下再收緊外側與卡片留白。
+- 空白狀態列收合多餘高度但保留即時訊息區域，長檔名／狀態訊息可在窄螢幕換行；工具與結果錨點會避開 sticky 導覽列。
+
 ## [2026.10.16.4] - 2026-10-16 - 工具頁標題視覺微調 (Tool Heading Polish)
 
 ### Fixed

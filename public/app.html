@@ -15,14 +15,14 @@
     <meta property="og:url" content="https://create360.ai">
     <meta property="og:title" content="888 URL2MD - 網頁與文檔轉 Markdown 工具">
     <meta property="og:description" content="888 URL2MD 支援將網址、PDF、Word、Excel、PPT、EPUB、CSV 及搜尋結果快速轉換為結構化 Markdown 格式。">
-    <meta property="og:image" content="https://create360.ai/og-image.png?v=2026.10.16.4">
+    <meta property="og:image" content="https://create360.ai/og-image.png?v=2026.10.16.5">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
     <meta property="og:image:alt" content="888 url2md on a Pantone 14-1064 TPG Saffron background">
     <meta property="og:site_name" content="888 URL2MD">
     <meta property="og:locale" content="zh_TW">
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:image" content="https://create360.ai/og-image.png?v=2026.10.16.4">
+    <meta name="twitter:image" content="https://create360.ai/og-image.png?v=2026.10.16.5">
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -270,6 +270,7 @@
       }
 
       textarea, input[type="text"] {
+        display: block;
         width: 100%;
         background: var(--input-bg);
         border: 1px solid var(--input-border);
@@ -293,6 +294,12 @@
 
       /* Dropzone */
       .dropzone {
+        display: flex;
+        min-height: 188px;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
         border: 2px dashed var(--clay);
         border-radius: 10px;
         padding: 28px 20px;
@@ -311,7 +318,7 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        margin-bottom: 10px;
+        margin-bottom: 6px;
         color: var(--clay);
       }
 
@@ -323,6 +330,7 @@
         color: var(--text);
         font-size: 0.96rem;
         font-weight: 600;
+        overflow-wrap: anywhere;
       }
 
       .file-types-hint {
@@ -338,6 +346,8 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
       }
 
       .key-badge {
@@ -354,6 +364,7 @@
         display: flex;
         gap: 12px;
         align-items: center;
+        flex-wrap: wrap;
       }
 
       #search-form .actions,
@@ -427,11 +438,19 @@
         gap: 8px;
       }
 
+      [role="status"]:empty { margin-top: 0; min-height: 0; }
+
+      [role="status"] > span:not(.spinner) {
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+
       [role="status"].error { color: var(--clay); }
 
       /* Result Section */
       #result-area {
         margin-top: 32px;
+        scroll-margin-top: 82px;
       }
 
       .result-head {
@@ -497,17 +516,110 @@
 
       @keyframes spin { to { transform: rotate(360deg); } }
 
+      .option-row {
+        margin-top: 14px;
+        display: flex;
+        align-items: flex-start;
+      }
+
+      .switch-label {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        cursor: pointer;
+        font-size: 0.92rem;
+        line-height: 1.5;
+        user-select: none;
+      }
+
+      .switch-label input {
+        flex: 0 0 18px;
+        width: 18px;
+        height: 18px;
+        margin: 0.2em 0 0;
+        accent-color: var(--deep-blue);
+      }
+
+      .footer-prefix { flex-basis: 100%; }
+      .footer-separator { opacity: 0.5; }
+
       @media (max-width: 700px) {
-        main { padding-top: 18px; }
-        .card { padding: 18px; }
-        .section-nav { overflow-x: auto; justify-content: flex-start; top: 6px; }
-        .section-nav a { flex: 0 0 auto; justify-content: flex-start; padding-inline: 10px; font-size: 0.84rem; }
-        .section-nav a svg { width: 16px; height: 16px; }
-        .help-text { flex-direction: column; align-items: flex-start; gap: 6px; }
-        .result-head { flex-direction: column; align-items: flex-start; gap: 12px; }
-        .brand-row { margin-bottom: 18px; }
+        main {
+          width: calc(100% - 24px);
+          padding: 18px 0 40px;
+        }
+
+        header { margin-bottom: 18px; }
+        .brand-row { margin-bottom: 16px; }
+        .logo { min-width: 80px; min-height: 62px; padding: 6px 10px 7px; }
         .logo-main { font-size: 1.65rem; }
-        .subtitle { max-width: 32ch; font-size: 0.9rem; }
+        .lang-btn { min-height: 44px; padding: 8px 14px; }
+        .subtitle { max-width: 40ch; font-size: 0.92rem; }
+
+        .section-nav {
+          position: sticky;
+          top: 6px;
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 6px;
+          padding: 8px;
+          margin-bottom: 16px;
+          overflow: visible;
+        }
+
+        .section-nav a {
+          min-width: 0;
+          min-height: 48px;
+          justify-content: flex-start;
+          gap: 7px;
+          padding: 8px 9px;
+          font-size: 0.88rem;
+          line-height: 1.3;
+        }
+
+        .section-nav a span { min-width: 0; }
+        .section-nav a svg { width: 18px; height: 18px; }
+        .tool-stack { gap: 12px; }
+        .tool-section { scroll-margin-top: 132px; }
+        #result-area { scroll-margin-top: 132px; }
+        .card { padding: 18px; border-radius: 14px; }
+        .tool-section h2 { margin-bottom: 14px; font-size: 1.18rem; }
+
+        textarea, input[type="text"] {
+          padding: 12px;
+          font-size: 16px;
+        }
+
+        textarea { min-height: 152px; }
+        .help-text { flex-direction: column; align-items: flex-start; gap: 7px; }
+        .dropzone { min-height: 176px; padding: 24px 16px; }
+        .dropzone-text { max-width: 34ch; line-height: 1.5; }
+        .file-types-hint { max-width: 42ch; overflow-wrap: anywhere; line-height: 1.45; }
+        .switch-label { gap: 10px; font-size: 0.9rem; }
+
+        .actions { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
+        .actions .primary-btn { width: 100%; min-height: 48px; padding: 11px 14px; line-height: 1.35; }
+        .result-head { flex-direction: column; align-items: stretch; gap: 12px; }
+        .result-meta { min-width: 0; flex-wrap: wrap; gap: 8px 12px; }
+        #result-area .result-head .actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .secondary-btn { min-width: 0; min-height: 48px; justify-content: center; gap: 6px; padding: 9px 8px; font-size: 0.86rem; }
+        pre#result { min-width: 0; padding: 14px; font-size: 0.84rem; }
+
+        [role="status"] { align-items: flex-start; font-size: 0.9rem; line-height: 1.45; }
+        footer { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; margin-top: 28px; line-height: 1.5; }
+        .footer-prefix { flex: 0 0 100%; }
+        .footer-separator { display: none; }
+      }
+
+      @media (max-width: 400px) {
+        main { width: calc(100% - 20px); padding-top: 14px; }
+        .card { padding: 16px; }
+        .section-nav { gap: 5px; padding: 7px; }
+        .section-nav a { gap: 6px; padding: 8px 7px; font-size: 0.82rem; }
+        .section-nav a svg { width: 16px; height: 16px; }
+        .tool-section h2 { font-size: 1.12rem; }
+        .dropzone { padding-inline: 12px; }
+        .result-meta { align-items: flex-start; }
       }
 
       @media (prefers-reduced-motion: reduce) {
@@ -591,9 +703,9 @@
               <div class="dropzone-text" id="file-name-display" data-i18n="dropzonePrompt">拖曳檔案至此，或點擊選擇檔案上傳</div>
               <div class="file-types-hint" id="file-types-hint" data-i18n="dropzoneHint">支援 PDF, Word (.docx/.doc), Excel (.xlsx/.xls), PowerPoint (.pptx/.ppt), EPUB, RTF, CSV, ODT...</div>
             </div>
-            <div class="option-row" style="margin-top: 14px; display: flex; align-items: center; justify-content: flex-start;">
-              <label class="switch-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.92rem; user-select: none;">
-                <input type="checkbox" id="upload-with-ocr" name="ocr" value="true" style="width: 16px; height: 16px; cursor: pointer;">
+            <div class="option-row">
+              <label class="switch-label">
+                <input type="checkbox" id="upload-with-ocr" name="ocr" value="true">
                 <span data-i18n="uploadOcrOption">啟用 OCR 圖片/掃描文檔文字辨識 (強制調用 PaddleOCR 繁中 & 表格模型)</span>
               </label>
             </div>
@@ -654,9 +766,9 @@
       </section>
 
       <footer>
-        <span data-i18n="footerPrefix">給 AI Agent / LLM 使用的標準 API 說明請見 </span>
-        <a href="/skill.md">SKILL.md</a> | <a href="/llms.txt">llms.txt</a>
-        <span style="margin: 0 8px; opacity: 0.5;">|</span>
+        <span class="footer-prefix" data-i18n="footerPrefix">給 AI Agent / LLM 使用的標準 API 說明請見 </span>
+        <a href="/skill.md">SKILL.md</a><span class="footer-separator" aria-hidden="true">|</span><a href="/llms.txt">llms.txt</a>
+        <span class="footer-separator" aria-hidden="true">|</span>
         <a href="https://david888.com" target="_blank" rel="noopener" style="font-weight: 600; color: var(--link);" data-i18n="providerCredit">david888.com 技術提供</a>
       </footer>
     </main>
@@ -825,12 +937,11 @@
           if (state.isLoading) {
             const spinner = document.createElement('span');
             spinner.className = 'spinner';
-            const textSpan = document.createElement('span');
-            textSpan.textContent = message;
-            region.append(spinner, textSpan);
-          } else {
-            region.textContent = message;
+            region.append(spinner);
           }
+          const textSpan = document.createElement('span');
+          textSpan.textContent = message;
+          region.append(textSpan);
           region.classList.toggle('error', state.isError);
         };
 
