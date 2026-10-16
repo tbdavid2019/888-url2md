@@ -15,18 +15,26 @@
     <meta property="og:url" content="https://create360.ai">
     <meta property="og:title" content="888 URL2MD - 網頁與文檔轉 Markdown 工具">
     <meta property="og:description" content="888 URL2MD 支援將網址、PDF、Word、Excel、PPT、EPUB、CSV 及搜尋結果快速轉換為結構化 Markdown 格式。">
-    <meta property="og:image" content="https://create360.ai/og-image.png">
+    <meta property="og:image" content="https://create360.ai/og-image.png?v=2026.10.16.2">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="888 url2md on a Pantone Orange 021 C background">
     <meta property="og:site_name" content="888 URL2MD">
     <meta property="og:locale" content="zh_TW">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="https://create360.ai/og-image.png?v=2026.10.16.2">
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
 
     <!-- Favicon & PWA App Icons -->
-    <meta name="theme-color" content="#4f46e5">
+    <meta name="theme-color" content="#FE5000">
     <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="manifest" href="/site.webmanifest">
 
     <!-- Structured Data (JSON-LD) -->
     <script type="application/ld+json">
@@ -43,70 +51,80 @@
     </script>
     <style>
       :root {
-        --primary: #4f46e5;
-        --primary-hover: #4338ca;
-        --primary-light: #eef2ff;
-        --accent: #06b6d4;
-        --bg: #f8fafc;
-        --card-bg: rgba(255, 255, 255, 0.92);
-        --card-border: #e2e8f0;
-        --text: #172033;
-        --text-muted: #64748b;
+        --primary: #fe5000;
+        --primary-hover: #fe5000;
+        --primary-light: #fff0e8;
+        --link: #0f4c81;
+        --bg: #f2f4f5;
+        --card-bg: #ffffff;
+        --card-border: #d6dce2;
+        --text: #172a3a;
+        --text-muted: #55616d;
         --input-bg: #ffffff;
-        --input-border: #cbd5e1;
+        --input-border: #718191;
         --radius: 16px;
       }
 
       * { box-sizing: border-box; }
+      [hidden] { display: none !important; }
       body {
         margin: 0;
         min-height: 100vh;
-        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         color: var(--text);
-        background: radial-gradient(circle at 50% 0%, #eef2ff 0%, #f8fafc 70%);
-        background-attachment: fixed;
+        background: var(--bg);
       }
 
       main {
-        width: min(1000px, calc(100% - 32px));
+        width: min(1060px, calc(100% - 32px));
         margin: 0 auto;
-        padding: 48px 0 60px;
+        padding: 28px 0 64px;
       }
 
       header {
-        text-align: center;
-        margin-bottom: 36px;
+        margin-bottom: 22px;
       }
 
       .brand-row {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 16px;
+        margin-bottom: 24px;
       }
 
       .logo {
         font-family: 'Outfit', sans-serif;
-        font-size: 2rem;
         font-weight: 800;
-        background: linear-gradient(135deg, #818cf8 0%, #c084fc 50%, #38bdf8 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        letter-spacing: -0.03em;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 1px;
+        min-width: 88px;
+        min-height: 68px;
+        padding: 7px 12px 8px;
+        border-radius: 10px;
+        background: var(--primary);
+        color: #101820;
+        letter-spacing: -0.025em;
+        line-height: 1;
         margin: 0;
       }
 
+      .logo-main { font-size: 1.85rem; }
+      .logo-sub { font-size: 0.78rem; font-weight: 800; letter-spacing: 0.045em; }
+
       .subtitle {
         color: var(--text-muted);
-        font-size: 1.05rem;
-        line-height: 1.6;
-        max-width: 680px;
-        margin: 0 auto;
+        font-size: 0.96rem;
+        line-height: 1.55;
+        max-width: 70ch;
+        margin: 0;
       }
 
       .lang-btn {
         background: #ffffff;
-        border: 1px solid #dbe3f0;
+        border: 1px solid var(--input-border);
         color: var(--text);
         padding: 8px 16px;
         border-radius: 20px;
@@ -114,150 +132,172 @@
         font-weight: 600;
         cursor: pointer;
         transition: all 0.2s ease;
-        backdrop-filter: blur(8px);
       }
       .lang-btn:hover {
-        background: #eef2ff;
-        border-color: #a5b4fc;
+        background: var(--primary-light);
+        border-color: var(--primary);
       }
 
-      /* Navigation Tabs */
-      .tabs-nav {
+      .section-nav {
+        position: sticky;
+        top: 10px;
+        z-index: 5;
         display: flex;
-        gap: 8px;
-        background: rgba(255, 255, 255, 0.82);
+        gap: 4px;
+        background: #ffffff;
         padding: 6px;
-        border-radius: 16px;
+        border-radius: 12px;
         border: 1px solid var(--card-border);
-        margin-bottom: 24px;
-        backdrop-filter: blur(12px);
+        margin: 0 0 24px;
+        box-shadow: 0 3px 10px rgba(23, 42, 58, 0.08);
       }
 
-      .tab-btn {
+      .section-nav a {
         flex: 1;
         display: flex;
         align-items: center;
         justify-content: center;
         gap: 8px;
-        padding: 12px 16px;
-        background: transparent;
-        border: none;
+        min-height: 44px;
+        padding: 10px 12px;
+        background: #ffffff;
+        border: 1px solid transparent;
         color: var(--text-muted);
         font-size: 0.95rem;
         font-weight: 600;
-        border-radius: 12px;
-        cursor: pointer;
-        transition: all 0.2s ease;
+        border-radius: 9px;
+        text-decoration: none;
+        transition: background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease;
       }
 
-      .tab-btn svg {
+      .section-nav a svg {
         flex-shrink: 0;
         vertical-align: middle;
-        transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       }
 
-      .tab-btn:hover {
-        color: var(--text);
-        background: #f1f5f9;
+      .section-nav a:hover,
+      .section-nav a[aria-current="location"] {
+        color: var(--link);
+        background: var(--primary-light);
+        border-color: var(--link);
       }
 
-      .tab-btn:hover svg {
-        transform: translateY(-1px) scale(1.08);
+      .section-nav a:focus-visible,
+      button:focus-visible,
+      .dropzone:focus-visible {
+        outline: 3px solid var(--link);
+        outline-offset: 3px;
       }
 
-      .tab-btn.active {
-        background: var(--primary);
-        color: #ffffff;
-        box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4);
+      .tool-stack {
+        display: grid;
+        gap: 16px;
       }
 
-      /* Card Container */
       .card {
         background: var(--card-bg);
         border: 1px solid var(--card-border);
         border-radius: var(--radius);
-        padding: clamp(24px, 4vw, 36px);
-        box-shadow: 0 20px 40px rgba(71, 85, 105, 0.12);
-        backdrop-filter: blur(16px);
+        padding: 24px;
+        box-shadow: 0 8px 22px rgba(23, 42, 58, 0.06);
       }
 
-      .tab-content { display: none; }
-      .tab-content.active { display: block; }
+      .tool-section {
+        scroll-margin-top: 82px;
+      }
+
+      .tool-section h2 {
+        margin: 0 0 18px;
+        font-size: 1.25rem;
+        line-height: 1.35;
+        letter-spacing: -0.015em;
+      }
 
       label {
         display: block;
-        margin-bottom: 10px;
+        margin-bottom: 8px;
         font-weight: 700;
-        font-size: 1.1rem;
-        color: #1e293b;
+        font-size: 0.94rem;
+        color: var(--text);
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
       }
 
       textarea, input[type="text"] {
         width: 100%;
         background: var(--input-bg);
         border: 1px solid var(--input-border);
-        border-radius: 12px;
-        padding: 16px;
-        color: #172033;
+        border-radius: 9px;
+        padding: 13px 14px;
+        color: var(--text);
         font-family: 'Fira Code', monospace;
-        font-size: 0.92rem;
+        font-size: 0.9rem;
         line-height: 1.6;
-        transition: all 0.2s ease;
+        transition: border-color 0.18s ease, box-shadow 0.18s ease;
       }
 
       textarea:focus, input[type="text"]:focus {
         outline: none;
-        border-color: #818cf8;
-        box-shadow: 0 0 0 4px rgba(129, 140, 248, 0.25);
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(254, 80, 0, 0.18);
       }
 
-      textarea { min-height: 160px; resize: vertical; }
+      textarea { min-height: 118px; resize: vertical; }
+      input::placeholder, textarea::placeholder { color: #5a6570; opacity: 1; }
 
       /* Dropzone */
       .dropzone {
-        border: 2px dashed #cbd5e1;
-        border-radius: 14px;
-        padding: 36px 20px;
+        border: 2px dashed #657586;
+        border-radius: 10px;
+        padding: 28px 20px;
         text-align: center;
-        background: #f8fafc;
+        background: #f7f8f8;
         cursor: pointer;
-        transition: all 0.2s ease;
+        transition: border-color 0.18s ease, background-color 0.18s ease;
       }
 
       .dropzone:hover, .dropzone.dragover {
-        border-color: #818cf8;
-        background: rgba(99, 102, 241, 0.1);
+        border-color: var(--link);
+        background: var(--primary-light);
       }
 
       .dropzone-icon {
         display: flex;
         justify-content: center;
         align-items: center;
-        margin-bottom: 12px;
+        margin-bottom: 10px;
         color: var(--primary);
-        transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), color 0.25s ease;
       }
 
       .dropzone:hover .dropzone-icon, .dropzone.dragover .dropzone-icon {
-        transform: translateY(-2px) scale(1.08);
-        color: #4338ca;
+        color: var(--link);
       }
 
       .dropzone-text {
-        color: #334155;
-        font-size: 1rem;
+        color: var(--text);
+        font-size: 0.96rem;
         font-weight: 600;
       }
 
       .file-types-hint {
         color: var(--text-muted);
-        font-size: 0.85rem;
+        font-size: 0.82rem;
         margin-top: 8px;
       }
 
       .help-text {
-        margin: 10px 0 20px;
-        font-size: 0.88rem;
+        margin: 9px 0 14px;
+        font-size: 0.82rem;
         color: var(--text-muted);
         display: flex;
         justify-content: space-between;
@@ -265,12 +305,12 @@
       }
 
       .key-badge {
-        background: #eef2ff;
+        background: var(--primary-light);
         padding: 2px 8px;
         border-radius: 6px;
         font-size: 0.78rem;
         font-family: monospace;
-        color: #475569;
+        color: #17324d;
       }
 
       /* Buttons & Actions */
@@ -281,40 +321,43 @@
       }
 
       button.primary-btn {
-        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+        background: var(--primary);
         border: none;
-        color: white;
-        padding: 14px 28px;
-        font-size: 1rem;
+        color: #101820;
+        padding: 12px 20px;
+        min-height: 44px;
+        font-size: 0.94rem;
         font-weight: 700;
-        border-radius: 12px;
+        border-radius: 9px;
         cursor: pointer;
-        transition: all 0.2s ease;
-        box-shadow: 0 4px 16px rgba(79, 70, 229, 0.35);
+        transition: background-color 0.18s ease, transform 0.18s ease;
+        box-shadow: 0 3px 8px rgba(180, 54, 0, 0.2);
         display: inline-flex;
         align-items: center;
         gap: 8px;
       }
 
       button.primary-btn:hover {
+        background: var(--primary-hover);
         transform: translateY(-1px);
-        box-shadow: 0 6px 20px rgba(79, 70, 229, 0.5);
       }
 
       button.primary-btn:disabled {
-        opacity: 0.6;
+        background: #586775;
+        color: #ffffff;
         cursor: wait;
         transform: none;
+        box-shadow: none;
       }
 
       button.secondary-btn {
         background: #ffffff;
-        border: 1px solid #dbe3f0;
-        color: #334155;
+        border: 1px solid var(--link);
+        color: var(--link);
         padding: 10px 18px;
         font-size: 0.9rem;
         font-weight: 600;
-        border-radius: 10px;
+        border-radius: 9px;
         cursor: pointer;
         transition: all 0.2s ease;
         display: inline-flex;
@@ -327,23 +370,23 @@
       }
 
       button.secondary-btn:hover {
-        background: #f1f5f9;
-        border-color: #cbd5e1;
+        background: var(--primary-light);
+        border-color: var(--link);
       }
 
       /* Status Display */
-      #status {
+      [role="status"] {
         margin-top: 18px;
         font-size: 0.95rem;
         font-weight: 600;
-        color: #38bdf8;
+        color: var(--link);
         min-height: 24px;
         display: flex;
         align-items: center;
         gap: 8px;
       }
 
-      #status.error { color: #f87171; }
+      [role="status"].error { color: #a3262e; }
 
       /* Result Section */
       #result-area {
@@ -366,22 +409,22 @@
       .stats-badge {
         font-size: 0.8rem;
         color: var(--text-muted);
-        background: #f1f5f9;
+        background: #edf0f2;
         padding: 4px 10px;
         border-radius: 8px;
       }
 
       pre#result {
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 14px;
+        background: #f7f8f8;
+        border: 1px solid var(--card-border);
+        border-radius: 9px;
         padding: 20px;
         max-height: 60vh;
         overflow: auto;
         font-family: 'Fira Code', monospace;
         font-size: 0.9rem;
         line-height: 1.6;
-        color: #334155;
+        color: var(--text);
         white-space: pre-wrap;
         word-break: break-word;
       }
@@ -394,17 +437,17 @@
       }
 
       footer a {
-        color: #818cf8;
+        color: var(--link);
         text-decoration: none;
       }
 
-      footer a:hover { text-decoration: underline; }
+      footer a:hover { text-decoration: underline; text-underline-offset: 3px; }
 
       /* Micro-spinner */
       .spinner {
         width: 16px;
         height: 16px;
-        border: 2px solid #cbd5e1;
+        border: 2px solid #657586;
         border-radius: 50%;
         border-top-color: var(--primary);
         animation: spin 0.8s linear infinite;
@@ -413,10 +456,21 @@
 
       @keyframes spin { to { transform: rotate(360deg); } }
 
-      @media (max-width: 640px) {
-        main { padding-top: 24px; }
-        .tabs-nav { flex-direction: column; gap: 4px; }
+      @media (max-width: 700px) {
+        main { padding-top: 18px; }
+        .card { padding: 18px; }
+        .section-nav { overflow-x: auto; justify-content: flex-start; top: 6px; }
+        .section-nav a { flex: 0 0 auto; justify-content: flex-start; padding-inline: 10px; font-size: 0.84rem; }
+        .section-nav a svg { width: 16px; height: 16px; }
+        .help-text { flex-direction: column; align-items: flex-start; gap: 6px; }
         .result-head { flex-direction: column; align-items: flex-start; gap: 12px; }
+        .brand-row { margin-bottom: 18px; }
+        .logo-main { font-size: 1.65rem; }
+        .subtitle { max-width: 32ch; font-size: 0.9rem; }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
       }
     </style>
   </head>
@@ -424,80 +478,77 @@
     <main>
       <header>
         <div class="brand-row">
-          <h1 class="logo">888 URL2MD</h1>
-          <button class="lang-btn" id="language-toggle" type="button" aria-label="Switch language">English</button>
+          <h1 class="logo" aria-label="888 url2md"><span class="logo-main" aria-hidden="true">888</span><span class="logo-sub" aria-hidden="true">url2md</span></h1>
+          <button class="lang-btn" id="language-toggle" type="button" aria-label="切換語言" data-i18n-aria-label="switchLanguageAria">English</button>
         </div>
-        <p class="subtitle" data-i18n="intro">網頁網址、PDF、Word、Excel、PPT、EPUB、CSV 文檔與 Live Web 搜尋，全方位極速轉譯為乾淨 Markdown 格式。</p>
+        <p class="subtitle" data-i18n="intro">搜尋網頁、轉換網址與文件，將內容整理成 Markdown。</p>
       </header>
 
-      <!-- Navigation Tabs -->
-      <nav class="tabs-nav" role="tablist">
-        <button class="tab-btn" id="tab-search-btn" data-tab="tab-search" role="tab">
+      <!-- Single-page section navigation; each hash is a direct link. -->
+      <nav class="section-nav" aria-label="工具區導覽" data-i18n-aria-label="toolsNav">
+        <a href="#search" id="nav-search">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
           <span data-i18n="searchTab">網頁搜尋 (Live SERP)</span>
-        </button>
-        <button class="tab-btn active" id="tab-urls-btn" data-tab="tab-urls" role="tab">
+        </a>
+        <a href="#urls" id="nav-urls">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20M2 12h20"></path></svg>
           <span data-i18n="urlsTab">網址轉換 (URL)</span>
-        </button>
-        <button class="tab-btn" id="tab-upload-btn" data-tab="tab-upload" role="tab">
+        </a>
+        <a href="#documents" id="nav-documents">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
           <span data-i18n="uploadTab">文檔解析 (AnyDoc)</span>
-        </button>
-        <button class="tab-btn" id="tab-ocr-btn" data-tab="tab-ocr" role="tab" style="display: none;">
+        </a>
+        <a href="#ocr" id="nav-ocr" hidden>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2m10 0h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2m4-9h8m-8 4h10M7 16h6"/></svg>
           <span data-i18n="ocrTab">圖片辨識 (OCR)</span>
-        </button>
+        </a>
       </nav>
 
-      <section class="card">
-        <!-- 1. Live Web Search Tab -->
-        <div id="tab-search" class="tab-content" role="tabpanel">
+      <div class="tool-stack">
+        <!-- Live web search -->
+        <section id="search" class="card tool-section" aria-labelledby="search-title">
+          <h2 id="search-title" data-i18n="searchLabel">網頁搜尋</h2>
           <form id="search-form">
-            <label for="query" data-i18n="searchLabel">網頁搜尋 (Live Web Search)</label>
-            <input type="text" id="query" name="query" required spellcheck="false" placeholder="例如：台積電 2330 最新財報" data-i18n-placeholder="searchPlaceholder" autocomplete="off">
-            <div class="help-text">
-              <span data-i18n="searchHelp">輸入關鍵字進行即時網路搜尋，結果將自動轉譯為 Markdown 格式。</span>
-              <span class="key-badge">Enter 鍵即刻搜尋</span>
-            </div>
+            <label for="query" class="sr-only" data-i18n="searchLabel">網頁搜尋</label>
+            <input type="text" id="query" name="query" required spellcheck="false" placeholder="輸入搜尋關鍵字" data-i18n-placeholder="searchPlaceholder" autocomplete="off">
             <div class="actions">
               <button class="primary-btn" id="search-btn" type="submit">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                 <span data-i18n="searchAction">搜尋並轉成 Markdown</span>
               </button>
             </div>
+            <div id="status-search" role="status" aria-live="polite"></div>
           </form>
-        </div>
+        </section>
 
-        <!-- 2. Single/Multiple URLs Tab -->
-        <div id="tab-urls" class="tab-content active" role="tabpanel">
+        <!-- Single and batch URL conversion -->
+        <section id="urls" class="card tool-section" aria-labelledby="urls-title">
+          <h2 id="urls-title" data-i18n="urlsLabel">網址批次轉換</h2>
           <form id="urls-form">
-            <label for="urls" data-i18n="urlsLabel">網址批量轉換 (URL Batch)</label>
-            <textarea id="urls" name="urls" spellcheck="false" autofocus placeholder="https://example.com/article1&#10;https://example.com/article2"></textarea>
-            <div class="help-text">
-              <span data-i18n="urlsHelp">每行一個網址；支援空白或逗號分隔，多頁面將自動串接併入同一份 Markdown。</span>
-              <span class="key-badge">Ctrl + Enter / Cmd + Enter 鍵提交</span>
-            </div>
+            <label for="urls-input" class="sr-only" data-i18n="urlsLabel">網址轉換</label>
+            <textarea id="urls-input" name="urls" spellcheck="false" placeholder="貼上網址，每行一筆" data-i18n-placeholder="urlsPlaceholder"></textarea>
             <div class="actions">
               <button class="primary-btn" id="convert-btn" type="submit">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20M2 12h20"></path></svg>
                 <span data-i18n="convertAction">轉換成 Markdown</span>
               </button>
             </div>
+            <div id="status-urls" role="status" aria-live="polite"></div>
           </form>
-        </div>
+        </section>
 
-        <!-- 3. Document File Upload Tab -->
-        <div id="tab-upload" class="tab-content" role="tabpanel">
+        <!-- Document file parsing -->
+        <section id="documents" class="card tool-section" aria-labelledby="upload-title">
+          <h2 id="upload-title" data-i18n="uploadLabel">文件解析</h2>
           <form id="upload-form" enctype="multipart/form-data">
-            <label for="file-input" data-i18n="uploadLabel">文件檔案解析 (AnyDoc 超極速引擎)</label>
-            <div id="dropzone" class="dropzone" tabindex="0">
+            <label for="file-input" class="sr-only" data-i18n="uploadLabel">文件解析</label>
+            <div id="dropzone" class="dropzone" role="button" aria-labelledby="file-name-display" aria-describedby="file-types-hint" tabindex="0">
               <input type="file" id="file-input" name="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.epub,.rtf,.odt,.ods,.odp,.csv,.txt" style="display: none">
               <div class="dropzone-icon">
                 <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"></path><path d="M12 12v9"></path><path d="m16 16-4-4-4 4"></path></svg>
               </div>
               <div class="dropzone-text" id="file-name-display" data-i18n="dropzonePrompt">拖曳檔案至此，或點擊選擇檔案上傳</div>
-              <div class="file-types-hint" data-i18n="dropzoneHint">支援 PDF, Word (.docx/.doc), Excel (.xlsx/.xls), PowerPoint (.pptx/.ppt), EPUB, RTF, CSV, ODT...</div>
+              <div class="file-types-hint" id="file-types-hint" data-i18n="dropzoneHint">支援 PDF, Word (.docx/.doc), Excel (.xlsx/.xls), PowerPoint (.pptx/.ppt), EPUB, RTF, CSV, ODT...</div>
             </div>
             <div class="option-row" style="margin-top: 14px; display: flex; align-items: center; justify-content: flex-start;">
               <label class="switch-label" style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.92rem; user-select: none;">
@@ -511,20 +562,22 @@
                 <span data-i18n="uploadAction">上傳文檔並轉成 Markdown</span>
               </button>
             </div>
+            <div id="status-upload" role="status" aria-live="polite"></div>
           </form>
-        </div>
+        </section>
 
-        <!-- 4. Image OCR Tab -->
-        <div id="tab-ocr" class="tab-content" role="tabpanel">
+        <!-- Image and PDF OCR -->
+        <section id="ocr" class="card tool-section" aria-labelledby="ocr-title" hidden>
+          <h2 id="ocr-title" data-i18n="ocrLabel">圖片與 PDF 辨識</h2>
           <form id="ocr-form" enctype="multipart/form-data">
-            <label for="ocr-file-input" data-i18n="ocrLabel">圖片與 PDF 文件辨識 (PaddleOCR 繁中 & 表格引擎)</label>
-            <div id="ocr-dropzone" class="dropzone" tabindex="0">
+            <label for="ocr-file-input" class="sr-only" data-i18n="ocrLabel">圖片與 PDF 辨識</label>
+            <div id="ocr-dropzone" class="dropzone" role="button" aria-labelledby="ocr-file-name-display" aria-describedby="ocr-file-types-hint" tabindex="0">
               <input type="file" id="ocr-file-input" name="file" accept=".png,.jpg,.jpeg,.webp,.bmp,.gif,.pdf,application/pdf" style="display: none">
               <div class="dropzone-icon">
                 <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2m10 0h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2m4-9h8m-8 4h10M7 16h6"/></svg>
               </div>
               <div class="dropzone-text" id="ocr-file-name-display" data-i18n="ocrDropzonePrompt">拖曳圖片至此，點擊選擇檔案，或直接 Ctrl+V / Cmd+V 貼上截圖</div>
-              <div class="file-types-hint" data-i18n="ocrDropzoneHint">支援 PNG, JPG, JPEG, WEBP, BMP, PDF 文件，以及剪貼簿截圖直接貼上...</div>
+              <div class="file-types-hint" id="ocr-file-types-hint" data-i18n="ocrDropzoneHint">支援 PNG, JPG, JPEG, WEBP, BMP, PDF 文件，以及剪貼簿截圖直接貼上...</div>
             </div>
             <div class="actions" style="margin-top: 18px">
               <button class="primary-btn" id="ocr-btn" type="submit">
@@ -532,12 +585,10 @@
                 <span data-i18n="ocrAction">辨識圖片並轉成 Markdown</span>
               </button>
             </div>
+            <div id="status-ocr" role="status" aria-live="polite"></div>
           </form>
-        </div>
-
-        <!-- Status Toast -->
-        <div id="status" role="status" aria-live="polite"></div>
-      </section>
+        </section>
+      </div>
 
       <!-- Result Section -->
       <section id="result-area" class="card" hidden aria-labelledby="result-title" style="margin-top: 24px">
@@ -558,28 +609,26 @@
           </div>
         </div>
         <pre id="result"></pre>
+        <div id="status-result" role="status" aria-live="polite"></div>
       </section>
 
       <footer>
         <span data-i18n="footerPrefix">給 AI Agent / LLM 使用的標準 API 說明請見 </span>
         <a href="/skill.md">SKILL.md</a> | <a href="/llms.txt">llms.txt</a>
         <span style="margin: 0 8px; opacity: 0.5;">|</span>
-        <a href="https://david888.com" target="_blank" rel="noopener" style="font-weight: 600; color: var(--primary);">david888.com 技術提供</a>
+        <a href="https://david888.com" target="_blank" rel="noopener" style="font-weight: 600; color: var(--link);" data-i18n="providerCredit">david888.com 技術提供</a>
       </footer>
     </main>
 
     <script>
       (() => {
         // Elements
-        const tabs = document.querySelectorAll('.tab-btn');
-        const tabContents = document.querySelectorAll('.tab-content');
-
-        const searchForm = document.querySelector('#search-form');
+                const searchForm = document.querySelector('#search-form');
         const queryInput = document.querySelector('#query');
         const searchBtn = document.querySelector('#search-btn');
 
         const urlsForm = document.querySelector('#urls-form');
-        const urlsInput = document.querySelector('#urls');
+        const urlsInput = document.querySelector('#urls-input');
         const convertBtn = document.querySelector('#convert-btn');
 
         const uploadForm = document.querySelector('#upload-form');
@@ -589,14 +638,22 @@
         const uploadBtn = document.querySelector('#upload-btn');
         const uploadWithOcrCheckbox = document.querySelector('#upload-with-ocr');
 
-        const ocrTabBtn = document.querySelector('#tab-ocr-btn');
+        const ocrTabBtn = document.querySelector('#nav-ocr');
         const ocrForm = document.querySelector('#ocr-form');
         const ocrFileInput = document.querySelector('#ocr-file-input');
         const ocrDropzone = document.querySelector('#ocr-dropzone');
         const ocrFileNameDisplay = document.querySelector('#ocr-file-name-display');
         const ocrBtn = document.querySelector('#ocr-btn');
 
-        const status = document.querySelector('#status');
+        const statusRegions = {
+          search: document.querySelector('#status-search'),
+          urls: document.querySelector('#status-urls'),
+          upload: document.querySelector('#status-upload'),
+          ocr: document.querySelector('#status-ocr'),
+          result: document.querySelector('#status-result'),
+        };
+        const statusMessages = new Map();
+        let resultStats = { chars: 0, words: 0 };
         const resultArea = document.querySelector('#result-area');
         const result = document.querySelector('#result');
         const statsBadge = document.querySelector('#stats-badge');
@@ -607,24 +664,24 @@
         // i18n Dictionary
         const translations = {
           'zh-Hant': {
-            intro: '網頁網址、PDF、Word、Excel、PPT、EPUB、CSV 文檔與 Live Web 搜尋，全方位極速轉譯為乾淨 Markdown 格式。',
+            intro: '搜尋網頁、轉換網址與文件，將內容整理成 Markdown。',
             searchTab: '網頁搜尋 (Live SERP)',
             urlsTab: '網址轉換 (URL)',
             uploadTab: '文檔解析 (AnyDoc)',
             ocrTab: '圖片辨識 (OCR)',
-            searchLabel: '網頁搜尋 (Live Web Search)',
-            searchPlaceholder: '例如：台積電 2330 最新財報',
-            searchHelp: '輸入關鍵字進行即時網路搜尋，結果將自動轉譯為 Markdown 格式。',
+            toolsNav: '工具區導覽',
+            searchLabel: '網頁搜尋',
+            searchPlaceholder: '輸入搜尋關鍵字',
             searchAction: '搜尋並轉成 Markdown',
-            urlsLabel: '網址批量轉換 (URL Batch)',
-            urlsHelp: '每行一個網址；支援空白或逗號分隔，多頁面將自動串接併入同一份 Markdown。',
+            urlsLabel: '網址批次轉換',
+            urlsPlaceholder: '貼上網址，每行一筆',
             convertAction: '轉換成 Markdown',
-            uploadLabel: '文件檔案解析 (AnyDoc 超極速引擎)',
+            uploadLabel: '文件解析',
             dropzonePrompt: '拖曳檔案至此，或點擊選擇檔案上傳',
             dropzoneHint: '支援 PDF, Word (.docx/.doc), Excel (.xlsx/.xls), PowerPoint (.pptx/.ppt), EPUB, RTF, CSV, ODT...',
             uploadOcrOption: '啟用 OCR 圖片/掃描文檔文字辨識 (強制調用 PaddleOCR 繁中 & 表格模型)',
             uploadAction: '上傳文檔並轉成 Markdown',
-            ocrLabel: '圖片與 PDF 文件辨識 (PaddleOCR 繁中 & 表格引擎)',
+            ocrLabel: '圖片與 PDF 辨識',
             ocrDropzonePrompt: '拖曳圖片或 PDF 至此，點擊選擇檔案，或直接 Ctrl+V / Cmd+V 貼上截圖',
             ocrDropzoneHint: '支援 PNG, JPG, JPEG, WEBP, BMP, PDF 文件，以及剪貼簿截圖直接貼上...',
             ocrAction: '辨識圖片並轉成 Markdown',
@@ -633,41 +690,51 @@
             downloadBtn: '下載 .md',
             footerPrefix: '給 AI Agent / LLM 使用的標準 API 說明請見 ',
             switchLanguage: 'English',
+            switchLanguageAria: '切換語言',
             queryRequired: '請輸入搜尋關鍵字。',
             urlsRequired: '請至少輸入一個網址。',
             fileRequired: '請選擇要上傳的文檔檔案。',
             ocrFileRequired: '請選擇圖片或 PDF 檔案，或貼上截圖。',
+            wordStats: (chars, words) => `${chars} 字元 / ${words} 個詞`,
+            selectedFile: (name, size) => `已選擇檔案：${name}（${size} KB）`,
+            ocrFileSelected: (name, size, isPdf) => `已選擇${isPdf ? ' PDF' : '圖片'}：${name}（${size} KB）`,
+            pasteReceived: '已從剪貼簿接收截圖，點擊辨識按鈕即可轉成 Markdown。',
+            uploadFailed: err => `文件解析失敗：${err}`,
+            searchFailed: err => `搜尋失敗：${err}`,
+            conversionFailed: err => `網址轉換失敗：${err}`,
+            ocrFailed: err => `圖片辨識失敗：${err}`,
+            unknownError: '未知錯誤',
+            providerCredit: 'david888.com 技術提供',
             searching: query => `正在搜尋「${query}」…`,
             searched: query => `已完成「${query}」的網頁搜尋。`,
             converting: count => `正在轉換 ${count} 個網址…`,
             converted: count => `已完成 ${count} 個網址的轉譯。`,
-            uploading: name => `正在解析文檔「${name}」…`,
-            uploaded: name => `已完成文檔「${name}」的極速轉譯。`,
+            uploading: (name, withOcr) => `正在解析文檔「${name}」${withOcr ? '並啟用 OCR' : ''}…`,
+            uploaded: (name, withOcr) => `已完成文檔「${name}」${withOcr ? '（含 OCR）' : ''}的轉譯。`,
             ocrUploading: name => name.toLowerCase().endsWith('.pdf') ? `正在透過 PaddleOCR 逐頁辨識 PDF 文件「${name}」…` : `正在透過 PaddleOCR 辨識「${name}」…`,
             ocrUploaded: name => `已完成「${name}」的文字與表格轉譯。`,
             copied: '已複製 Markdown 到剪貼簿！',
-            copyFailed: '無法自動複製，請手動選取內容。',
-            errorMsg: err => `發生錯誤：${err}`
+            copyFailed: '無法自動複製，請手動選取內容。'
           },
           en: {
-            intro: 'Convert URLs, PDF, Word, Excel, PPT, EPUB, CSV documents, and live web search queries into clean Markdown.',
+            intro: 'Search the web, convert URLs and documents, and bring the content into Markdown.',
             searchTab: 'Web Search (SERP)',
             urlsTab: 'URL Converter',
             uploadTab: 'Document Parser (AnyDoc)',
             ocrTab: 'Image & PDF OCR',
-            searchLabel: 'Live Web Search',
-            searchPlaceholder: 'e.g. TSMC earnings report 2026',
-            searchHelp: 'Search the web by keyword and convert search results into structured Markdown.',
+            toolsNav: 'Tool sections',
+            searchLabel: 'Web search',
+            searchPlaceholder: 'Enter search terms',
             searchAction: 'Search & Convert',
-            urlsLabel: 'Batch URL Conversion',
-            urlsHelp: 'One URL per line. Spaces or commas also work as separators.',
+            urlsLabel: 'Batch URL conversion',
+            urlsPlaceholder: 'Paste URLs, one per line',
             convertAction: 'Convert to Markdown',
-            uploadLabel: 'Document File Parsing (AnyDoc)',
+            uploadLabel: 'Document parsing',
             dropzonePrompt: 'Drag & drop file here, or click to choose file',
             dropzoneHint: 'Supports PDF, Word (.docx/.doc), Excel (.xlsx/.xls), PowerPoint (.pptx/.ppt), EPUB, RTF, CSV...',
             uploadOcrOption: 'Enable OCR for scanned documents & embedded images (PaddleOCR Engine)',
             uploadAction: 'Upload & Parse',
-            ocrLabel: 'Image & PDF OCR (PaddleOCR Engine)',
+            ocrLabel: 'Image & PDF OCR',
             ocrDropzonePrompt: 'Drag & drop image or PDF here, click to choose file, or paste screenshot (Ctrl+V / Cmd+V)',
             ocrDropzoneHint: 'Supports PNG, JPG, JPEG, WEBP, BMP, PDF documents, and clipboard screenshot pasting...',
             ocrAction: 'OCR & Convert to Markdown',
@@ -676,21 +743,31 @@
             downloadBtn: 'Download .md',
             footerPrefix: 'Instructions for AI Agents and LLMs: ',
             switchLanguage: '中文',
+            switchLanguageAria: 'Switch language',
             queryRequired: 'Please enter a search query.',
             urlsRequired: 'Please enter at least one URL.',
             fileRequired: 'Please select a document file to upload.',
             ocrFileRequired: 'Please select an image or PDF file, or paste a screenshot.',
+            wordStats: (chars, words) => `${chars} characters / ${words} words`,
+            selectedFile: (name, size) => `Selected file: ${name} (${size} KB)`,
+            ocrFileSelected: (name, size, isPdf) => `Selected ${isPdf ? 'PDF' : 'image'}: ${name} (${size} KB)`,
+            pasteReceived: 'Screenshot received from clipboard. Select OCR to convert it to Markdown.',
+            uploadFailed: err => `Document parsing failed: ${err}`,
+            searchFailed: err => `Search failed: ${err}`,
+            conversionFailed: err => `URL conversion failed: ${err}`,
+            ocrFailed: err => `Image recognition failed: ${err}`,
+            unknownError: 'Unknown error',
+            providerCredit: 'Technology by david888.com',
             searching: query => `Searching for “${query}”…`,
             searched: query => `Search complete for “${query}”.`,
             converting: count => `Converting ${count} URL${count === 1 ? '' : 's'}…`,
             converted: count => `Converted ${count} URL${count === 1 ? '' : 's'}.`,
-            uploading: name => `Parsing file “${name}”…`,
-            uploaded: name => `Successfully parsed file “${name}”.`,
+            uploading: (name, withOcr) => `Parsing file “${name}”${withOcr ? ' with OCR' : ''}…`,
+            uploaded: (name, withOcr) => `Successfully parsed file “${name}”${withOcr ? ' with OCR' : ''}.`,
             ocrUploading: name => name.toLowerCase().endsWith('.pdf') ? `Processing PDF document “${name}” with PaddleOCR…` : `Processing “${name}” with PaddleOCR…`,
             ocrUploaded: name => `Successfully converted “${name}” to Markdown.`,
             copied: 'Copied Markdown to clipboard!',
-            copyFailed: 'Failed to copy automatically. Please select text manually.',
-            errorMsg: err => `Error: ${err}`
+            copyFailed: 'Failed to copy automatically. Please select text manually.'
           }
         };
 
@@ -700,29 +777,90 @@
 
         const text = key => translations[locale][key];
 
+        const renderStatus = (region, state) => {
+          const value = text(state.key);
+          const message = typeof value === 'function' ? value(...state.args) : value;
+          region.textContent = '';
+          if (state.isLoading) {
+            const spinner = document.createElement('span');
+            spinner.className = 'spinner';
+            const textSpan = document.createElement('span');
+            textSpan.textContent = message;
+            region.append(spinner, textSpan);
+          } else {
+            region.textContent = message;
+          }
+          region.classList.toggle('error', state.isError);
+        };
+
+        const announce = (region, key, args = [], isError = false, isLoading = false) => {
+          const state = { key, args, isError, isLoading };
+          statusMessages.set(region, state);
+          renderStatus(region, state);
+        };
+
+        const renderStatsBadge = () => {
+          statsBadge.textContent = text('wordStats')(
+            resultStats.chars.toLocaleString(locale),
+            resultStats.words.toLocaleString(locale),
+          );
+        };
+
         const applyLocale = () => {
           document.documentElement.lang = locale;
           document.querySelectorAll('[data-i18n]').forEach(el => {
             el.textContent = text(el.dataset.i18n);
           });
+          document.querySelectorAll('[data-i18n-aria-label]').forEach(el => {
+            el.setAttribute('aria-label', text(el.dataset.i18nAriaLabel));
+          });
           document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
             el.placeholder = text(el.dataset.i18nPlaceholder);
           });
+          statusMessages.forEach((state, region) => renderStatus(region, state));
+          renderStatsBadge();
           languageToggle.textContent = text('switchLanguage');
           updateFileNameDisplay();
           updateOcrFileNameDisplay();
         };
 
-        // Tab Switching
-        tabs.forEach(tab => {
-          tab.addEventListener('click', () => {
-            tabs.forEach(t => t.classList.remove('active'));
-            tabContents.forEach(c => c.classList.remove('active'));
-            tab.classList.add('active');
-            const contentId = tab.dataset.tab;
-            document.getElementById(contentId).classList.add('active');
+        // Hash navigation supports direct links, refresh, and browser history.
+        const sectionLinks = [...document.querySelectorAll('.section-nav a')];
+        let anchorHighlightUntil = window.location.hash ? Date.now() + 700 : 0;
+        const updateCurrentSection = (preferAnchor = false) => {
+          const sections = [...document.querySelectorAll('.tool-section')].filter(section => !section.hidden);
+          const hashSection = sections.find(section => `#${section.id}` === window.location.hash);
+          const atPageBottom = window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2;
+          const sectionAtReadingLine = sections.find(section => {
+            const rect = section.getBoundingClientRect();
+            return rect.top <= 140 && rect.bottom > 140;
           });
+          const nextSection = sections.find(section => section.getBoundingClientRect().top > 0);
+          const activeSection = ((preferAnchor || Date.now() < anchorHighlightUntil) && hashSection) ||
+            (atPageBottom ? sections.at(-1) : sectionAtReadingLine || nextSection || sections.at(-1));
+          const currentHash = activeSection ? `#${activeSection.id}` : (window.location.hash || '#search');
+          sectionLinks.forEach(link => {
+            if (link.getAttribute('href') === currentHash && !link.hidden) {
+              link.setAttribute('aria-current', 'location');
+            } else {
+              link.removeAttribute('aria-current');
+            }
+          });
+        };
+        window.addEventListener('hashchange', () => {
+          anchorHighlightUntil = Date.now() + 700;
+          updateCurrentSection(true);
         });
+        let sectionUpdatePending = false;
+        window.addEventListener('scroll', () => {
+          if (sectionUpdatePending) return;
+          sectionUpdatePending = true;
+          requestAnimationFrame(() => {
+            sectionUpdatePending = false;
+            updateCurrentSection();
+          });
+        }, { passive: true });
+        updateCurrentSection(Boolean(window.location.hash));
 
         // Language Switcher
         languageToggle.addEventListener('click', () => {
@@ -731,26 +869,11 @@
           applyLocale();
         });
 
-        // Status Helper
-        const setStatus = (msg, isError = false, isLoading = false) => {
-          status.textContent = '';
-          if (isLoading) {
-            const spinner = document.createElement('span');
-            spinner.className = 'spinner';
-            const textSpan = document.createElement('span');
-            textSpan.textContent = msg;
-            status.appendChild(spinner);
-            status.appendChild(textSpan);
-          } else {
-            status.textContent = msg;
-          }
-          status.classList.toggle('error', isError);
-        };
-
         // Result Show Helper
         const showResult = markdown => {
           result.textContent = markdown;
-          statsBadge.textContent = `${markdown.length.toLocaleString()} 字 / ${markdown.split(/\s+/).filter(Boolean).length.toLocaleString()} words`;
+          resultStats = { chars: markdown.length, words: markdown.split(/\s+/).filter(Boolean).length };
+          renderStatsBadge();
           resultArea.hidden = false;
           resultArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         };
@@ -789,21 +912,21 @@
           event.preventDefault();
           const query = queryInput.value.replace(/[\r\n\t]+/g, ' ').replace(/\s+/g, ' ').trim();
           if (!query) {
-            setStatus(text('queryRequired'), true);
+            announce(statusRegions.search, 'queryRequired', [], true);
             queryInput.focus();
             return;
           }
 
           searchBtn.disabled = true;
-          setStatus(text('searching')(query), false, true);
+          announce(statusRegions.search, 'searching', [query], false, true);
           resultArea.hidden = true;
 
           try {
             const markdown = await requestSearch(query);
             showResult(markdown);
-            setStatus(text('searched')(query));
+            announce(statusRegions.search, 'searched', [query]);
           } catch (err) {
-            setStatus(text('errorMsg')(err.message || 'Search failed'), true);
+            announce(statusRegions.search, 'searchFailed', [err.message || text('unknownError')], true);
           } finally {
             searchBtn.disabled = false;
           }
@@ -828,22 +951,22 @@
           event.preventDefault();
           const urls = getUrls();
           if (!urls.length) {
-            setStatus(text('urlsRequired'), true);
+            announce(statusRegions.urls, 'urlsRequired', [], true);
             urlsInput.focus();
             return;
           }
 
           urlsInput.value = urls.join('\n');
           convertBtn.disabled = true;
-          setStatus(text('converting')(urls.length), false, true);
+          announce(statusRegions.urls, 'converting', [urls.length], false, true);
           resultArea.hidden = true;
 
           try {
             const markdown = await requestBatch(urls);
             showResult(markdown);
-            setStatus(text('converted')(urls.length));
+            announce(statusRegions.urls, 'converted', [urls.length]);
           } catch (err) {
-            setStatus(text('errorMsg')(err.message || 'Conversion failed'), true);
+            announce(statusRegions.urls, 'conversionFailed', [err.message || text('unknownError')], true);
           } finally {
             convertBtn.disabled = false;
           }
@@ -851,6 +974,12 @@
 
         // 3. Document Dropzone & Upload Listener
         dropzone.addEventListener('click', () => fileInput.click());
+        dropzone.addEventListener('keydown', event => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            fileInput.click();
+          }
+        });
         dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
         dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
         dropzone.addEventListener('drop', e => {
@@ -866,7 +995,7 @@
         function updateFileNameDisplay() {
           if (fileInput.files && fileInput.files[0]) {
             const f = fileInput.files[0];
-            fileNameDisplay.textContent = `已選擇檔案 / Selected: ${f.name} (${(f.size / 1024).toFixed(1)} KB)`;
+            fileNameDisplay.textContent = text('selectedFile')(f.name, (f.size / 1024).toFixed(1));
           } else {
             fileNameDisplay.textContent = text('dropzonePrompt');
           }
@@ -875,14 +1004,14 @@
         uploadForm.addEventListener('submit', async event => {
           event.preventDefault();
           if (!fileInput.files || !fileInput.files[0]) {
-            setStatus(text('fileRequired'), true);
+            announce(statusRegions.upload, 'fileRequired', [], true);
             fileInput.click();
             return;
           }
           const file = fileInput.files[0];
           const withOcr = Boolean(uploadWithOcrCheckbox && uploadWithOcrCheckbox.checked);
           uploadBtn.disabled = true;
-          setStatus(text('uploading')(file.name) + (withOcr ? ' (OCR enabled)' : ''), false, true);
+          announce(statusRegions.upload, 'uploading', [file.name, withOcr], false, true);
           resultArea.hidden = true;
 
           try {
@@ -905,9 +1034,9 @@
             const markdown = await response.text();
             if (!response.ok) throw new Error(markdown || `Server error ${response.status}`);
             showResult(markdown);
-            setStatus(text('uploaded')(file.name) + (withOcr ? ' (OCR完成)' : ''));
+            announce(statusRegions.upload, 'uploaded', [file.name, withOcr]);
           } catch (err) {
-            setStatus(text('errorMsg')(err.message || 'Upload failed'), true);
+            announce(statusRegions.upload, 'uploadFailed', [err.message || text('unknownError')], true);
           } finally {
             uploadBtn.disabled = false;
           }
@@ -915,6 +1044,12 @@
 
         // 4. OCR Dropzone, File Selection & Paste Listener
         ocrDropzone.addEventListener('click', () => ocrFileInput.click());
+        ocrDropzone.addEventListener('keydown', event => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            ocrFileInput.click();
+          }
+        });
         ocrDropzone.addEventListener('dragover', e => { e.preventDefault(); ocrDropzone.classList.add('dragover'); });
         ocrDropzone.addEventListener('dragleave', () => ocrDropzone.classList.remove('dragover'));
         ocrDropzone.addEventListener('drop', e => {
@@ -931,8 +1066,7 @@
           if (ocrFileInput.files && ocrFileInput.files[0]) {
             const f = ocrFileInput.files[0];
             const isPdf = f.name.toLowerCase().endsWith('.pdf');
-            const typeLabel = isPdf ? '檔案 / PDF' : '圖片 / Image';
-            ocrFileNameDisplay.textContent = `已選擇${typeLabel}: ${f.name} (${(f.size / 1024).toFixed(1)} KB)`;
+            ocrFileNameDisplay.textContent = text('ocrFileSelected')(f.name, (f.size / 1024).toFixed(1), isPdf);
           } else {
             ocrFileNameDisplay.textContent = text('ocrDropzonePrompt');
           }
@@ -940,6 +1074,7 @@
 
         // Global Screenshot Paste (Ctrl+V / Cmd+V)
         window.addEventListener('paste', e => {
+          if (document.querySelector('#ocr').hidden) return;
           const items = e.clipboardData?.items;
           if (!items) return;
           for (let i = 0; i < items.length; i++) {
@@ -951,8 +1086,9 @@
                 dataTransfer.items.add(file);
                 ocrFileInput.files = dataTransfer.files;
                 updateOcrFileNameDisplay();
-                ocrTabBtn.click();
-                setStatus('已從剪貼簿接收截圖圖片，點擊按鈕即可辨識 / Image pasted from clipboard');
+                window.location.hash = 'ocr';
+                ocrDropzone.focus({ preventScroll: true });
+                announce(statusRegions.ocr, 'pasteReceived');
                 e.preventDefault();
                 break;
               }
@@ -963,13 +1099,13 @@
         ocrForm.addEventListener('submit', async event => {
           event.preventDefault();
           if (!ocrFileInput.files || !ocrFileInput.files[0]) {
-            setStatus(text('ocrFileRequired'), true);
+            announce(statusRegions.ocr, 'ocrFileRequired', [], true);
             ocrFileInput.click();
             return;
           }
           const file = ocrFileInput.files[0];
           ocrBtn.disabled = true;
-          setStatus(text('ocrUploading')(file.name), false, true);
+          announce(statusRegions.ocr, 'ocrUploading', [file.name], false, true);
           resultArea.hidden = true;
 
           try {
@@ -983,9 +1119,9 @@
             const markdown = await response.text();
             if (!response.ok) throw new Error(markdown || `Server error ${response.status}`);
             showResult(markdown);
-            setStatus(text('ocrUploaded')(file.name));
+            announce(statusRegions.ocr, 'ocrUploaded', [file.name]);
           } catch (err) {
-            setStatus(text('errorMsg')(err.message || 'OCR failed'), true);
+            announce(statusRegions.ocr, 'ocrFailed', [err.message || text('unknownError')], true);
           } finally {
             ocrBtn.disabled = false;
           }
@@ -999,18 +1135,21 @@
               const res = await resp.json();
               const payload = res?.data || res;
               if (payload?.ocr?.available) {
-                ocrTabBtn.style.display = '';
+                ocrTabBtn.hidden = false;
+                document.querySelector('#ocr').hidden = false;
+                updateCurrentSection();
+                if (window.location.hash === '#ocr') document.querySelector('#ocr').scrollIntoView();
               } else {
-                ocrTabBtn.style.display = 'none';
-                if (ocrTabBtn.classList.contains('active')) {
-                  document.querySelector('#tab-urls-btn').click();
-                }
+                ocrTabBtn.hidden = true;
+                document.querySelector('#ocr').hidden = true;
               }
             } else {
-              ocrTabBtn.style.display = 'none';
+              ocrTabBtn.hidden = true;
+              document.querySelector('#ocr').hidden = true;
             }
           } catch {
-            ocrTabBtn.style.display = 'none';
+            ocrTabBtn.hidden = true;
+            document.querySelector('#ocr').hidden = true;
           }
         };
         checkOcrCapability();
@@ -1038,7 +1177,7 @@
               const markdown = await requestSearch(normalizedQuery);
               queryInput.value = normalizedQuery;
               showResult(markdown);
-              setStatus(text('searched')(normalizedQuery));
+              announce(statusRegions.result, 'searched', [normalizedQuery]);
               return markdown;
             }
           });
@@ -1061,7 +1200,7 @@
               const markdown = await requestSingleUrl(normalizedUrl);
               urlsInput.value = normalizedUrl;
               showResult(markdown);
-              setStatus(text('converted')(1));
+              announce(statusRegions.result, 'converted', [1]);
               return markdown;
             }
           });
@@ -1092,7 +1231,7 @@
               const markdown = await requestBatch(normalizedUrls);
               urlsInput.value = normalizedUrls.join('\n');
               showResult(markdown);
-              setStatus(text('converted')(normalizedUrls.length));
+              announce(statusRegions.result, 'converted', [normalizedUrls.length]);
               return markdown;
             }
           });
@@ -1108,9 +1247,9 @@
         copyBtn.addEventListener('click', async () => {
           try {
             await navigator.clipboard.writeText(result.textContent);
-            setStatus(text('copied'));
+            announce(statusRegions.result, 'copied');
           } catch {
-            setStatus(text('copyFailed'), true);
+            announce(statusRegions.result, 'copyFailed', [], true);
           }
         });
 

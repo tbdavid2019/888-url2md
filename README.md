@@ -45,14 +45,14 @@ Currently deployed at: [**create360.ai**](https://create360.ai) (or easily self-
   - 支援有上限的 BFS deep crawl、prefetch、session cookie 延續與 virtual scroll。
   - 長任務支援 `asyncJob`、進度查詢、取消與 HTTPS webhook。
 10. **PaddleOCR 繁簡中英圖片與 PDF 文件辨識與高可用容錯叢集 (PaddleOCR PP-OCRv4 & Failover Cluster)**
-  - 支援 `POST /api/ocr` 與首頁專屬頁籤 `[ 圖片與 PDF 辨識 (OCR) ]`，支援直接上傳圖片、貼上截圖（Ctrl+V / Cmd+V）以及原生 **PDF 文件 (`.pdf`)** 多頁光學辨識。
+  - 支援 `POST /api/ocr` 與首頁圖片辨識區，支援直接上傳圖片、貼上截圖（Ctrl+V / Cmd+V）以及原生 **PDF 文件 (`.pdf`)** 多頁光學辨識。
   - **PP-OCRv4 旗艦雙向引擎**：預設採用中英文雙向增強模型，精準辨識繁體中文、簡體中文、大小寫英文字母、數字與表格結構，並支援動態語系快取。
   - **二維幾何表格重建 (GFM Markdown Table Reconstruction)**：內建 2D 空間邊界分析與縱向通道（Gutters）偵測算法，自動將圖片、截圖與掃描 PDF 中的多欄多列數據精準轉換為標準 GitHub-Flavored Markdown 表格，告別單純逐行堆疊。
   - **繁體中文直排（豎排）閱讀流向重構 (Vertical Layout Reconstruction)**：自動識別直排排版（如台灣國小考卷、公文、古籍），依「文字由上至下、欄位由右至左」重新組裝，支援多層上下分欄切片（Multi-Tier Lane Segmentation）與語句跨欄折行黏合，杜絕橫向切片串接錯亂與直排假表格。
-  - **AnyDoc + OCR 協同整合與手動切換開關**：前端 Tab 3「文檔解析 (AnyDoc)」提供「`[x] 啟用 OCR 圖片/掃描文檔文字辨識`」開關；API 亦支援 Header `X-With-Ocr: true`、`X-Ocr: true` 或 Query `ocr=true` 顯式強制啟動 PaddleOCR。針對無文字圖層的純圖片型掃描 PDF（抽取字元 < 50），系統亦會自動平滑降級調用 OCR 引擎逐頁抽取並重構 Markdown 表格。
+  - **AnyDoc + OCR 協同整合與手動切換開關**：前端「文檔解析 (AnyDoc)」區提供「`[x] 啟用 OCR 圖片/掃描文檔文字辨識`」開關；API 亦支援 Header `X-With-Ocr: true`、`X-Ocr: true` 或 Query `ocr=true` 顯式強制啟動 PaddleOCR。針對無文字圖層的純圖片型掃描 PDF（抽取字元 < 50），系統亦會自動平滑降級調用 OCR 引擎逐頁抽取並重構 Markdown 表格。
   - **高可用備援池（Failover Pool）**：支援以逗號分隔多個節點（`OCR_SERVICE_URLS`，如 `https://ocr.aiurl.tw,https://ocr2.aiurl.tw`），主節點異常自動平滑故障轉移。
   - **防驚群效應（Anti-Thundering Herd）**：內建 Single-Flight 請求合併、隨機抖動背景輪詢（Jittered Probing）與熔斷冷卻期（Circuit Breaker Cooldown）。
-  - **動態特性探測**：節點在線時自動點亮前端頁籤，全部離線時乾淨隱藏。
+  - **動態特性探測**：節點在線時顯示圖片 OCR 區與 `/#ocr` 錨點，全部離線時隱藏該區。
 
 ---
 
@@ -688,13 +688,19 @@ Currently deployed at: [**create360.ai**](https://create360.ai) (or easily self-
    - Supports bounded BFS deep crawling, prefetch, session cookies, and virtual scrolling.
    - Long-running crawls support `asyncJob`, progress polling, cancellation, and HTTPS webhooks.
 10. **PaddleOCR Chinese & English Image and PDF Extraction (PP-OCRv4 Failover Cluster)**
-   - High-accuracy OCR engine powered by official flagship `PP-OCRv4` (`ch`) with support for Traditional Chinese (`chinese_cht`), English, numbers, symbols, and table structures via `POST /api/ocr` and Web UI Tab 4. Directly supports images and native multi-page **PDF files (`.pdf`)**.
+   - High-accuracy OCR engine powered by official flagship `PP-OCRv4` (`ch`) with support for Traditional Chinese (`chinese_cht`), English, numbers, symbols, and table structures via `POST /api/ocr` and the Web UI OCR section. Directly supports images and native multi-page **PDF files (`.pdf`)**.
    - **2D Spatial Markdown Table Reconstruction**: Built-in 2D bounding-box spatial clustering and vertical gutter detection automatically format tabular cells into clean GitHub-Flavored Markdown (GFM) tables rather than naive vertical line dumps.
    - **Traditional Chinese Vertical Layout Reconstruction**: Automatically detects traditional vertical writing mode (top-to-bottom text, right-to-left columns, e.g., exam papers, classic literature), applies multi-tier lane segmentation and intelligent line unwrapping, and suppresses false horizontal tables.
-   - **AnyDoc + OCR Opt-in Integration & Scanned PDF Fallback**: Frontend Tab 3 (AnyDoc) includes an explicit `[x] Enable OCR for Images / Scanned Documents` toggle; the backend API supports `X-With-Ocr: true`, `X-Ocr: true`, or query parameter `ocr=true`. For scanned PDFs lacking text layers (extracting < 50 characters), the pipeline automatically renders pages and performs multi-page OCR table extraction with full metadata enrichment.
+   - **AnyDoc + OCR Opt-in Integration & Scanned PDF Fallback**: The Web UI document parsing section includes an explicit `[x] Enable OCR for Images / Scanned Documents` toggle; the backend API supports `X-With-Ocr: true`, `X-Ocr: true`, or query parameter `ocr=true`. For scanned PDFs lacking text layers (extracting < 50 characters), the pipeline automatically renders pages and performs multi-page OCR table extraction with full metadata enrichment.
    - **Multi-Node Failover Pool**: Define fallback endpoints with `OCR_SERVICE_URLS` (e.g. `https://ocr.aiurl.tw,https://ocr2.aiurl.tw`) with seamless in-flight retry.
    - **Anti-Thundering-Herd Architecture**: Single-Flight promise coalescing, jittered background health probes, and 30-second circuit breaker cooldown.
-   - **Dynamic Feature Flagging**: The Web UI automatically shows Tab 4 when healthy OCR nodes exist, and hides it cleanly when offline.
+   - **Dynamic Feature Flagging**: The Web UI shows the OCR section and its direct `/#ocr` anchor only when healthy OCR nodes exist.
+
+## Web 介面導覽 (Web Interface Navigation)
+
+首頁以單頁呈現網頁搜尋、網址轉換、文件解析與可用時的圖片 OCR。頂部錨點會更新網址片段，可直接開啟 `/#search`、`/#urls`、`/#documents` 或 `/#ocr`，並支援瀏覽器上一頁／下一頁。品牌圖示與社群分享圖使用 Pantone Orange 021 C 的數位近似色，字樣採「888」與「url2md」上下排列。檔案拖放區支援鍵盤操作，表單狀態會顯示在目前使用的工具旁，OCR 節點在線時才顯示 OCR 工具。
+
+The home page presents web search, URL conversion, document parsing, and image OCR when available on one page. Navigation anchors update the URL fragment, so `/#search`, `/#urls`, `/#documents`, and `/#ocr` open directly and work with browser history. The brand mark and social preview use a digital approximation of Pantone Orange 021 C with “888” stacked above “url2md.” File drop areas support keyboard activation, form feedback appears beside the active tool, and OCR controls appear only when an OCR node is healthy.
 
 ---
 

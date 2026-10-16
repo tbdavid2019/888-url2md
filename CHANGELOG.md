@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## [2026.10.16.2] - 2026-10-16 - 單頁工具導覽與 Pantone 橘色品牌識別 (Single-Page Tools & Pantone Orange Identity)
+
+### Changed
+- 將首頁搜尋、網址、文件與 OCR 工具改為單頁區塊，加入可直接連結的 `#search`、`#urls`、`#documents`、`#ocr` 錨點導覽。
+- 改以 Pantone Orange 021 C 數位近似色呈現橘底品牌圖示，字樣上下排列為「888／url2md」；同步重繪 favicon、Apple Touch Icon 與 OG 分享圖片，並更新 Web App manifest。
+- 精簡雙語首頁欄位提示，補上表單旁即時狀態、拖放區鍵盤操作與中英動態文案，修正 WCAG AA 文字與控制項對比。
+- 更新 OG 分享卡片快取版本、社群圖片中繼資料與 Web App 192px／512px 圖示。同步更新雙語 README。
+
 ## [2026.10.16.1] - 2026-10-16 - OCR 預設逾時延長至兩分鐘 (Two-Minute OCR Timeout)
 
 ### Fixed
