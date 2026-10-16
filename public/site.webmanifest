@@ -4,8 +4,8 @@
   "description": "將一個或多個網頁網址與搜尋結果轉換為乾淨的 Markdown 格式，專為 LLM 與 AI Agent 設計。",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#FE5000",
-  "theme_color": "#FE5000",
+  "background_color": "#FFB010",
+  "theme_color": "#FFB010",
   "icons": [
     {
       "src": "/favicon-32x32.png",

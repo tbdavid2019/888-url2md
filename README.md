@@ -698,9 +698,9 @@ Currently deployed at: [**create360.ai**](https://create360.ai) (or easily self-
 
 ## Web 介面導覽 (Web Interface Navigation)
 
-首頁以單頁呈現網頁搜尋、網址轉換、文件解析與可用時的圖片 OCR。頂部錨點會更新網址片段，可直接開啟 `/#search`、`/#urls`、`/#documents` 或 `/#ocr`，並支援瀏覽器上一頁／下一頁。品牌圖示與社群分享圖使用 Pantone Orange 021 C 的數位近似色，字樣採「888」與「url2md」上下排列。檔案拖放區支援鍵盤操作，表單狀態會顯示在目前使用的工具旁，OCR 節點在線時才顯示 OCR 工具。
+首頁以單頁呈現網頁搜尋、網址轉換、文件解析與可用時的圖片 OCR。頂部錨點會更新網址片段，可直接開啟 `/#search`、`/#urls`、`/#documents` 或 `/#ocr`，並支援瀏覽器上一頁／下一頁。全頁使用五色基底與明暗階調：Pantone 14-1064 TPG Saffron（#FFB010）滿版頁首與主要按鈕、深海藍（#17324D）導覽列、陶土橘（#A9471D）區塊標題色條與圖示、暖奶油白（#FFF9E8）面板、深墨色（#2B251A）文字；頁面底色採 Saffron 淡色。品牌圖示與社群分享圖同樣採用 Saffron 底色和深墨色字樣，文字上下排列為「888」與「url2md」。檔案拖放區支援鍵盤操作，表單狀態會顯示在目前使用的工具旁，OCR 節點在線時才顯示 OCR 工具。
 
-The home page presents web search, URL conversion, document parsing, and image OCR when available on one page. Navigation anchors update the URL fragment, so `/#search`, `/#urls`, `/#documents`, and `/#ocr` open directly and work with browser history. The brand mark and social preview use a digital approximation of Pantone Orange 021 C with “888” stacked above “url2md.” File drop areas support keyboard activation, form feedback appears beside the active tool, and OCR controls appear only when an OCR node is healthy.
+The home page presents web search, URL conversion, document parsing, and image OCR when available on one page. Navigation anchors update the URL fragment, so `/#search`, `/#urls`, `/#documents`, and `/#ocr` open directly and work with browser history. The full page uses five base colors with tonal tints: Pantone 14-1064 TPG Saffron (#FFB010) for the full-bleed masthead and primary actions, deep blue (#17324D) for the navigation bar, clay orange (#A9471D) for section heading bars and icons, warm cream (#FFF9E8) for tool panels, and deep ink (#2B251A) for text, with a light Saffron canvas. The brand mark and social preview use a Saffron background with deep ink text and “888” stacked above “url2md.” File drop areas support keyboard activation, form feedback appears beside the active tool, and OCR controls appear only when an OCR node is healthy.
 
 ---
 

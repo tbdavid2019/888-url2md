@@ -1,5 +1,17 @@
 # CHANGELOG
 
+All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
+
+## [2026.10.16.3] - 2026-10-16 - Pantone Saffron 全頁配色與表單留白 (Pantone Saffron Page Palette & Form Spacing)
+
+### Changed
+- 建立全頁五色基底與明暗階調：Pantone Saffron `#FFB010`、深海藍 `#17324D`、陶土橘 `#A9471D`、暖奶油白 `#FFF9E8`、深墨色 `#2B251A`。將 Saffron 用於滿版頁首與主要按鈕，深海藍用於導覽列，陶土橘用於區塊標題側邊色條、拖放圖示與狀態細節，暖奶油白與深墨色承載工具面板和內容。
+- favicon、Apple Touch Icon、PWA icons、OG 分享圖同步採用 Saffron 底色；拉開搜尋／網址輸入框與主要按鈕的間距，更新 OG 快取版本與雙語 README。
+
+### Fixed
+- 強化 Saffron 主要按鈕與奶油白導覽文字的可辨識邊界，確保導覽項目在預設、目前選取及鍵盤焦點狀態都有足夠對比；加入滿版色帶的水平溢出 fallback。
+- 統一品牌圖示與頁面使用相同的深墨色字樣，並垂直置中 favicon／PWA app icon 的標誌。
+
 ## [2026.10.16.2] - 2026-10-16 - 單頁工具導覽與 Pantone 橘色品牌識別 (Single-Page Tools & Pantone Orange Identity)
 
 ### Changed
@@ -18,8 +30,6 @@
 
 ### Fixed
 - 修正 Top target domains 與 Average request latency by target domain 的 Flux 分組，讓 Grafana 表格以每個網域一列顯示網域名稱和對應數值，並套用全域排序與前 20 名限制。
-
-All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
 ## [2026.10.07.5] - 2026-10-07 - 2md Grafana 請求監控 (2md Grafana Request Analytics)
 
