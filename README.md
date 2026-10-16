@@ -143,7 +143,7 @@ services:
 | `S3_LOG_SECRET_ACCESS_KEY` | (SRE 選填) S3 / R2 Secret Access Key | 填入金鑰 |
 | `S3_LOG_PREFIX` | (SRE 選填) 上傳路徑前綴 | `url2md-logs/` |
 | `OCR_SERVICE_URLS` | (選填) PaddleOCR 叢集端點（逗號分隔，依序容錯備援） | 範例：`https://ocr.aiurl.tw,https://ocr2.aiurl.tw` |
-| `OCR_TIMEOUT_MS` | (選填) 單次 OCR 請求逾時時間（毫秒） | `10000` (10 秒) |
+| `OCR_TIMEOUT_MS` | (選填) 單次 OCR 請求逾時時間（毫秒） | `120000` (120 秒／2 分鐘) |
 | `OCR_HEALTH_TIMEOUT_MS` | (選填) 單次健康檢查探測逾時（毫秒） | `2000` (2 秒) |
 | `OCR_POLL_INTERVAL_MS` | (選填) 背景探測間隔時間（毫秒） | `30000` (30 秒) |
 | `OCR_SECRET_KEY` | (選填) OCR 微服務 API Key（透過 `X-API-Key` 傳遞） | 自訂密鑰 |
@@ -782,7 +782,7 @@ services:
 | `S3_LOG_SECRET_ACCESS_KEY` | (SRE Optional) S3 / R2 Secret Access Key | Set credential |
 | `S3_LOG_PREFIX` | (SRE Optional) Upload path prefix | `url2md-logs/` |
 | `OCR_SERVICE_URLS` | (Optional) Comma-separated list of PaddleOCR endpoints for failover | e.g. `https://ocr.aiurl.tw,https://ocr2.aiurl.tw` |
-| `OCR_TIMEOUT_MS` | (Optional) Per-request OCR timeout in milliseconds | `10000` (10 seconds) |
+| `OCR_TIMEOUT_MS` | (Optional) Per-request OCR timeout in milliseconds | `120000` (120 seconds / 2 minutes) |
 | `OCR_HEALTH_TIMEOUT_MS` | (Optional) Health check probe timeout in milliseconds | `2000` (2 seconds) |
 | `OCR_POLL_INTERVAL_MS` | (Optional) Background probing interval in milliseconds | `30000` (30 seconds) |
 | `OCR_SECRET_KEY` | (Optional) API key passed via `X-API-Key` header | Cluster secret |

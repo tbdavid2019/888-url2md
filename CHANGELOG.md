@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## [2026.10.16.1] - 2026-10-16 - OCR 預設逾時延長至兩分鐘 (Two-Minute OCR Timeout)
+
+### Fixed
+- 將 OCR client 單次節點請求的預設逾時由 30 秒延長至 120 秒，讓純 CPU OCR 有更充足的處理時間；仍可透過 `OCR_TIMEOUT_MS` 覆寫。
+- 同步更新中英文 README 與 OCR 部署設定範例。
+
 ## [2026.10.08.1] - 2026-10-08 - Grafana 網域表格欄位修正 (Grafana Domain Table Columns)
 
 ### Fixed

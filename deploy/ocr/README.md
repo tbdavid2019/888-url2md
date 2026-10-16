@@ -66,7 +66,7 @@ curl http://localhost:8089/health
 ```bash
 # 支援多個節點以逗號分隔（自動依序負載與故障轉移）
 OCR_SERVICE_URLS=https://ocr.aiurl.tw,https://new-node.yourdomain.com:8089
-OCR_TIMEOUT_MS=10000
+OCR_TIMEOUT_MS=120000
 OCR_HEALTH_TIMEOUT_MS=2000
 OCR_POLL_INTERVAL_MS=30000
 ```
