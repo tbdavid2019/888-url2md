@@ -2,6 +2,11 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.10.16.6] - 2026-10-16 - 標題字級層次優化 (Heading Type Hierarchy)
+
+### Changed
+- 提高工具區標題字級，讓桌面與手機版標題相對 16px 內文都有明確的尺寸層次；同步更新雙語 README 與 OG 快取版本。
+
 ## [2026.10.16.5] - 2026-10-16 - 手機版響應式優化 (Mobile Responsive Polish)
 
 ### Changed
