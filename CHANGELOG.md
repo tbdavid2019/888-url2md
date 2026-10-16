@@ -2,6 +2,11 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.10.16.4] - 2026-10-16 - 工具頁標題視覺微調 (Tool Heading Polish)
+
+### Fixed
+- 移除工具卡片標題左側的粗色條，保留五色系統在頁首、導覽、按鈕、圖示與狀態中的配置。
+
 ## [2026.10.16.3] - 2026-10-16 - Pantone Saffron 全頁配色與表單留白 (Pantone Saffron Page Palette & Form Spacing)
 
 ### Changed
