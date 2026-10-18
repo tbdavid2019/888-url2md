@@ -1,21 +1,32 @@
-export type Category =
-  | '姓名'
-  | '身分證'
-  | '手機'
-  | '市話'
-  | '地址'
-  | '公司'
-  | '統編'
-  | '電子郵件'
-  | '國際電話'
-  | '信用卡'
-  | 'SSN'
-  | 'IBAN'
-  | 'IP'
-  | '生日'
-  | '識別碼';
+export const CATEGORIES = [
+  '姓名',
+  '身分證',
+  '手機',
+  '市話',
+  '地址',
+  '電子郵件',
+  '公司',
+  '統編',
+  '識別碼',
+  '國際電話',
+  '信用卡',
+  'SSN',
+  'IBAN',
+  'IP',
+  '生日',
+] as const;
 
-export type MarkerStyle = 'code' | 'category' | 'mask';
+export type Category = (typeof CATEGORIES)[number];
+
+export type MarkerStyle =
+  | 'code'
+  | 'label'
+  | 'category'
+  | 'blank'
+  | 'asterisk'
+  | 'star'
+  | 'mask'
+  | 'smart';
 
 export interface Retention {
   mode: 'none' | 'ends' | 'delim' | 'surname' | 'city' | 'district' | 'preview';

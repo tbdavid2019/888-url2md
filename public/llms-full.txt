@@ -11,7 +11,7 @@
 3. **Real-Time Live Web Search (SERP)**: Execute zero-config live web searches and get structured Markdown snippets powered by DuckDuckGo with multi-engine fallback.
 4. **Multi-URL Batch Crawling**: Fetch, scrape, and convert multiple web pages concurrently in a single HTTP request with isolated fault tolerance.
 5. **Image OCR & Text Extraction (PaddleOCR PP-OCRv4 Engine)**: Convert image files (PNG, JPG, JPEG, WEBP, BMP) and screenshots into clean Markdown or line-level bounding box JSON with multi-node failover pool and anti-thundering-herd protection.
-6. **PII De-Identification & Privacy Shield (Taiwan & Intl Rules + Clef / Jev Scoring)**: Automatically detect and mask Taiwan PII (TWID, Unified Business Number, mobile, address, phone, compound surnames, email) and international PII (credit cards with Luhn check, SSN, IBAN, IPv4/IPv6, DOB) using sub-5ms rules with reversible token mapping, CSV export, and 3-tier Clef/Jev AI privacy scoring via `POST /api/deid` or `X-Deidentify: true` on any reader/crawler/document endpoint.
+6. **PII De-Identification & Privacy Shield (15 Taiwan & Intl Rules + Custom Rules + AI Privacy Scoring)**: Automatically detect and mask Taiwan PII (TWID, Unified Business Number, mobile, address, phone, compound surnames, email) and international PII (credit cards with Luhn check, SSN, IBAN, IPv4/IPv6, DOB) using sub-5ms rules with 5 marker modes (`code`, `label`, `blank`, `asterisk`, `smart`), per-category retention policies, custom RegExp rules, reversible CSV mapping, and AI privacy scoring via `POST /api/deid` or `X-Deidentify: true` on any reader/crawler/document endpoint.
 7. **Flexible Response Formats**: Supports clean GitHub-Flavored Markdown (`Accept: text/plain` or default), structured JSON (`Accept: application/json`), or SSE event streaming (`Accept: text/event-stream`).
 7. **WebMCP Browser Tools**: For Chrome browsers supporting WebMCP (`document.modelContext`), automatically registers `search_web`, `read_web_page`, and `read_web_pages` client tools.
 8. **Adaptive Structured Extraction**: Opt-in CSS selector relocation with bounded, origin-scoped profiles and ambiguity rejection.
@@ -119,8 +119,8 @@
   - `GET https://<HOST>/api/capabilities`: Probe dynamic OCR cluster status (`data.ocr.available`, latency, nodes).
   - `GET https://<HOST>/api/ocr/status`: Inspect active node and cluster health.
 
-### 2.6 PII De-Identification & Privacy Shield (Taiwan & Intl Rules + Clef / Jev Scoring)
-Protect sensitive data before sending text to downstream LLMs. Features rule-based sub-5ms PII masking with reversible tokens, RFC 4180 CSV mapping tables, and 3-tier Clef/Jev System One privacy risk scoring.
+### 2.6 PII De-Identification & Privacy Shield (15 Taiwan & Intl Rules + Custom Rules + AI Privacy Scoring)
+Protect sensitive data before sending text to downstream LLMs. Features rule-based sub-5ms PII masking across 15 built-in categories (7 Taiwan formats + 8 international formats), custom RegExp patterns, 5 marker modes, per-category retention policies, RFC 4180 CSV mapping tables, and AI privacy completeness scoring.
 
 - **A. Standalone Text De-Identification**:
   - `POST /api/deid` (or `/v1/deid`)
@@ -129,21 +129,28 @@ Protect sensitive data before sending text to downstream LLMs. Features rule-bas
     {
       "text": "專案經理陳大明（身分證 A123456789，電話 0912345678）負責本案。",
       "mode": "code",
-      "partial": true,
-      "scoreWithClef": true
+      "retentionMode": "preview",
+      "score": true
     }
     ```
-  - *Modes (`mode`)*:
-    - `code` (default): Reversible marker format `[類別:代碼]` (e.g. `[姓名:b0d96e]`, `[身分證:fbd20c]`).
-    - `label` / `category`: Category placeholder `[類別]` (e.g. `[姓名]`, `[身分證]`).
-    - `blank` / `mask`: Character mask `○○○` or `***`.
-  - *Partial Semantic Retention (`partial`)*:
-    - Retains non-sensitive structure for analysis: Keep surname (`王○○`), TWID first 2 digits (`A1********`), telecom prefix (`0912-******`), city/district (`台北市信義區***`).
-  - *Response*: Returns de-identified text, match count, array of mappings, standard CSV mapping table for recovery, and Clef-Flash completeness score.
+  - *Marker Modes (`mode`)*:
+    - `code` (default): Reversible marker format `[類別:代碼]` (e.g. `陳[姓名:b0d96e]`, `A1[身分證:fbd20c]`).
+    - `label` / `category`: Category placeholder `[類別]` (e.g. `陳[姓名]`, `A1[身分證]`).
+    - `blank` / `mask`: Circle placeholder `○○○` (e.g. `陳○○`, `A1○○○○○○○○`).
+    - `asterisk` / `star`: Asterisk mask `***` (e.g. `陳**`, `A1********`).
+    - `smart`: Smart category-aware display mask `OO/***` (e.g. `陳OO`, `A12******9`, `0912-***-678`, `台北市信義區***`, `築夢**股份有限公司`).
+  - *Retention Policies (`retentionMode` & `categoryRetentions`)*:
+    - `preview` (default): Retains non-sensitive structure per category (keep surname, TWID prefix, telecom prefix, city/district, email domain, company suffix).
+    - `none`: Full masking with zero character retention.
+    - `custom`: Pass `categoryRetentions` object to customize any of the 15 categories (`surname`, `city`, `district`, `affix` [prefix/suffix digits], `delimiter` [before/after delimiter], `preview`, `none`).
+  - *Rule Customization (`disabledBuiltins`, `disabledCategories`, `customPatterns`)*:
+    - Query built-in rules via `GET /api/deid/rules`.
+    - Disable specific built-in rules by ID (`disabledBuiltins`) or category (`disabledCategories`), or inject custom RegExp rules (`customPatterns: [{ "name": "員工編號", "category": "ID", "pattern": "EMP-\\d{6}" }]`).
+  - *Response*: Returns de-identified text, match count, array of mappings, standard CSV mapping table for recovery, and `privacyScore` completeness evaluation.
 
 - **B. Raw Privacy Risk Exposure Scoring**:
   - `POST /api/deid/score` (or `/v1/deid/score`, `/api/privacy/score`)
-  - Evaluates raw or masked text through Clef-Flash System One model (<200ms) with 1–5 risk scale and `hasPii` detection.
+  - Evaluates raw or masked text (<200ms) with a 1–5 risk/completeness scale and `hasPii` probability detection.
 
 - **C. Lossless Text Restoration via CSV Mapping**:
   - `POST /api/deid/restore` (or `/v1/deid/restore`)
@@ -189,9 +196,9 @@ Returns clean GitHub-Flavored Markdown. For batch requests, pages are separated 
 | Header | Values | Description |
 | :--- | :--- | :--- |
 | `X-Deidentify` | `true` \| `false` | Automatically de-identify sensitive PII before returning Markdown |
-| `X-Deid-Mode` | `code` \| `label` \| `blank` | Select marker format (`code` for reversible token, `label` for category, `blank` for mask) |
+| `X-Deid-Mode` | `code` \| `label` \| `blank` \| `asterisk` \| `smart` | Select marker format (`code` for reversible token, `label` for category, `blank` for `○○○`, `asterisk` for `***`, `smart` for `OO/***`) |
 | `X-Deid-Partial` | `true` \| `false` | Toggle partial semantic retention (keep surname, TWID first 2 digits, etc.) |
-| `X-Deid-Score` | `true` \| `false` | Call Clef-Flash System One model to evaluate de-identification completeness score |
+| `X-Deid-Score` | `true` \| `false` | Evaluate de-identification completeness score |
 | `X-Respond-With` | `markdown` \| `html` \| `text` \| `frontmatter` | Output format selection (default: `markdown`) |
 | `X-Preset` | `reader` \| `index` \| `research` \| `agent` \| `spider` | Extraction preset configuration |
 | `X-Target-Selector` | CSS Selector string (e.g. `article`, `main`) | Focus extraction on matching DOM elements |

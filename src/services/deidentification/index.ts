@@ -8,3 +8,4 @@ export * from './detector';
 export * from './redactor';
 export * from './restorer';
 export * from './csv';
+export * from './mask';

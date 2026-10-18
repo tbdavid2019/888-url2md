@@ -13,7 +13,7 @@ If you are an LLM or AI Agent accessing this service for the first time:
 1. Use **Single URL mode** to read individual web pages or online documents.
 2. Use **Document File Upload mode** to parse PDF, Word, Excel, PPT, EPUB, CSV files via multipart form-data.
 3. Use **Image OCR mode** (`POST /api/ocr` or `/v1/ocr`) to extract text and tables from images (PNG, JPG, WEBP, BMP) using PP-OCRv4.
-4. Use **PII De-Identification & Privacy Shield** (`POST /api/deid` or add `X-Deidentify: true` to crawler/document requests) to strip Taiwan and international personal identifiable info with reversible tokens and Clef/Jev scoring.
+4. Use **PII De-Identification & Privacy Shield** (`POST /api/deid` or add `X-Deidentify: true` to crawler/document requests) to strip Taiwan (7 rules) and international (8 rules) personal identifiable info with 5 masking modes, per-category retention rules, custom RegExp patterns, reversible CSV mapping, and AI privacy scoring.
 5. Use **Web Search mode** to execute live web search queries.
 6. Use **Multi-URL Batch mode** to fetch and extract multiple pages concurrently in a single request.
 7. Include `Accept: application/json` header for JSON responses or `Accept: text/plain` for clean Markdown text.
@@ -108,8 +108,8 @@ async function insertOcrTableIntoBlockNote(editor: BlockNoteEditor, imageBlob: B
 }
 ```
 
-### 6. PII De-Identification & Privacy Shield (Taiwan & Intl Rules + Clef / Jev Scoring)
-Protect sensitive data before sending text to downstream LLMs. Features rule-based sub-5ms PII masking with reversible tokens, RFC 4180 CSV mapping tables, and 3-tier Clef/Jev System One privacy risk scoring.
+### 6. PII De-Identification & Privacy Shield (15 Taiwan & Intl Rules + Custom Rules + AI Privacy Scoring)
+Protect sensitive data before sending text to downstream LLMs. Features rule-based sub-5ms PII masking across 15 built-in categories (7 Taiwan formats + 8 international formats), custom RegExp patterns, 5 marker modes, per-category retention policies, RFC 4180 CSV mapping tables, and AI privacy completeness scoring.
 
 - **A. Standalone Text De-Identification**:
   - `POST /api/deid` (or `/v1/deid`)
@@ -118,21 +118,28 @@ Protect sensitive data before sending text to downstream LLMs. Features rule-bas
     {
       "text": "專案經理陳大明（身分證 A123456789，電話 0912345678）負責本案。",
       "mode": "code",
-      "partial": true,
-      "scoreWithClef": true
+      "retentionMode": "preview",
+      "score": true
     }
     ```
-  - *Modes (`mode`)*:
-    - `code` (default): Reversible marker format `[類別:代碼]` (e.g. `[姓名:b0d96e]`, `[身分證:fbd20c]`).
-    - `label` / `category`: Category placeholder `[類別]` (e.g. `[姓名]`, `[身分證]`).
-    - `blank` / `mask`: Character mask `○○○` or `***`.
-  - *Partial Semantic Retention (`partial`)*:
-    - Retains non-sensitive structure for analysis: Keep surname (`王○○`), TWID first 2 digits (`A1********`), telecom prefix (`0912-******`), city/district (`台北市信義區***`).
-  - *Response*: Returns de-identified text, match count, array of mappings, standard CSV mapping table for recovery, and Clef-Flash completeness score.
+  - *Marker Modes (`mode`)*:
+    - `code` (default): Reversible marker format `[類別:代碼]` (e.g. `陳[姓名:b0d96e]`, `A1[身分證:fbd20c]`).
+    - `label` / `category`: Category placeholder `[類別]` (e.g. `陳[姓名]`, `A1[身分證]`).
+    - `blank` / `mask`: Circle placeholder `○○○` (e.g. `陳○○`, `A1○○○○○○○○`).
+    - `asterisk` / `star`: Asterisk mask `***` (e.g. `陳**`, `A1********`).
+    - `smart`: Smart category-aware display mask `OO/***` (e.g. `陳OO`, `A12******9`, `0912-***-678`, `台北市信義區***`, `築夢**股份有限公司`).
+  - *Retention Policies (`retentionMode` & `categoryRetentions`)*:
+    - `preview` (default): Retains non-sensitive structure per category (keep surname, TWID prefix, telecom prefix, city/district, email domain, company suffix).
+    - `none`: Full masking with zero character retention.
+    - `custom`: Pass `categoryRetentions` object to customize any of the 15 categories (`surname`, `city`, `district`, `affix` [prefix/suffix digits], `delimiter` [before/after delimiter], `preview`, `none`).
+  - *Rule Customization (`disabledBuiltins`, `disabledCategories`, `customPatterns`)*:
+    - Query built-in rules via `GET /api/deid/rules`.
+    - Disable specific built-in rules by ID (`disabledBuiltins`) or category (`disabledCategories`), or inject custom RegExp rules (`customPatterns: [{ "name": "員工編號", "category": "ID", "pattern": "EMP-\\d{6}" }]`).
+  - *Response*: Returns de-identified text, match count, array of mappings, standard CSV mapping table for recovery, and `privacyScore` completeness evaluation.
 
 - **B. Raw Privacy Risk Exposure Scoring**:
   - `POST /api/deid/score` (or `/v1/deid/score`, `/api/privacy/score`)
-  - Evaluates raw or masked text through Clef-Flash System One model (<200ms) with 1–5 risk scale and `hasPii` detection.
+  - Evaluates raw or masked text (<200ms) with a 1–5 risk/completeness scale and `hasPii` probability detection.
 
 - **C. Lossless Text Restoration via CSV Mapping**:
   - `POST /api/deid/restore` (or `/v1/deid/restore`)
@@ -156,14 +163,14 @@ Protect sensitive data before sending text to downstream LLMs. Features rule-bas
   Returns structured JSON object:
   - For standard crawler: `data` array with extracted pages.
   - For `/api/ocr`: `data.markdown` (full document), `data.tableMarkdown` (isolated clean GFM table), `data.tables` (isolated tables array), `data.text`, and `data.lines`.
-  - For `/api/deid`: `data.text`, `data.mappings`, `data.csvMapping`, and `data.clefScore`.
+  - For `/api/deid`: `data.text`, `data.mappings`, `data.csvMapping`, and `data.privacyScore`.
   - `data.tableMarkdown` is `null` when no table is detected. In `mode=table`, no-table input returns an empty Markdown body instead of full OCR text.
 
 ### 8. Optional Headers
 - `X-Deidentify: true` (or `X-Deid: true`): Sanitize sensitive PII in web crawls and document extractions before returning text to LLMs.
-- `X-Deid-Mode: code | label | blank`: Select marker style (`code` for reversible token, `label` for category name, `blank` for symbol mask).
+- `X-Deid-Mode: code | label | blank | asterisk | smart`: Select marker style (`code` for reversible token, `label` for category name, `blank` for `○○○`, `asterisk` for `***`, `smart` for `OO/***`).
 - `X-Deid-Partial: true | false`: Toggle partial semantic retention (e.g. keep surname, TWID first 2 digits, telecom prefix).
-- `X-Deid-Score: true | false`: Toggle Clef-Flash System One privacy completeness evaluation.
+- `X-Deid-Score: true | false`: Toggle AI privacy completeness evaluation.
 - `X-With-Ocr: true` (or `X-Ocr: true`): Explicitly opt-in to OCR extraction for documents and scanned PDFs. Pure image scanned PDFs (with < 50 characters) automatically fall back to OCR.
 - `X-Respond-With`: `markdown` | `html` | `text` | `frontmatter`
 - `X-Preset`: `reader` | `index` | `research` | `agent` | `spider`

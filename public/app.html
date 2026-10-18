@@ -634,6 +634,186 @@
       @media (prefers-reduced-motion: reduce) {
         *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
       }
+
+      /* De-ID Output Settings & Rules Panels */
+      .deid-panel {
+        margin-top: 14px;
+        border: 1px solid var(--card-border);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.72);
+        padding: 14px 16px;
+      }
+      .deid-row {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px 14px;
+        margin-bottom: 10px;
+      }
+      .deid-row:last-child { margin-bottom: 0; }
+      .deid-row-label {
+        font-weight: 700;
+        font-size: 0.9rem;
+        min-width: 42px;
+        color: var(--ink);
+      }
+      .deid-segmented {
+        display: inline-flex;
+        flex-wrap: wrap;
+        border: 1px solid var(--input-border);
+        border-radius: 8px;
+        overflow: hidden;
+        background: #fff;
+      }
+      .deid-segment {
+        display: inline-flex;
+        align-items: center;
+        margin: 0;
+        cursor: pointer;
+        font-size: 0.86rem;
+        font-weight: 600;
+        border-right: 1px solid var(--input-border);
+        user-select: none;
+      }
+      .deid-segment:last-child { border-right: none; }
+      .deid-segment input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+      }
+      .deid-segment span {
+        padding: 6px 12px;
+        transition: background 0.15s, color 0.15s;
+        color: var(--ink);
+      }
+      .deid-segment input:checked + span {
+        background: #2563eb;
+        color: #fff;
+      }
+      .deid-row-note {
+        font-size: 0.84rem;
+        color: var(--muted);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      }
+      .deid-notice {
+        margin: 10px 0;
+        padding: 8px 12px;
+        border-radius: 8px;
+        background: #fffbeb;
+        border: 1px solid #fde68a;
+        color: #92400e;
+        font-size: 0.84rem;
+        line-height: 1.45;
+      }
+      .deid-details {
+        margin-top: 10px;
+        border: 1px solid var(--card-border);
+        border-radius: 10px;
+        background: #fff;
+        overflow: hidden;
+      }
+      .deid-details > summary {
+        padding: 10px 14px;
+        font-weight: 700;
+        font-size: 0.9rem;
+        color: #1d4ed8;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: rgba(239, 246, 255, 0.55);
+        user-select: none;
+      }
+      .deid-details[open] > summary {
+        border-bottom: 1px solid var(--card-border);
+      }
+      .deid-cat-list, .deid-rule-list {
+        divide-y: 1px solid #f1ece1;
+      }
+      .deid-cat-row, .deid-rule-row {
+        display: grid;
+        grid-template-columns: 24px 86px minmax(150px, 210px) 1fr;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 14px;
+        border-bottom: 1px solid #f3eee2;
+        font-size: 0.86rem;
+      }
+      .deid-rule-row {
+        grid-template-columns: 24px 160px 80px 1fr auto;
+      }
+      .deid-cat-row:last-child, .deid-rule-row:last-child { border-bottom: none; }
+      .deid-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 0.76rem;
+        font-weight: 700;
+        text-align: center;
+        white-space: nowrap;
+      }
+      .badge-姓名 { background: #fef3c7; color: #92400e; }
+      .badge-身分證 { background: #fce7f3; color: #9d174d; }
+      .badge-手機 { background: #dcfce7; color: #166534; }
+      .badge-市話 { background: #e0f2fe; color: #075985; }
+      .badge-地址 { background: #dbeafe; color: #1e40af; }
+      .badge-電子郵件 { background: #f3e8ff; color: #6b21a8; }
+      .badge-公司 { background: #e5e7eb; color: #374151; }
+      .badge-統編 { background: #ccfbf1; color: #115e59; }
+      .badge-SSN { background: #fee2e2; color: #991b1b; }
+      .badge-國際電話 { background: #d1fae5; color: #065f46; }
+      .badge-信用卡 { background: #ffe4e6; color: #9f1239; }
+      .badge-IBAN { background: #ede9fe; color: #5b21b6; }
+      .badge-IP { background: #e2e8f0; color: #334155; }
+      .badge-生日 { background: #ffedd5; color: #9a3412; }
+      .badge-識別碼 { background: #f1f5f9; color: #475569; }
+      .deid-cat-preview {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 0.83rem;
+        color: var(--ink);
+        overflow-wrap: anywhere;
+      }
+      .deid-cat-select {
+        padding: 4px 8px;
+        border-radius: 6px;
+        border: 1px solid var(--input-border);
+        font-size: 0.83rem;
+        background: #fff;
+        color: var(--ink);
+      }
+      .deid-rule-detail {
+        padding: 8px 14px 12px 48px;
+        background: #faf8f3;
+        border-bottom: 1px solid #f3eee2;
+        font-size: 0.82rem;
+        color: var(--muted);
+      }
+      .deid-rule-detail code {
+        display: inline-block;
+        padding: 2px 6px;
+        background: #f1ece1;
+        border-radius: 4px;
+        color: var(--ink);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        word-break: break-all;
+      }
+      .deid-small-btn {
+        padding: 4px 10px;
+        border-radius: 6px;
+        border: 1px solid var(--input-border);
+        background: #fff;
+        font-size: 0.78rem;
+        font-weight: 600;
+        cursor: pointer;
+        color: var(--ink);
+      }
+      .deid-small-btn:hover { background: #f5f0e4; }
+      @media (max-width: 640px) {
+        .deid-cat-row, .deid-rule-row {
+          grid-template-columns: 24px 1fr;
+          gap: 6px;
+        }
+      }
     </style>
   </head>
   <body>
@@ -767,28 +947,104 @@
 
         <!-- Privacy & De-identification -->
         <section id="deid" class="card tool-section" aria-labelledby="deid-title" hidden>
-          <h2 id="deid-title" data-i18n="deidLabel">個資去識別化與隱私防護 (De-ID)</h2>
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
+            <h2 id="deid-title" data-i18n="deidLabel" style="margin: 0;">個資去識別化與隱私防護 (De-ID)</h2>
+            <button type="button" class="deid-small-btn" id="deid-sample-btn" data-i18n="deidSampleBtn">填入完整測試範例</button>
+          </div>
           <form id="deid-form">
             <label for="deid-input" class="sr-only" data-i18n="deidLabel">個資去識別化</label>
-            <textarea id="deid-input" name="text" spellcheck="false" placeholder="貼上包含姓名、身分證字號、電話、地址、統編、Email 等個資之文本或 Markdown..." data-i18n-placeholder="deidPlaceholder" style="min-height: 120px"></textarea>
-            <div class="option-row" style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 16px; align-items: center;">
-              <label style="display: inline-flex; align-items: center; gap: 6px;">
-                <span style="font-weight: 500; font-size: 0.9rem;" data-i18n="deidMarkerLabel">標記模式：</span>
-                <select id="deid-mode" name="mode" style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color, #ccc); background: var(--bg-surface, #fff); color: inherit;">
-                  <option value="code" selected>可逆隨機編碼 [姓名:6e679d] (附 CSV 表)</option>
-                  <option value="category">類別標籤 [姓名]</option>
-                  <option value="mask">公文遮蔽 王○○ / 0912-○○○-○○○</option>
-                </select>
-              </label>
-              <label class="switch-label">
-                <input type="checkbox" id="deid-partial" name="partial" value="true" checked>
-                <span data-i18n="deidPartialLabel">部分保留（露出姓氏/地區碼/電信前綴，便於統計）</span>
-              </label>
-              <label class="switch-label">
-                <input type="checkbox" id="deid-score" name="score" value="true" checked>
-                <span data-i18n="deidScoreLabel">Clef / Jev 深度打分（評估去識別完整度與殘留風險）</span>
-              </label>
+            <textarea id="deid-input" name="text" spellcheck="false" placeholder="貼上包含姓名、身分證字號、電話、地址、統編、Email、信用卡等個資之文本或 Markdown..." data-i18n-placeholder="deidPlaceholder" style="min-height: 120px"></textarea>
+
+            <!-- Output Settings Panel (Retention + Marker + Per-Category + Rules) -->
+            <div class="deid-panel" aria-label="輸出設定">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <strong style="font-size: 0.94rem;" data-i18n="deidOutputSettingsTitle">輸出設定</strong>
+                <span class="deid-row-note" id="deid-active-rules-badge">啟用 15 項規則</span>
+              </div>
+
+              <!-- Row 1: Retention (保留) -->
+              <div class="deid-row">
+                <span class="deid-row-label" data-i18n="deidRetentionLabel">保留</span>
+                <div class="deid-segmented" role="radiogroup" aria-label="保留設定">
+                  <label class="deid-segment">
+                    <input type="radio" name="deid-retention-mode" value="preview" checked>
+                    <span data-i18n="deidRetPreview">部分保留</span>
+                  </label>
+                  <label class="deid-segment">
+                    <input type="radio" name="deid-retention-mode" value="none">
+                    <span data-i18n="deidRetNone">全部隱藏</span>
+                  </label>
+                  <label class="deid-segment">
+                    <input type="radio" name="deid-retention-mode" value="custom">
+                    <span data-i18n="deidRetCustom">自訂</span>
+                  </label>
+                </div>
+                <span class="deid-row-note" id="deid-retention-note">A123456789 → A1[身分證]</span>
+              </div>
+
+              <!-- Row 2: Marker (標記) -->
+              <div class="deid-row">
+                <span class="deid-row-label" data-i18n="deidMarkerShortLabel">標記</span>
+                <div class="deid-segmented" role="radiogroup" aria-label="標記方式">
+                  <label class="deid-segment">
+                    <input type="radio" name="deid-marker-style" value="code" checked>
+                    <span data-i18n="deidMarkCode">編碼</span>
+                  </label>
+                  <label class="deid-segment">
+                    <input type="radio" name="deid-marker-style" value="label">
+                    <span data-i18n="deidMarkLabel">類別</span>
+                  </label>
+                  <label class="deid-segment">
+                    <input type="radio" name="deid-marker-style" value="blank">
+                    <span data-i18n="deidMarkBlank">空白佔位 ○○○</span>
+                  </label>
+                  <label class="deid-segment">
+                    <input type="radio" name="deid-marker-style" value="asterisk">
+                    <span data-i18n="deidMarkAsterisk">星號遮蔽 ***</span>
+                  </label>
+                  <label class="deid-segment">
+                    <input type="radio" name="deid-marker-style" value="smart">
+                    <span data-i18n="deidMarkSmart">智慧遮罩 OO/***</span>
+                  </label>
+                </div>
+                <span class="deid-row-note" id="deid-marker-note">[姓名:6e679d]　可還原，附編碼表</span>
+              </div>
+
+              <!-- Hidden legacy inputs kept for compatibility -->
+              <input type="hidden" id="deid-mode" name="mode" value="code">
+              <input type="checkbox" id="deid-partial" name="partial" value="true" checked hidden>
+
+              <div class="deid-notice" id="deid-output-notice">
+                ▲ 部分保留會露出姓氏、證號前 2 碼、手機前 4 碼等，並非完全匿名；選「編碼」模式可下載 CSV 編碼表無損還原。
+              </div>
+
+              <!-- Collapsible 1: Per-Category Adjustment (依類別調整) -->
+              <details class="deid-details" id="deid-category-details">
+                <summary>
+                  <span id="deid-cat-summary-text">依類別調整（15 類）</span>
+                  <span style="font-size: 0.8rem; font-weight: 500; color: var(--muted);">點擊展開各類別保留與遮罩預覽</span>
+                </summary>
+                <div class="deid-cat-list" id="deid-cat-list"></div>
+              </details>
+
+              <!-- Collapsible 2: Detection Rules (台灣格式 7 + 國際與通用格式 8 + 自訂規則) -->
+              <details class="deid-details" id="deid-rules-details">
+                <summary>
+                  <span id="deid-rules-summary-text">偵測規則設定（台灣格式 7 項・國際與通用格式 8 項・自訂規則）</span>
+                  <span style="font-size: 0.8rem; font-weight: 500; color: var(--muted);">查看規則 RegExp / 啟停用 / 新增自訂規則</span>
+                </summary>
+                <div id="deid-rules-container" style="padding: 10px 14px;"></div>
+              </details>
+
+              <!-- AI Privacy Risk Scoring Option -->
+              <div style="margin-top: 12px;">
+                <label class="switch-label">
+                  <input type="checkbox" id="deid-score" name="score" value="true" checked>
+                  <span data-i18n="deidScoreLabel">啟用 AI 隱私風險深度評分（評估去識別完整度與殘留個資風險）</span>
+                </label>
+              </div>
             </div>
+
             <div class="actions" style="margin-top: 18px; display: flex; gap: 12px; flex-wrap: wrap;">
               <button class="primary-btn" id="deid-btn" type="submit">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
@@ -796,7 +1052,7 @@
               </button>
               <button class="secondary-btn" id="deid-score-btn" type="button">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
-                <span data-i18n="deidScoreOnlyAction">僅 Clef 評估風險</span>
+                <span data-i18n="deidScoreOnlyAction">僅評估隱私風險</span>
               </button>
               <button class="secondary-btn" id="deid-restore-btn" type="button">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
@@ -830,7 +1086,7 @@
             </button>
           </div>
         </div>
-        <div id="clef-score-card" style="margin-bottom: 12px; padding: 10px 14px; border-radius: 8px; background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.2); font-size: 0.9rem;" hidden></div>
+        <div id="privacy-score-card" style="margin-bottom: 12px; padding: 10px 14px; border-radius: 8px; background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.2); font-size: 0.9rem;" hidden></div>
         <pre id="result"></pre>
         <div id="status-result" role="status" aria-live="polite"></div>
       </section>
@@ -880,7 +1136,7 @@
         const urlsDeidCheckbox = document.querySelector('#urls-deid');
         const uploadDeidCheckbox = document.querySelector('#upload-deid');
         const downloadCsvBtn = document.querySelector('#download-csv-btn');
-        const clefScoreCard = document.querySelector('#clef-score-card');
+        const privacyScoreCard = document.querySelector('#privacy-score-card');
         let currentCsvMapping = null;
 
         const statusRegions = {
@@ -957,20 +1213,32 @@
             copyFailed: '無法自動複製，請手動選取內容。',
             deidTab: '隱私脫敏 (De-ID)',
             deidLabel: '個資去識別化與隱私防護 (De-ID)',
-            deidPlaceholder: '貼上包含姓名、身分證字號、電話、地址、統編、Email 等個資之文本或 Markdown...',
+            deidSampleBtn: '填入完整測試範例',
+            deidOutputSettingsTitle: '輸出設定',
+            deidRetentionLabel: '保留',
+            deidRetPreview: '部分保留',
+            deidRetNone: '全部隱藏',
+            deidRetCustom: '自訂',
+            deidMarkerShortLabel: '標記',
+            deidMarkCode: '編碼',
+            deidMarkLabel: '類別',
+            deidMarkBlank: '空白佔位 ○○○',
+            deidMarkAsterisk: '星號遮蔽 ***',
+            deidMarkSmart: '智慧遮罩 OO/***',
+            deidPlaceholder: '貼上包含姓名、身分證字號、電話、地址、統編、Email、信用卡等個資之文本或 Markdown...',
             deidMarkerLabel: '標記模式：',
             deidPartialLabel: '部分保留（露出姓氏/地區碼/電信前綴，便於統計）',
-            deidScoreLabel: 'Clef / Jev 深度打分（評估去識別完整度與殘留風險）',
+            deidScoreLabel: '啟用 AI 隱私風險深度評分（評估去識別完整度與殘留個資風險）',
             deidAction: '執行個資去識別化',
-            deidScoreOnlyAction: '僅 Clef 評估風險',
+            deidScoreOnlyAction: '僅評估隱私風險',
             deidRestoreAction: '憑編碼表還原',
             deidOptIn: '啟用個資去識別化 (自動過濾身分證/電話/姓名/地址等 PII)',
             deidRequired: '請輸入要處理的文本或 Markdown。',
             deidProcessing: '正在執行繁中與國際規則個資去識別化…',
-            deidScoring: '正在透過 Clef / Jev System One 評估隱私暴露風險…',
+            deidScoring: '正在評估文本隱私暴露風險…',
             deidRestoring: '正在依據編碼表還原原始文本…',
             deidDone: '已完成個資去識別化。',
-            deidScoreDone: '已完成 Clef 隱私風險評估。',
+            deidScoreDone: '已完成隱私風險評估。',
             deidRestoreDone: '已成功還原原始文本。',
             downloadCsvBtn: '下載編碼表 (CSV)'
           },
@@ -1029,20 +1297,32 @@
             copyFailed: 'Failed to copy automatically. Please select text manually.',
             deidTab: 'Privacy De-ID',
             deidLabel: 'PII De-identification & Privacy Shield',
+            deidSampleBtn: 'Load Sample Text',
+            deidOutputSettingsTitle: 'Output Settings',
+            deidRetentionLabel: 'Keep',
+            deidRetPreview: 'Partial',
+            deidRetNone: 'Hide All',
+            deidRetCustom: 'Custom',
+            deidMarkerShortLabel: 'Mask',
+            deidMarkCode: 'Code',
+            deidMarkLabel: 'Category',
+            deidMarkBlank: 'Circles ○○○',
+            deidMarkAsterisk: 'Asterisks ***',
+            deidMarkSmart: 'Smart OO/***',
             deidPlaceholder: 'Paste text or Markdown containing personal data (names, IDs, phones, addresses, tax IDs, emails)...',
             deidMarkerLabel: 'Marker Style:',
             deidPartialLabel: 'Partial retention (keep surname/area code/carrier prefix for statistics)',
-            deidScoreLabel: 'Clef / Jev System One scoring (evaluate de-ID completeness & residual risk)',
+            deidScoreLabel: 'Enable AI privacy risk scoring (evaluate de-ID completeness & residual risk)',
             deidAction: 'De-identify PII',
-            deidScoreOnlyAction: 'Evaluate Risk with Clef',
+            deidScoreOnlyAction: 'Evaluate Privacy Risk',
             deidRestoreAction: 'Restore via Mapping',
             deidOptIn: 'De-identify PII (filter ID, phone, name, address, etc.)',
             deidRequired: 'Please enter text or Markdown to process.',
             deidProcessing: 'De-identifying personal data with localized & international rules...',
-            deidScoring: 'Evaluating privacy risk via Clef / Jev System One...',
+            deidScoring: 'Evaluating text privacy exposure risk...',
             deidRestoring: 'Restoring original text from mapping table...',
             deidDone: 'De-identification completed.',
-            deidScoreDone: 'Clef privacy risk evaluation completed.',
+            deidScoreDone: 'Privacy risk evaluation completed.',
             deidRestoreDone: 'Original text restored successfully.',
             downloadCsvBtn: 'Download Mapping (CSV)'
           }
@@ -1155,35 +1435,36 @@
           currentCsvMapping = meta?.csvMapping || null;
           downloadCsvBtn.hidden = !currentCsvMapping;
 
-          if (meta.clefScore) {
-            clefScoreCard.hidden = false;
-            const cs = meta.clefScore;
+          const scoreObj = meta?.privacyScore;
+          if (scoreObj && scoreObj.available !== false) {
+            privacyScoreCard.hidden = false;
+            const cs = scoreObj?.data || scoreObj;
             let badgeColor = '#10b981';
             let statusText = '';
-            if (cs.unmaskedPiiExists !== undefined) {
-              badgeColor = cs.unmaskedPiiExists ? '#ef4444' : '#10b981';
-              const piiText = cs.unmaskedPiiExists ? '⚠️ 存在未遮蔽個資' : '✅ 未檢出殘留個資';
-              const prob = (typeof cs.unmaskedProbability === 'number') ? ` (機率: ${(cs.unmaskedProbability * 100).toFixed(1)}%)` : '';
-              const scoreText = cs.completenessScore !== null && cs.completenessScore !== undefined ? ` | 完整度: ${cs.completenessScore}/5` : '';
-              const nodeText = cs.node ? ` | 評估節點: ${cs.node}` : '';
-              const latText = cs.latencyMs ? ` (${cs.latencyMs}ms)` : '';
-              statusText = `<strong>Clef 脫敏品質評估：</strong> ${piiText}${prob}${scoreText}${nodeText}${latText}`;
-            } else if (cs.hasPii !== undefined) {
+            if (cs.completenessScore !== undefined && cs.completenessScore !== null) {
               badgeColor = cs.hasPii ? '#f59e0b' : '#10b981';
-              const piiText = cs.hasPii ? '⚠️ 偵測到敏感個資' : '✅ 未發現顯著個資';
-              const prob = (typeof cs.piiProbability === 'number') ? ` (機率: ${(cs.piiProbability * 100).toFixed(1)}%)` : '';
-              const scoreText = cs.riskScore !== null && cs.riskScore !== undefined ? ` | 風險等級: ${cs.riskScore}/5` : '';
-              const nodeText = cs.node ? ` | 評估節點: ${cs.node}` : '';
+              const piiText = cs.hasPii ? '⚠️ 偵測到殘留個資風險' : '✅ 未檢出殘留個資';
+              const prob = (typeof cs.piiProbability === 'number') ? ` (殘留機率: ${(cs.piiProbability * 100).toFixed(1)}%)` : '';
+              const scoreText = ` | 脫敏完整度: ${cs.completenessScore}/5`;
               const latText = cs.latencyMs ? ` (${cs.latencyMs}ms)` : '';
-              statusText = `<strong>Clef 個資風險評估：</strong> ${piiText}${prob}${scoreText}${nodeText}${latText}`;
+              statusText = `<strong>AI 隱私脫敏品質評估：</strong> ${piiText}${prob}${scoreText}${latText}`;
+            } else if (cs.hasPii !== undefined) {
+              badgeColor = cs.hasPii ? '#ef4444' : '#10b981';
+              const piiText = cs.hasPii ? '⚠️ 偵測到敏感個資暴露' : '✅ 未發現顯著個資';
+              const prob = (typeof cs.piiProbability === 'number') ? ` (檢出機率: ${(cs.piiProbability * 100).toFixed(1)}%)` : '';
+              const scoreText = cs.riskScore !== null && cs.riskScore !== undefined ? ` | 暴露風險等級: ${cs.riskScore}/5` : '';
+              const latText = cs.latencyMs ? ` (${cs.latencyMs}ms)` : '';
+              statusText = `<strong>AI 文本個資風險評估：</strong> ${piiText}${prob}${scoreText}${latText}`;
             } else {
-              statusText = `<strong>Clef 評估回應：</strong> ${JSON.stringify(cs)}`;
+              privacyScoreCard.hidden = true;
             }
-            clefScoreCard.style.borderLeft = `4px solid ${badgeColor}`;
-            clefScoreCard.innerHTML = statusText;
+            if (statusText) {
+              privacyScoreCard.style.borderLeft = `4px solid ${badgeColor}`;
+              privacyScoreCard.innerHTML = statusText;
+            }
           } else {
-            clefScoreCard.hidden = true;
-            clefScoreCard.innerHTML = '';
+            privacyScoreCard.hidden = true;
+            privacyScoreCard.innerHTML = '';
           }
 
           resultArea.hidden = false;
@@ -1469,7 +1750,623 @@
           }
         });
 
-        // 5. De-identification Form, Score & Restore Listeners
+        // 5. De-identification Output Settings, Category Retention, 15 Built-in Rules & Custom Rules
+        const DEID_CATEGORIES = [
+          { cat: '姓名', sample: '馬博妤', modes: ['preview', 'none', 'surname', 'ends'] },
+          { cat: '身分證', sample: 'A123456789', modes: ['preview', 'none', 'ends'] },
+          { cat: '手機', sample: '0963-402-563', modes: ['preview', 'none', 'ends', 'delim'] },
+          { cat: '市話', sample: '(07)0221-469', modes: ['preview', 'none', 'ends', 'delim'] },
+          { cat: '地址', sample: '新竹市香山區公益街三段453號', modes: ['preview', 'none', 'city', 'district', 'ends'] },
+          { cat: '電子郵件', sample: 'ma.po.yu@mail.example.org', modes: ['preview', 'none', 'delim', 'ends'] },
+          { cat: '公司', sample: '永豐國際股份有限公司', modes: ['preview', 'none', 'ends'] },
+          { cat: '統編', sample: '04595257', modes: ['preview', 'none', 'ends'] },
+          { cat: 'SSN', sample: '123-45-6789', modes: ['preview', 'none', 'ends'] },
+          { cat: '國際電話', sample: '+1 (415) 867-5309', modes: ['preview', 'none', 'ends'] },
+          { cat: '信用卡', sample: '4242 4242 4242 4242', modes: ['preview', 'none', 'ends'] },
+          { cat: 'IBAN', sample: 'GB82 WEST 1234 5698 7654 32', modes: ['preview', 'none', 'ends'] },
+          { cat: 'IP', sample: '192.168.1.10', modes: ['preview', 'none', 'ends', 'delim'] },
+          { cat: '生日', sample: '1985-03-14', modes: ['preview', 'none', 'ends', 'delim'] },
+          { cat: '識別碼', sample: 'EMP-004521', modes: ['preview', 'none', 'ends', 'delim'] },
+        ];
+
+        const RETENTION_MODE_LABELS = {
+          preview: '部分保留（標準）',
+          none: '全部隱藏',
+          surname: '保留姓氏',
+          city: '保留到縣市',
+          district: '保留到縣市＋鄉鎮市區',
+          ends: '保留前／後幾碼',
+          delim: '以分隔字元為界',
+        };
+
+        const BUILTIN_RULES_META = [
+          { id: 'zh-name', group: 'tw', name: '中文姓名', category: '姓名', example: '王小明、歐陽志遠', regex: '(?:歐陽|司馬|諸葛|上官|張簡|范姜|...|[陳林黃張李王吳劉蔡楊許鄭謝郭洪...])(?:[\\u4e00-\\u9fa5]{1,2}(?=$|[\\s\\d\\p{P}A-Za-z]|先生|小姐|經理|...))', note: '常見姓氏（含複姓）加 1–2 字名，以前後文判斷名字長度；排除常見詞（高雄、方法…）與「甲方／雙方」' },
+          { id: 'tw-id', group: 'tw', name: '台灣身份證字號', category: '身分證', example: 'A123456789', regex: '(?<![A-Za-z0-9])[A-Z][12]\\d{8}(?!\\d)', note: '國民身分證檢核碼權重驗證，錯誤的號碼不命中' },
+          { id: 'tw-mobile', group: 'tw', name: '手機號碼', category: '手機', example: '0912-345-678、0912345678、+886-912-345-678', regex: '(?<![\\d+])(?:\\+886[-\\x20]?9|09)\\d{2}[-\\x20]?\\d{3}[-\\x20]?\\d{3}(?!\\d)', note: '09 開頭或 +886 9 開頭，前後不得緊鄰數字' },
+          { id: 'tw-landline', group: 'tw', name: '市話號碼', category: '市話', example: '(02)2712-3456、02-27123456、0227123456、037-123456、+886-2-2712-3456', regex: '(?<![\\d(])(?:\\(0(?:826|836|82|89|37|49|[2-8])\\)[-\\x20]?\\d{3,4}[-\\x20]?\\d{3,4}|...)', note: '依區碼要求位數，8 位數統編不會被當成市話；含 +886 寫法' },
+          { id: 'tw-address', group: 'tw', name: '台灣地址', category: '地址', example: '台北市信義區市府路45號8樓', regex: '(?:(?:[臺台]北市|新北市|桃園市|[臺台]中市|...)(?:[\\u4e00-\\u9fa5]{1,4}[鄉鎮市區])?...\\d{1,5}號...)', note: '以 22 縣市名為錨點，含鄉鎮市區、村里鄰、路街段巷弄號樓室' },
+          { id: 'tw-company', group: 'tw', name: '公司／組織名稱', category: '公司', example: '築夢實業股份有限公司、大安聯合診所', regex: '(?:(?![的與和及於在由向...])[\\u4e00-\\u9fa5A-Za-z0-9&·]){2,14}?(?:股份有限公司|有限公司|事務所|診所|基金會|協會|合作社...)', note: '以股份有限公司、有限公司、事務所、診所、基金會等結尾；排除「本／該／貴公司」' },
+          { id: 'tw-tax-id', group: 'tw', name: '統一編號', category: '統編', example: '統一編號 04595257', regex: '(?<![\\d-])\\d{8}(?![\\d-])', note: '統一編號檢核碼驗證（含 2023 年新制可被 5 整除規則）' },
+          { id: 'us-ssn', group: 'intl', name: '美國社會安全碼 (SSN)', category: 'SSN', example: '123-45-6789、SSN: 123456789', regex: '(?<![\\d-])(?:\\d{3}-\\d{2}-\\d{4}|\\d{3}\\x20\\d{2}\\x20\\d{4})(?![\\d-])|(?<=SSN:\\s*)\\d{9}', note: '排除 000、666、9xx 區碼與 00 組碼、0000 序號；「SSN:」標籤後的 9 位數也算' },
+          { id: 'email', group: 'intl', name: '電子郵件', category: '電子郵件', example: 'someone@example.com', regex: '[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}', note: '標準 RFC 電子郵件地址格式，部分保留預設保留 @ 網域' },
+          { id: 'intl-phone', group: 'intl', name: '國際電話', category: '國際電話', example: '+1 (415) 867-5309、+44 20 7946 0958、(416) 967-1111', regex: '(?<![\\w+])(?:\\+[1-9]\\d{0,2}(?:[\\x20.-]?(?:\\(\\d{1,4}\\)|\\d{1,5})){1,6}|...)', note: '含國碼的各國號碼或北美格式；+886 號碼歸台灣手機／市話' },
+          { id: 'credit-card', group: 'intl', name: '信用卡號', category: '信用卡', example: '4242 4242 4242 4242、3782 822463 10005', regex: '(?<![\\d-])\\d(?:[\\x20-]?\\d){12,18}(?![\\d-])', note: 'Luhn 檢核＋發卡機構號段（Visa、Mastercard、AmEx、Discover、JCB、UnionPay、Diners）' },
+          { id: 'iban', group: 'intl', name: 'IBAN 國際銀行帳號', category: 'IBAN', example: 'GB82 WEST 1234 5698 7654 32、DE89370400440532013000', regex: '(?<![A-Za-z0-9])[A-Z]{2}\\d{2}(?:\\x20?[A-Z0-9]{4}){2,7}(?:\\x20?[A-Z0-9]{1,3})?(?![A-Za-z0-9])', note: 'ISO 13616 mod-97 檢核碼＋各國固定長度驗證' },
+          { id: 'ipv4', group: 'intl', name: 'IPv4 位址', category: 'IP', example: '192.168.1.10', regex: '(?<![\\d.])(?:(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)\\.){3}(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)(?!\\.?\\d)', note: '各段 0–255 驗證，排除軟體版本號' },
+          { id: 'ipv6', group: 'intl', name: 'IPv6 位址', category: 'IP', example: '2001:db8::1', regex: '(?<![\\w:.])(?:[0-9A-Fa-f]{0,4}:){2,7}[0-9A-Fa-f]{1,4}(?![\\w:])', note: '驗證 IPv6 十六進位區段結構，排除時間與 MAC 位址' },
+          { id: 'dob', group: 'intl', name: '出生日期', category: '生日', example: 'DOB: 1985-03-14、Date of Birth: March 14, 1985、出生日期：民國 80 年 5 月 1 日', regex: '(?<=(?:DOB|Date of Birth|Birthday|出生日期|出生年月日|生日)\\s*[:：]?\\s*)(?:民國\\s*\\d{2,4}\\s*年...|\\d{4}[-/.]\\d{1,2}[-/.]\\d{1,2})', note: '只偵測「DOB／Date of Birth／出生日期／生日」等標籤後同一行的日期；驗證月日合理性' },
+        ];
+
+        const deidState = {
+          retentionMode: 'preview', // 'preview' | 'none' | 'custom'
+          markerStyle: 'code', // 'code' | 'label' | 'blank' | 'asterisk' | 'smart'
+          disabledCategories: new Set(),
+          disabledBuiltins: new Set(),
+          categoryRetentions: {},
+          customPatterns: [],
+          openRuleDetails: new Set(),
+          addingCustomRule: false,
+        };
+
+        try {
+          const savedCustom = localStorage.getItem('888-deid-custom-rules');
+          if (savedCustom) deidState.customPatterns = JSON.parse(savedCustom);
+        } catch {}
+
+        const retentionRadios = document.querySelectorAll('input[name="deid-retention-mode"]');
+        const markerRadios = document.querySelectorAll('input[name="deid-marker-style"]');
+        const retentionNoteEl = document.querySelector('#deid-retention-note');
+        const markerNoteEl = document.querySelector('#deid-marker-note');
+        const outputNoticeEl = document.querySelector('#deid-output-notice');
+        const categoryDetailsEl = document.querySelector('#deid-category-details');
+        const catListEl = document.querySelector('#deid-cat-list');
+        const catSummaryTextEl = document.querySelector('#deid-cat-summary-text');
+        const rulesContainerEl = document.querySelector('#deid-rules-container');
+        const activeRulesBadgeEl = document.querySelector('#deid-active-rules-badge');
+        const sampleBtn = document.querySelector('#deid-sample-btn');
+
+        const blankOutStr = s => s.replace(/[\p{L}\p{N}]/gu, '○');
+        const asteriskOutStr = s => s.replace(/[\p{L}\p{N}]/gu, '*');
+
+        const smartMaskPreview = (cat, orig) => {
+          switch (cat) {
+            case '姓名': return orig.slice(0, 1) + 'O'.repeat(Math.max(2, orig.length - 1));
+            case '身分證': return orig.slice(0, 3) + '******' + orig.slice(-1);
+            case '手機': return '0963-***-563';
+            case '市話': return '07-****-69';
+            case '地址': return '新竹市香山區***';
+            case '電子郵件': return 'ma***@mail.example.org';
+            case '公司': return '永豐**股份有限公司';
+            case '統編': return '04*****7';
+            case '信用卡': return '****-****-****-4242';
+            case 'SSN': return '***-**-6789';
+            default: return orig.slice(0, 3) + '***';
+          }
+        };
+
+        const computeSampleSplit = (cat, sample, r) => {
+          const mode = r?.mode || 'preview';
+          if (mode === 'none') return { head: 0, tail: 0 };
+          if (mode === 'ends') {
+            const h = Math.min(sample.length, Math.max(0, Number(r.head) || 0));
+            const t = Math.min(sample.length - h, Math.max(0, Number(r.tail) || 0));
+            return (h + t >= sample.length) ? { head: 0, tail: 0 } : { head: h, tail: t };
+          }
+          if (mode === 'delim' && r.delimiter) {
+            const idx = sample.indexOf(r.delimiter);
+            if (idx === -1) return { head: 0, tail: 0 };
+            return r.side === 'after' ? { head: 0, tail: sample.length - idx } : { head: idx + r.delimiter.length, tail: 0 };
+          }
+          if (mode === 'surname') return { head: 1, tail: 0 };
+          if (mode === 'city') return { head: 3, tail: 0 };
+          if (mode === 'district') return { head: 6, tail: 0 };
+          // standard preview split
+          switch (cat) {
+            case '姓名': return { head: 1, tail: 0 };
+            case '身分證': return { head: 2, tail: 0 };
+            case '手機': return { head: 5, tail: 0 };
+            case '市話': return { head: 4, tail: 0 };
+            case '地址': return { head: 6, tail: 0 };
+            case '電子郵件': return { head: 0, tail: 17 };
+            case '公司': return { head: 0, tail: 6 };
+            case '統編':
+            case 'SSN': return { head: 0, tail: 0 };
+            case '國際電話': return { head: 3, tail: 0 };
+            case '信用卡': return { head: 0, tail: 4 };
+            case 'IBAN': return { head: 2, tail: 0 };
+            case 'IP': return { head: 8, tail: 0 };
+            case '生日': return { head: 5, tail: 0 };
+            default: return { head: 1, tail: 0 };
+          }
+        };
+
+        const formatPreviewSample = (cat, sample, r, marker) => {
+          if (marker === 'smart') return `${sample} → ${smartMaskPreview(cat, sample)}`;
+          const { head, tail } = computeSampleSplit(cat, sample, r);
+          const prefix = sample.slice(0, head);
+          const hidden = sample.slice(head, sample.length - tail);
+          const suffix = sample.slice(sample.length - tail);
+          let mid = `[${cat}]`;
+          if (marker === 'code') mid = `[${cat}:6e679d]`;
+          else if (marker === 'label') mid = `[${cat}]`;
+          else if (marker === 'blank') mid = blankOutStr(hidden);
+          else if (marker === 'asterisk') mid = asteriskOutStr(hidden);
+          return `${sample} → ${prefix}${mid}${suffix}`;
+        };
+
+        const updateOutputHeaderNotes = () => {
+          const m = deidState.markerStyle;
+          const rMode = deidState.retentionMode;
+          deidMode.value = m;
+          deidPartial.checked = rMode !== 'none';
+
+          if (rMode === 'custom') {
+            retentionNoteEl.textContent = '依下方各類別設定逐一保留';
+          } else {
+            const rObj = rMode === 'preview' ? { mode: 'preview' } : { mode: 'none' };
+            retentionNoteEl.textContent = formatPreviewSample('身分證', 'A123456789', rObj, m);
+          }
+
+          const markerNotes = {
+            code: '[姓名:6e679d]　可還原，附 CSV 編碼表',
+            label: '[姓名]　不需還原（僅顯示類別）',
+            blank: '王○○ / 0912-○○○-○○○　不需還原，保留原本字數',
+            asterisk: '王** / 0912-***-***　星號佔位遮蔽',
+            smart: '王OO / 0912-***-678 / A12******9　依欄位智慧混合遮罩',
+          };
+          markerNoteEl.textContent = markerNotes[m] || '';
+
+          const notices = [];
+          if (rMode === 'preview') {
+            notices.push('部分保留會露出姓氏、證號前 2 碼、手機前 4 碼等，並非完全匿名');
+          } else if (rMode === 'none') {
+            notices.push('全部隱藏模式：所有命中之個資將完整遮蔽，不露出前後綴字元');
+          } else {
+            notices.push('自訂保留模式：可於下方「依類別調整」針對 15 種個資類別獨立設定保留字數或分隔界線');
+          }
+          if (m === 'code') {
+            notices.push('選「編碼」模式可下載 CSV 編碼對照表並無損還原原文');
+          } else {
+            notices.push('非編碼模式不產生還原對照表，適合單向脫敏發布');
+          }
+          outputNoticeEl.textContent = '▲ ' + notices.join('；') + '。';
+
+          const enabledCats = DEID_CATEGORIES.length - deidState.disabledCategories.size;
+          catSummaryTextEl.textContent = `依類別調整（啟用 ${enabledCats} / ${DEID_CATEGORIES.length} 類）`;
+
+          const enabledBuiltins = BUILTIN_RULES_META.length - deidState.disabledBuiltins.size;
+          const enabledCustom = deidState.customPatterns.filter(c => c.enabled !== false).length;
+          activeRulesBadgeEl.textContent = `啟用 ${enabledBuiltins + enabledCustom} 項規則（內建 ${enabledBuiltins} + 自訂 ${enabledCustom}）`;
+        };
+
+        const renderCategoryTable = () => {
+          catListEl.innerHTML = '';
+          const isCustom = deidState.retentionMode === 'custom';
+          DEID_CATEGORIES.forEach(({ cat, sample, modes }) => {
+            const row = document.createElement('div');
+            row.className = 'deid-cat-row';
+
+            const cb = document.createElement('input');
+            cb.type = 'checkbox';
+            cb.checked = !deidState.disabledCategories.has(cat);
+            cb.title = `啟用/停用「${cat}」類別`;
+            cb.addEventListener('change', () => {
+              if (cb.checked) deidState.disabledCategories.delete(cat);
+              else deidState.disabledCategories.add(cat);
+              updateOutputHeaderNotes();
+              renderCategoryTable();
+            });
+
+            const badge = document.createElement('span');
+            badge.className = `deid-badge badge-${cat}`;
+            badge.textContent = cat;
+
+            const currentRet = isCustom
+              ? (deidState.categoryRetentions[cat] || { mode: 'preview' })
+              : (deidState.retentionMode === 'preview' ? { mode: 'preview' } : { mode: 'none' });
+
+            const controlWrap = document.createElement('div');
+            controlWrap.style.display = 'flex';
+            controlWrap.style.flexWrap = 'wrap';
+            controlWrap.style.gap = '6px';
+            controlWrap.style.alignItems = 'center';
+
+            const previewEl = document.createElement('span');
+            previewEl.className = 'deid-cat-preview';
+
+            const refreshPreview = (rObj) => {
+              if (!cb.checked) {
+                previewEl.textContent = `${sample} （不處理）`;
+                previewEl.style.opacity = '0.5';
+              } else {
+                previewEl.textContent = formatPreviewSample(cat, sample, rObj, deidState.markerStyle);
+                previewEl.style.opacity = '1';
+              }
+            };
+
+            if (!isCustom || !cb.checked) {
+              const labelSpan = document.createElement('span');
+              labelSpan.style.fontSize = '0.82rem';
+              labelSpan.style.color = 'var(--muted)';
+              labelSpan.textContent = !cb.checked ? '已停用' : RETENTION_MODE_LABELS[currentRet.mode];
+              controlWrap.appendChild(labelSpan);
+              refreshPreview(currentRet);
+            } else {
+              const sel = document.createElement('select');
+              sel.className = 'deid-cat-select';
+              modes.forEach(mKey => {
+                const opt = document.createElement('option');
+                opt.value = mKey;
+                opt.textContent = RETENTION_MODE_LABELS[mKey];
+                sel.appendChild(opt);
+              });
+              sel.value = currentRet.mode;
+
+              const extraWrap = document.createElement('span');
+              extraWrap.style.display = 'inline-flex';
+              extraWrap.style.gap = '4px';
+              extraWrap.style.alignItems = 'center';
+
+              const renderExtraInputs = () => {
+                extraWrap.innerHTML = '';
+                const r = deidState.categoryRetentions[cat] || { mode: sel.value };
+                if (r.mode === 'ends') {
+                  const hInput = document.createElement('input');
+                  hInput.type = 'number';
+                  hInput.min = '0';
+                  hInput.max = '10';
+                  hInput.value = String(r.head ?? 2);
+                  hInput.style.width = '46px';
+                  hInput.style.padding = '2px 4px';
+                  hInput.title = '保留前幾碼';
+                  const tInput = document.createElement('input');
+                  tInput.type = 'number';
+                  tInput.min = '0';
+                  tInput.max = '10';
+                  tInput.value = String(r.tail ?? 1);
+                  tInput.style.width = '46px';
+                  tInput.style.padding = '2px 4px';
+                  tInput.title = '保留後幾碼';
+                  const onEndsChange = () => {
+                    deidState.categoryRetentions[cat] = {
+                      mode: 'ends',
+                      head: Math.max(0, parseInt(hInput.value, 10) || 0),
+                      tail: Math.max(0, parseInt(tInput.value, 10) || 0),
+                    };
+                    refreshPreview(deidState.categoryRetentions[cat]);
+                  };
+                  hInput.addEventListener('input', onEndsChange);
+                  tInput.addEventListener('input', onEndsChange);
+                  extraWrap.append('前', hInput, '後', tInput);
+                } else if (r.mode === 'delim') {
+                  const dInput = document.createElement('input');
+                  dInput.type = 'text';
+                  dInput.value = r.delimiter || (cat === '電子郵件' ? '@' : '-');
+                  dInput.style.width = '36px';
+                  dInput.style.padding = '2px 4px';
+                  const sSelect = document.createElement('select');
+                  sSelect.className = 'deid-cat-select';
+                  sSelect.innerHTML = '<option value="after">之後</option><option value="before">之前</option>';
+                  sSelect.value = r.side || 'after';
+                  const onDelimChange = () => {
+                    deidState.categoryRetentions[cat] = {
+                      mode: 'delim',
+                      delimiter: dInput.value || '@',
+                      side: sSelect.value,
+                    };
+                    refreshPreview(deidState.categoryRetentions[cat]);
+                  };
+                  dInput.addEventListener('input', onDelimChange);
+                  sSelect.addEventListener('change', onDelimChange);
+                  extraWrap.append(dInput, sSelect);
+                }
+              };
+
+              sel.addEventListener('change', () => {
+                const newMode = sel.value;
+                if (newMode === 'ends') {
+                  deidState.categoryRetentions[cat] = { mode: 'ends', head: 2, tail: 1 };
+                } else if (newMode === 'delim') {
+                  deidState.categoryRetentions[cat] = { mode: 'delim', delimiter: cat === '電子郵件' ? '@' : '-', side: 'after' };
+                } else {
+                  deidState.categoryRetentions[cat] = { mode: newMode };
+                }
+                renderExtraInputs();
+                refreshPreview(deidState.categoryRetentions[cat]);
+              });
+
+              renderExtraInputs();
+              controlWrap.append(sel, extraWrap);
+              refreshPreview(currentRet);
+            }
+
+            row.append(cb, badge, controlWrap, previewEl);
+            catListEl.appendChild(row);
+          });
+        };
+
+        const renderRulesPanel = () => {
+          rulesContainerEl.innerHTML = '';
+
+          const renderRuleGroup = (groupKey, groupTitle) => {
+            const rules = BUILTIN_RULES_META.filter(r => r.group === groupKey);
+            const enabledCount = rules.filter(r => !deidState.disabledBuiltins.has(r.id)).length;
+
+            const groupBox = document.createElement('div');
+            groupBox.style.border = '1px solid var(--card-border)';
+            groupBox.style.borderRadius = '8px';
+            groupBox.style.marginBottom = '12px';
+            groupBox.style.overflow = 'hidden';
+
+            const head = document.createElement('div');
+            head.style.display = 'flex';
+            head.style.justifyContent = 'space-between';
+            head.style.alignItems = 'center';
+            head.style.padding = '8px 12px';
+            head.style.background = '#f8f5ec';
+            head.style.borderBottom = '1px solid var(--card-border)';
+
+            const titleStrong = document.createElement('strong');
+            titleStrong.style.fontSize = '0.88rem';
+            titleStrong.textContent = `${groupTitle} (${rules.length})`;
+
+            const toggleAllLabel = document.createElement('label');
+            toggleAllLabel.style.display = 'inline-flex';
+            toggleAllLabel.style.alignItems = 'center';
+            toggleAllLabel.style.gap = '6px';
+            toggleAllLabel.style.fontSize = '0.82rem';
+            toggleAllLabel.style.cursor = 'pointer';
+            const toggleAllCb = document.createElement('input');
+            toggleAllCb.type = 'checkbox';
+            toggleAllCb.checked = enabledCount === rules.length;
+            toggleAllCb.indeterminate = enabledCount > 0 && enabledCount < rules.length;
+            toggleAllCb.addEventListener('change', () => {
+              rules.forEach(r => {
+                if (toggleAllCb.checked) deidState.disabledBuiltins.delete(r.id);
+                else deidState.disabledBuiltins.add(r.id);
+              });
+              updateOutputHeaderNotes();
+              renderRulesPanel();
+            });
+            toggleAllLabel.append(toggleAllCb, document.createTextNode('全部啟用'));
+            head.append(titleStrong, toggleAllLabel);
+            groupBox.appendChild(head);
+
+            rules.forEach(r => {
+              const row = document.createElement('div');
+              row.className = 'deid-rule-row';
+
+              const cb = document.createElement('input');
+              cb.type = 'checkbox';
+              cb.checked = !deidState.disabledBuiltins.has(r.id);
+              cb.addEventListener('change', () => {
+                if (cb.checked) deidState.disabledBuiltins.delete(r.id);
+                else deidState.disabledBuiltins.add(r.id);
+                updateOutputHeaderNotes();
+                renderRulesPanel();
+              });
+
+              const nameSpan = document.createElement('span');
+              nameSpan.style.fontWeight = '600';
+              nameSpan.textContent = r.name;
+
+              const badge = document.createElement('span');
+              badge.className = `deid-badge badge-${r.category}`;
+              badge.textContent = r.category;
+
+              const exSpan = document.createElement('span');
+              exSpan.className = 'deid-cat-preview';
+              exSpan.style.color = 'var(--muted)';
+              exSpan.textContent = r.example;
+
+              const isOpen = deidState.openRuleDetails.has(r.id);
+              const moreBtn = document.createElement('button');
+              moreBtn.type = 'button';
+              moreBtn.className = 'deid-small-btn';
+              moreBtn.textContent = isOpen ? '收合' : '查看規則';
+              moreBtn.addEventListener('click', () => {
+                if (isOpen) deidState.openRuleDetails.delete(r.id);
+                else deidState.openRuleDetails.add(r.id);
+                renderRulesPanel();
+              });
+
+              row.append(cb, nameSpan, badge, exSpan, moreBtn);
+              groupBox.appendChild(row);
+
+              if (isOpen) {
+                const detail = document.createElement('div');
+                detail.className = 'deid-rule-detail';
+                detail.innerHTML = `<div><strong>比對規則 (RegExp)：</strong> <code>${r.regex.replace(/</g, '&lt;')}</code></div><div style="margin-top:4px;"><strong>檢核與說明：</strong> ${r.note}</div>`;
+                groupBox.appendChild(detail);
+              }
+            });
+
+            rulesContainerEl.appendChild(groupBox);
+          };
+
+          renderRuleGroup('tw', '台灣格式');
+          renderRuleGroup('intl', '國際與通用格式');
+
+          // Custom Rules Group
+          const customBox = document.createElement('div');
+          customBox.style.border = '1px solid var(--card-border)';
+          customBox.style.borderRadius = '8px';
+          customBox.style.overflow = 'hidden';
+
+          const customHead = document.createElement('div');
+          customHead.style.display = 'flex';
+          customHead.style.justifyContent = 'space-between';
+          customHead.style.alignItems = 'center';
+          customHead.style.padding = '8px 12px';
+          customHead.style.background = '#f8f5ec';
+          customHead.style.borderBottom = '1px solid var(--card-border)';
+
+          const customTitle = document.createElement('strong');
+          customTitle.style.fontSize = '0.88rem';
+          customTitle.textContent = `自訂規則 (${deidState.customPatterns.length})`;
+
+          const addBtn = document.createElement('button');
+          addBtn.type = 'button';
+          addBtn.className = 'deid-small-btn';
+          addBtn.textContent = deidState.addingCustomRule ? '取消新增' : '＋ 新增自訂規則';
+          addBtn.addEventListener('click', () => {
+            deidState.addingCustomRule = !deidState.addingCustomRule;
+            renderRulesPanel();
+          });
+
+          customHead.append(customTitle, addBtn);
+          customBox.appendChild(customHead);
+
+          if (deidState.addingCustomRule) {
+            const formWrap = document.createElement('div');
+            formWrap.style.padding = '12px';
+            formWrap.style.background = '#faf8f3';
+            formWrap.style.borderBottom = '1px solid var(--card-border)';
+            formWrap.innerHTML = `
+              <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:8px; margin-bottom:8px;">
+                <label style="font-size:0.82rem;">規則名稱<input type="text" id="custom-rule-name" placeholder="例如：員工編號" style="margin-top:4px; padding:6px 8px; font-size:0.85rem;"></label>
+                <label style="font-size:0.82rem;">類別<select id="custom-rule-cat" class="deid-cat-select" style="width:100%; margin-top:4px; padding:6px 8px;">
+                  ${DEID_CATEGORIES.map(c => `<option value="${c.cat}" ${c.cat === '識別碼' ? 'selected' : ''}>${c.cat}</option>`).join('')}
+                </select></label>
+                <label style="font-size:0.82rem;">正規表達式 (RegExp)<input type="text" id="custom-rule-regex" placeholder="例如：EMP-\\d{6}" style="margin-top:4px; padding:6px 8px; font-size:0.85rem; font-family:monospace;"></label>
+              </div>
+              <div style="display:flex; gap:8px; align-items:center;">
+                <button type="button" class="deid-small-btn" id="custom-rule-save-btn" style="background:#2563eb; color:#fff; border-color:#2563eb;">儲存自訂規則</button>
+                <button type="button" class="deid-small-btn" id="custom-rule-sample-btn">填入範例（員工編號 EMP-\\d{6}）</button>
+              </div>
+            `;
+            customBox.appendChild(formWrap);
+
+            setTimeout(() => {
+              const nameIn = formWrap.querySelector('#custom-rule-name');
+              const catIn = formWrap.querySelector('#custom-rule-cat');
+              const regexIn = formWrap.querySelector('#custom-rule-regex');
+              const saveRuleBtn = formWrap.querySelector('#custom-rule-save-btn');
+              const fillRuleBtn = formWrap.querySelector('#custom-rule-sample-btn');
+
+              fillRuleBtn?.addEventListener('click', () => {
+                nameIn.value = '員工編號';
+                catIn.value = '識別碼';
+                regexIn.value = 'EMP-\\d{6}';
+              });
+
+              saveRuleBtn?.addEventListener('click', () => {
+                const nameVal = nameIn.value.trim();
+                const regexVal = regexIn.value.trim();
+                if (!nameVal || !regexVal) {
+                  alert('請輸入規則名稱與正規表達式');
+                  return;
+                }
+                try {
+                  new RegExp(regexVal, 'gu');
+                } catch (e) {
+                  alert('正規表達式語法錯誤：' + e.message);
+                  return;
+                }
+                deidState.customPatterns.push({
+                  id: 'custom-' + Date.now(),
+                  name: nameVal,
+                  category: catIn.value,
+                  regex: regexVal,
+                  example: regexVal,
+                  enabled: true,
+                });
+                try { localStorage.setItem('888-deid-custom-rules', JSON.stringify(deidState.customPatterns)); } catch {}
+                deidState.addingCustomRule = false;
+                updateOutputHeaderNotes();
+                renderRulesPanel();
+              });
+            }, 0);
+          }
+
+          if (deidState.customPatterns.length === 0) {
+            const emptyP = document.createElement('div');
+            emptyP.style.padding = '10px 14px';
+            emptyP.style.fontSize = '0.82rem';
+            emptyP.style.color = 'var(--muted)';
+            emptyP.textContent = '尚無自訂規則。按「＋ 新增自訂規則」可用正規表達式新增專屬欄位（如員工編號 EMP-\\d{6}、病歷號等）。';
+            customBox.appendChild(emptyP);
+          } else {
+            deidState.customPatterns.forEach((cp, idx) => {
+              const row = document.createElement('div');
+              row.className = 'deid-rule-row';
+              const cb = document.createElement('input');
+              cb.type = 'checkbox';
+              cb.checked = cp.enabled !== false;
+              cb.addEventListener('change', () => {
+                cp.enabled = cb.checked;
+                try { localStorage.setItem('888-deid-custom-rules', JSON.stringify(deidState.customPatterns)); } catch {}
+                updateOutputHeaderNotes();
+              });
+              const nameSpan = document.createElement('span');
+              nameSpan.style.fontWeight = '600';
+              nameSpan.textContent = cp.name;
+              const badge = document.createElement('span');
+              badge.className = `deid-badge badge-${cp.category}`;
+              badge.textContent = cp.category;
+              const regCode = document.createElement('code');
+              regCode.style.fontSize = '0.8rem';
+              regCode.textContent = cp.regex;
+              const delBtn = document.createElement('button');
+              delBtn.type = 'button';
+              delBtn.className = 'deid-small-btn';
+              delBtn.style.color = '#b91c1c';
+              delBtn.textContent = '刪除';
+              delBtn.addEventListener('click', () => {
+                deidState.customPatterns.splice(idx, 1);
+                try { localStorage.setItem('888-deid-custom-rules', JSON.stringify(deidState.customPatterns)); } catch {}
+                updateOutputHeaderNotes();
+                renderRulesPanel();
+              });
+              row.append(cb, nameSpan, badge, regCode, delBtn);
+              customBox.appendChild(row);
+            });
+          }
+
+          rulesContainerEl.appendChild(customBox);
+        };
+
+        retentionRadios.forEach(radio => {
+          radio.addEventListener('change', () => {
+            if (radio.checked) {
+              deidState.retentionMode = radio.value;
+              if (radio.value === 'custom') {
+                categoryDetailsEl.open = true;
+              }
+              updateOutputHeaderNotes();
+              renderCategoryTable();
+            }
+          });
+        });
+
+        markerRadios.forEach(radio => {
+          radio.addEventListener('change', () => {
+            if (radio.checked) {
+              deidState.markerStyle = radio.value;
+              updateOutputHeaderNotes();
+              renderCategoryTable();
+            }
+          });
+        });
+
+        sampleBtn?.addEventListener('click', () => {
+          deidInput.value = [
+            '【專案委外契約書】',
+            '甲方承辦人：陳大明（台灣身分證：A123456789，手機：0912-345-678，市話：(02)2712-3456）',
+            '聯絡地址：台北市信義區市府路45號8樓，電子信箱：daming.chen@example.com',
+            '乙方廠商：築夢實業股份有限公司（統一編號：04595257），複姓代表人：歐陽志遠',
+            '國際匯款帳號 IBAN：DE89370400440532013000，刷卡卡號：4242 4242 4242 4242',
+            '美國分部聯絡電話：+1 (415) 867-5309，SSN: 123-45-6789，伺服器 IP：192.168.1.10，出生日期：民國 80 年 5 月 1 日'
+          ].join('\n');
+          deidInput.focus();
+        });
+
+        // Initial render of De-ID Output Settings & Rules panels
+        updateOutputHeaderNotes();
+        renderCategoryTable();
+        renderRulesPanel();
+
+        // 5b. De-identification Form, Score & Restore Listeners
         deidForm.addEventListener('submit', async event => {
           event.preventDefault();
           const textVal = deidInput.value.trim();
@@ -1494,8 +2391,13 @@
               },
               body: JSON.stringify({
                 text: deidInput.value,
-                mode: deidMode.value,
-                partial: Boolean(deidPartial.checked),
+                mode: deidState.markerStyle,
+                partial: deidState.retentionMode !== 'none',
+                retentionMode: deidState.retentionMode,
+                categoryRetentions: deidState.categoryRetentions,
+                disabledCategories: Array.from(deidState.disabledCategories),
+                disabledBuiltins: Array.from(deidState.disabledBuiltins),
+                customPatterns: deidState.customPatterns.filter(c => c.enabled !== false),
                 score: Boolean(deidScore.checked)
               })
             });
@@ -1503,8 +2405,8 @@
             if (!response.ok) throw new Error(res?.message || res?.error || `Server error ${response.status}`);
             const payload = res?.data || res;
             showResult(payload.text || '', {
-              csvMapping: payload.csvMapping,
-              clefScore: payload.clefScore
+              csvMapping: deidState.markerStyle === 'code' ? payload.csvMapping : null,
+              privacyScore: payload.privacyScore
             });
             announce(statusRegions.deid, 'deidDone');
           } catch (err) {
@@ -1544,7 +2446,7 @@
             if (!response.ok) throw new Error(res?.message || res?.error || `Server error ${response.status}`);
             const payload = res?.data || res;
             showResult(deidInput.value, {
-              clefScore: payload.clefScore || payload
+              privacyScore: payload.privacyScore || payload
             });
             announce(statusRegions.deid, 'deidScoreDone');
           } catch (err) {

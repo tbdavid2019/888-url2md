@@ -39,8 +39,118 @@ function applySplit(item: RedactionItem, retention: Retention | undefined, book:
   item.code = book.codeFor(item.category, item.original, head, tail);
 }
 
+/**
+ * Reject user-supplied custom regexes that are overly long, contain backreferences/lookarounds,
+ * or have nested quantifiers / quantified alternations at any group depth that can cause ReDoS.
+ */
+export function isSafeCustomRegex(raw: string): boolean {
+  if (!raw || typeof raw !== 'string' || raw.length > 256) return false;
+  // Reject backreferences like \1 .. \9 or \k<name> and lookbehind/lookahead assertions
+  if (/\\[1-9]|\\k<|\(\?[<=!]/.test(raw)) return false;
+
+  interface GroupFrame {
+    hasQuantifier: boolean;
+    hasAlternation: boolean;
+  }
+  const stack: GroupFrame[] = [{ hasQuantifier: false, hasAlternation: false }];
+  let inCharClass = false;
+  let lastTokenQuantifiable = false;
+
+  for (let i = 0; i < raw.length; i++) {
+    const ch = raw[i];
+    if (ch === '\\') {
+      i++; // skip escaped char
+      lastTokenQuantifiable = true;
+      continue;
+    }
+    if (inCharClass) {
+      if (ch === ']') {
+        inCharClass = false;
+        lastTokenQuantifiable = true;
+      }
+      continue;
+    }
+    if (ch === '[') {
+      inCharClass = true;
+      continue;
+    }
+    if (ch === '(') {
+      if (stack.length > 6) return false; // reject deeply nested groups
+      if (raw.slice(i, i + 3) === '(?:') {
+        i += 2;
+      } else if (raw[i + 1] === '?') {
+        return false; // reject other special group extensions in untrusted custom regex
+      }
+      stack.push({ hasQuantifier: false, hasAlternation: false });
+      lastTokenQuantifiable = false;
+      continue;
+    }
+    if (ch === ')') {
+      if (stack.length <= 1) return false;
+      const popped = stack.pop()!;
+      const top = stack[stack.length - 1];
+      // Check if this closing group is followed by a quantifier
+      const next = raw.slice(i + 1);
+      const qMatch = next.match(/^\s*(?:([+*?])|\{(\d+)(?:,(\d*))?\})/);
+      const isGroupQuantified = Boolean(qMatch);
+      const isRepeatingQuantifier =
+        qMatch &&
+        (qMatch[1] === '+' ||
+          qMatch[1] === '*' ||
+          (qMatch[2] !== undefined &&
+            (Number(qMatch[2]) > 1 || (qMatch[3] !== undefined && (qMatch[3] === '' || Number(qMatch[3]) > 1)))));
+
+      if (isGroupQuantified && (popped.hasQuantifier || (isRepeatingQuantifier && popped.hasAlternation))) {
+        return false; // Nested quantifier or repeating alternation group -> ReDoS risk
+      }
+      if (popped.hasQuantifier || isGroupQuantified) {
+        top.hasQuantifier = true;
+      }
+      if (popped.hasAlternation) {
+        top.hasAlternation = true;
+      }
+      lastTokenQuantifiable = true;
+      continue;
+    }
+    if (ch === '|') {
+      stack[stack.length - 1].hasAlternation = true;
+      lastTokenQuantifiable = false;
+      continue;
+    }
+    if (ch === '+' || ch === '*' || ch === '?') {
+      if (!lastTokenQuantifiable) return false; // Reject stacked quantifiers like a++ or a+*
+      if (ch === '+' || ch === '*') {
+        stack[stack.length - 1].hasQuantifier = true;
+      }
+      lastTokenQuantifiable = false;
+      continue;
+    }
+    if (ch === '{') {
+      const m = raw.slice(i).match(/^\{(\d+)(?:,(\d*))?\}/);
+      if (m) {
+        if (!lastTokenQuantifiable) return false;
+        const min = Number(m[1] || 0);
+        const max = m[2] === undefined ? min : m[2] === '' ? 1000 : Number(m[2]);
+        if (min > 64 || max > 64 || max < min) return false;
+        if (max > 1) {
+          stack[stack.length - 1].hasQuantifier = true;
+        }
+        i += m[0].length - 1;
+        lastTokenQuantifiable = false;
+        continue;
+      }
+    }
+    lastTokenQuantifiable = ch !== '^' && ch !== '$';
+  }
+
+  return !inCharClass && stack.length === 1;
+}
+
 export function compilePattern(p: Pattern): RegExp | null {
   try {
+    if (p.source === 'custom' && !isSafeCustomRegex(p.regex)) {
+      return null;
+    }
     return new RegExp(p.regex, 'gu');
   } catch {
     return null;
@@ -69,7 +179,9 @@ export function detect(
     const re = compilePattern(p);
     if (!re) continue;
     let m: RegExpExecArray | null;
+    let steps = 0;
     while ((m = re.exec(text)) !== null) {
+      if (++steps > 5000) break;
       if (m[0].length === 0) {
         re.lastIndex++;
         continue;

@@ -460,27 +460,33 @@ curl -s "https://create360.ai/api/capabilities" | jq .ocr
 ### 1.12 個資去識別化、隱私評估與還原 API (PII De-identification & Privacy Shield)
 
 #### **A. 執行個資去識別化 (`POST /api/deid` 或 `POST /v1/deid`)**
-支援繁體中文（身分證字號、統編、電話、地址、姓名、公司）與國際格式（信用卡、SSN、IBAN、Email、IP）：
+支援台灣格式 7 項（中文姓名、台灣身分證字號、手機號碼、市話號碼、台灣地址、公司／組織名稱、統一編號）、國際與通用格式 8 項（電子郵件、國際電話、信用卡號、美國 SSN、IBAN 國際銀行帳號、IPv4/IPv6 位址、出生日期）與自訂 RegExp 規則；支援 5 種標記模式（`code`、`label`、`blank` `○○○`、`asterisk` `***`、`smart` `OO/***`）與 15 類別獨立保留策略：
 
 ```bash
-# 預設 code 標記模式，啟用部分保留與 Clef 完整度評分 (回傳 JSON)
+# 預設 code 標記模式，啟用部分保留與 AI 隱私完整度評分 (回傳 JSON)
 curl -X POST "https://create360.ai/api/deid" \
   -H "Content-Type: application/json" \
   -d '{
     "text": "立契約人：王小明（身分證字號：A123456789），聯絡電話：0912-345-678，公司為宏達實業股份有限公司（統一編號：04595257），電子信箱：user@example.com。",
     "mode": "code",
-    "partial": true,
+    "retentionMode": "preview",
     "score": true
   }'
 
-# 直接回傳乾淨脫敏後的 Markdown 格式 (Accept: text/markdown)
+# 使用 smart 智慧遮罩模式 (王OO、A12******9、0912-***-678、台北市信義區***) 或 asterisk 星號遮蔽 (***)
 curl -X POST "https://create360.ai/api/deid" \
   -H "Content-Type: application/json" \
-  -H "Accept: text/markdown" \
-  -d '{"text": "專案負責人：林志穎，電話：0987-654-321"}'
+  -d '{
+    "text": "立契約人：王小明（身分證：A123456789，手機：0912-345-678，地址：台北市信義區市府路45號）",
+    "mode": "smart",
+    "retentionMode": "preview"
+  }'
+
+# 查詢內建 15 條台灣與國際偵測規則清單
+curl -s "https://create360.ai/api/deid/rules"
 ```
 
-#### **B. Clef / Jev System One 隱私暴露風險評估 (`POST /api/deid/score`)**
+#### **B. AI 隱私暴露風險評估 (`POST /api/deid/score`)**
 ```bash
 curl -X POST "https://create360.ai/api/deid/score" \
   -H "Content-Type: application/json" \
@@ -651,9 +657,9 @@ curl -X POST 'https://create360.ai/v1/batch' \
 - `X-Detach-Invisibles: true`: 產生 Markdown 前徹底剔除 `display:none` 隱形元素
 - `X-With-Ocr: true` / `X-Ocr: true`: 啟用 AnyDoc 文檔解析的光學字符辨識（OCR）
 - `X-Deidentify: true`: 啟用自動個資去識別化 (PII Filtering)
-- `X-Deid-Mode`: 指定去識別化標記模式 (`code` | `category` | `mask`，預設 `code`)
+- `X-Deid-Mode`: 指定去識別化標記模式 (`code` | `label` | `blank` | `asterisk` | `smart`，預設 `code`)
 - `X-Deid-Partial`: 是否保留統計前綴 (`true` | `false`，預設 `true`)
-- `X-Deid-Score`: 是否在去識別化後執行 Clef System One 完整度評分 (`true` | `false`)
+- `X-Deid-Score`: 是否在去識別化後執行 AI 隱私完整度評分 (`true` | `false`)
 - `X-Adaptive: true`: 啟用 CSS 結構化抽取的保守式 adaptive selector
 - `X-Adaptive-Id`: adaptive profile 識別名稱，只允許安全識別字元
 - `X-Adaptive-Threshold`: adaptive selector 信心門檻，範圍 `0.5`–`0.95`
@@ -1160,27 +1166,33 @@ curl -s "https://create360.ai/api/capabilities" | jq .ocr
 ### 1.12 PII De-identification, Risk Scoring & Restoration API
 
 #### **A. De-identify Text (`POST /api/deid` or `POST /v1/deid`)**
-Supports localized Taiwanese and international personal data:
+Supports 7 Taiwan formats, 8 international formats, custom RegExp patterns, 5 marker modes (`code`, `label`, `blank` `○○○`, `asterisk` `***`, `smart` `OO/***`), and per-category retention rules across 15 categories:
 
 ```bash
-# JSON response with code tokens, CSV mapping, and Clef completeness score
+# JSON response with code tokens, CSV mapping, and AI privacy completeness score
 curl -X POST "https://create360.ai/api/deid" \
   -H "Content-Type: application/json" \
   -d '{
     "text": "Contract party: John Doe (ID: A123456789), Phone: 0912-345-678, Company: Acme Corp (Tax ID: 04595257), Email: user@example.com.",
     "mode": "code",
-    "partial": true,
+    "retentionMode": "preview",
     "score": true
   }'
 
-# Clean de-identified Markdown stream directly (Accept: text/markdown)
+# Smart category-aware display mask (OO/***) or asterisk mask (***)
 curl -X POST "https://create360.ai/api/deid" \
   -H "Content-Type: application/json" \
-  -H "Accept: text/markdown" \
-  -d '{"text": "Contact: Alice Wang, Phone: 0987-654-321"}'
+  -d '{
+    "text": "Party: 王小明 (ID: A123456789, Phone: 0912-345-678, Address: 台北市信義區市府路45號)",
+    "mode": "smart",
+    "retentionMode": "preview"
+  }'
+
+# Inspect all 15 built-in Taiwan & international detection rules
+curl -s "https://create360.ai/api/deid/rules"
 ```
 
-#### **B. Clef / Jev Privacy Risk Scoring (`POST /api/deid/score`)**
+#### **B. AI Privacy Risk Scoring (`POST /api/deid/score`)**
 ```bash
 curl -X POST "https://create360.ai/api/deid/score" \
   -H "Content-Type: application/json" \
@@ -1307,9 +1319,9 @@ Control crawler behavior via request headers:
 - `X-Detach-Invisibles: true`: Strip `display:none` and invisible DOM nodes prior to markdown generation
 - `X-With-Ocr: true` / `X-Ocr: true`: Enable OCR image and scanned document text/table recognition in AnyDoc parsing
 - `X-Deidentify: true`: Enable automatic PII de-identification on crawled or parsed pages
-- `X-Deid-Mode`: Set marker mode (`code` | `category` | `mask`, default: `code`)
+- `X-Deid-Mode`: Set marker mode (`code` | `label` | `blank` | `asterisk` | `smart`, default: `code`)
 - `X-Deid-Partial`: Preserve statistical prefixes (`true` | `false`, default: `true`)
-- `X-Deid-Score`: Perform Clef System One completeness evaluation after redaction (`true` | `false`)
+- `X-Deid-Score`: Perform AI privacy completeness evaluation after redaction (`true` | `false`)
 - `X-Adaptive: true`: Enable conservative adaptive selectors for CSS structured extraction
 - `X-Adaptive-Id`: Adaptive profile identifier; only safe identifier characters are accepted
 - `X-Adaptive-Threshold`: Adaptive selector confidence threshold from `0.5` to `0.95`

@@ -17,9 +17,25 @@ import {
 } from './deidentification';
 import { SystemOneClientService, SystemOneEvaluationResult } from './systemone-client';
 
+export interface CustomPatternInput {
+  id?: string;
+  name: string;
+  category: Category;
+  regex?: string;
+  pattern?: string;
+  example?: string;
+  enabled?: boolean;
+  retention?: Retention;
+}
+
 export interface DeidentifyOptions {
   mode?: MarkerStyle;
   partial?: boolean;
+  retentionMode?: 'preview' | 'none' | 'custom';
+  categoryRetentions?: Partial<Record<Category, Retention>>;
+  disabledBuiltins?: string[];
+  disabledCategories?: Category[];
+  customPatterns?: CustomPatternInput[];
   score?: boolean;
   categories?: Category[];
 }
@@ -38,24 +54,82 @@ export class DeidService {
   ) {}
 
   /**
-   * Run de-identification on text using Taiwan/International rule patterns.
+   * Return the list of built-in detection rules (7 Taiwan + 8 International).
+   */
+  getBuiltinRules() {
+    return BUILTIN_PATTERNS.map((p) => ({
+      id: p.id,
+      name: p.name,
+      group: p.group,
+      category: p.category,
+      regex: p.regex,
+      example: p.example || '',
+      note: p.note || '',
+      enabled: p.enabled,
+    }));
+  }
+
+  /**
+   * Run de-identification on text using Taiwan/International rule patterns + custom rules.
    */
   async deidentify(
     text: string,
     options: DeidentifyOptions = {},
   ): Promise<DeidentifyExecutionResult> {
     const mode = options.mode || 'code';
-    const isPartial = options.partial !== false;
+    const retentionMode =
+      options.retentionMode || (options.partial === false ? 'none' : 'preview');
 
-    let patterns: Pattern[] = BUILTIN_PATTERNS;
-    if (options.categories && options.categories.length > 0) {
-      const allowed = new Set(options.categories);
-      patterns = patterns.filter((p) => allowed.has(p.category));
+    const disabledBuiltins = new Set(options.disabledBuiltins || []);
+    const disabledCategories = new Set(options.disabledCategories || []);
+    const allowedCategories =
+      options.categories && options.categories.length > 0
+        ? new Set(options.categories)
+        : null;
+
+    const categoryRetentions = options.categoryRetentions || {};
+
+    const defaultRetention: Retention =
+      retentionMode === 'none'
+        ? { mode: 'none' }
+        : { mode: 'preview' };
+
+    let patterns: Pattern[] = BUILTIN_PATTERNS.filter(
+      (p) => !disabledBuiltins.has(p.id) && !disabledCategories.has(p.category),
+    ).map((p) => ({
+      ...p,
+      retention:
+        retentionMode === 'custom' && categoryRetentions[p.category]
+          ? categoryRetentions[p.category]
+          : defaultRetention,
+    }));
+
+    if (options.customPatterns && Array.isArray(options.customPatterns)) {
+      for (const cp of options.customPatterns) {
+        const regexStr = cp?.regex || cp?.pattern;
+        if (!cp || !regexStr || cp.enabled === false) continue;
+        if (disabledCategories.has(cp.category)) continue;
+        patterns.push({
+          id: cp.id || `custom-${patterns.length + 1}`,
+          name: cp.name || '自訂規則',
+          group: 'custom',
+          category: cp.category || '識別碼',
+          source: 'custom',
+          regex: regexStr,
+          example: cp.example || '',
+          enabled: true,
+          retention:
+            cp.retention ||
+            (retentionMode === 'custom' && categoryRetentions[cp.category]
+              ? categoryRetentions[cp.category]
+              : defaultRetention),
+        });
+      }
     }
 
-    const defaultRetention: Retention = isPartial
-      ? { mode: 'preview' }
-      : { mode: 'none' };
+    if (allowedCategories) {
+      patterns = patterns.filter((p) => allowedCategories.has(p.category));
+    }
 
     const book = new CodeBook();
     const items = detect(text, patterns, book, defaultRetention);
@@ -73,7 +147,7 @@ export class DeidService {
   }
 
   /**
-   * Score raw, un-deidentified text using Clef / Jev System One failover.
+   * Score raw, un-deidentified text for privacy exposure risk.
    */
   async scorePrivacy(text: string): Promise<SystemOneEvaluationResult> {
     return this.systemOneClient.scoreRawPrivacy(text);

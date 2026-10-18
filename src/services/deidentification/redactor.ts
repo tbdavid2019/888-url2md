@@ -1,8 +1,13 @@
 import type { MappingEntry, MarkerStyle, RedactionItem, RedactionResult, TextEdit } from './types';
 import { buildMarker } from './codes';
 import { serializeMapping } from './csv';
+import { maskDisplay } from './mask';
 
+/** Each letter or digit becomes ○; punctuation, spaces and @ stay. */
 export const blankOut = (s: string): string => s.replace(/[\p{L}\p{N}]/gu, '○');
+
+/** Each letter or digit becomes *; punctuation, spaces and @ stay. */
+export const asteriskOut = (s: string): string => s.replace(/[\p{L}\p{N}]/gu, '*');
 
 export function splitItem(it: RedactionItem): { prefix: string; hidden: string; suffix: string } {
   const head = it.head ?? 0;
@@ -17,12 +22,27 @@ export function splitItem(it: RedactionItem): { prefix: string; hidden: string; 
 
 export function outputFor(it: RedactionItem, style: MarkerStyle = 'code'): string {
   const { prefix, hidden, suffix } = splitItem(it);
-  const marker =
-    style === 'code'
-      ? buildMarker(it.category, it.code)
-      : style === 'category'
-      ? `[${it.category}]`
-      : blankOut(hidden);
+  if (style === 'smart') {
+    const retMode = it.retention?.mode || 'preview';
+    if (retMode === 'preview') {
+      return maskDisplay(it.category, it.original);
+    }
+    const smartMask =
+      it.category === '姓名'
+        ? hidden.replace(/[\p{L}\p{N}]/gu, 'O')
+        : asteriskOut(hidden);
+    return prefix + smartMask + suffix;
+  }
+  let marker: string;
+  if (style === 'code') {
+    marker = buildMarker(it.category, it.code);
+  } else if (style === 'category' || style === 'label') {
+    marker = `[${it.category}]`;
+  } else if (style === 'asterisk' || style === 'star') {
+    marker = asteriskOut(hidden);
+  } else {
+    marker = blankOut(hidden);
+  }
   return prefix + marker + suffix;
 }
 

@@ -181,6 +181,67 @@ describe('DeidService integration', () => {
     assert.equal(restored.restoredText, text);
     assert.equal(restored.restoredCount >= 3, true);
   });
+
+  it('supports asterisk (***) and smart (OO/***) masking modes', async () => {
+    const { DeidService } = await import('../../build/services/deid-service.js');
+    const { SystemOneClientService } = await import('../../build/services/systemone-client.js');
+    const systemOne = new SystemOneClientService(loggerMock);
+    const service = new DeidService(loggerMock, systemOne);
+
+    const text = '申請人：王小明（身分證：A123456789，手機：0912-345-678，地址：台北市信義區市府路45號）';
+
+    const resAsterisk = await service.deidentify(text, { mode: 'asterisk', retentionMode: 'preview' });
+    assert.ok(resAsterisk.redactedText.includes('王**'));
+    assert.ok(resAsterisk.redactedText.includes('A1********'));
+    assert.ok(resAsterisk.redactedText.includes('0912-***-***'));
+
+    const resSmart = await service.deidentify(text, { mode: 'smart', retentionMode: 'preview' });
+    assert.ok(resSmart.redactedText.includes('王OO'));
+    assert.ok(resSmart.redactedText.includes('A12******9'));
+    assert.ok(resSmart.redactedText.includes('0912-***-678'));
+    assert.ok(resSmart.redactedText.includes('台北市信義區***'));
+
+    // Smart mode with retentionMode 'none' must fully mask without exposing surname/prefix
+    const resSmartNone = await service.deidentify(text, { mode: 'smart', retentionMode: 'none' });
+    assert.ok(resSmartNone.redactedText.includes('OOO'));
+    assert.ok(!resSmartNone.redactedText.includes('王OO'));
+    assert.ok(resSmartNone.redactedText.includes('**********'));
+  });
+
+  it('supports customPatterns, disabledBuiltins, categoryRetentions, and rejects unsafe ReDoS custom regexes', async () => {
+    const { DeidService } = await import('../../build/services/deid-service.js');
+    const { SystemOneClientService } = await import('../../build/services/systemone-client.js');
+    const systemOne = new SystemOneClientService(loggerMock);
+    const service = new DeidService(loggerMock, systemOne);
+
+    const rules = service.getBuiltinRules();
+    assert.equal(rules.length, 15);
+    assert.equal(rules.filter((r) => r.group === 'tw').length, 7);
+    assert.equal(rules.filter((r) => r.group === 'intl').length, 8);
+
+    const text = '員工編號 EMP-123456，姓名：王小明，地址：台北市信義區市府路45號';
+    const res = await service.deidentify(text, {
+      mode: 'asterisk',
+      retentionMode: 'custom',
+      categoryRetentions: {
+        地址: { mode: 'city' }, // 保留到縣市のみ
+      },
+      disabledBuiltins: ['zh-name'],
+      customPatterns: [
+        { name: '員工編號', category: '識別碼', pattern: 'EMP-\\d{6}' },
+        { name: 'EvilReDoS1', category: '識別碼', pattern: '(a+)+$' },
+        { name: 'EvilReDoS2', category: '識別碼', pattern: '((a+)+)$' },
+        { name: 'EvilReDoS3', category: '識別碼', pattern: '((a|aa)+)$' },
+      ],
+    });
+
+    // zh-name disabled -> 王小明 remains untouched
+    assert.ok(res.redactedText.includes('王小明'));
+    // custom pattern matched EMP-123456 -> masked
+    assert.ok(!res.redactedText.includes('EMP-123456'));
+    // 地址 retention kind 'city' -> keeps 台北市, masks 信義區市府路45號
+    assert.ok(res.redactedText.includes('台北市*********'));
+  });
 });
 
 describe('SystemOneClientService Failover & Scoring', () => {

@@ -55,6 +55,7 @@ export interface FormattedPage {
         itemsCount?: number;
         mappings?: Array<{ code: string; category: string; original: string; prefix?: string; suffix?: string; }>;
         csvMapping?: string;
+        privacyScore?: any;
         clefScore?: any;
     };
 
@@ -127,6 +128,7 @@ export class FormattedPageDto extends Coercible {
         itemsCount?: number;
         mappings?: Array<{ code: string; category: string; original: string; prefix?: string; suffix?: string; }>;
         csvMapping?: string;
+        privacyScore?: any;
         clefScore?: any;
     };
 

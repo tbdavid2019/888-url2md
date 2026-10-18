@@ -2,6 +2,28 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.10.18.6] - 2026-10-18 - 完整移植 5 種遮蔽標記、15 類精細保留調整、15+N 規則管理與徹底隱藏內部基礎架構名稱 (Full De-ID Masking & Rules Parity + Zero Internal Tech Exposure)
+
+### Added
+- **5 種遮蔽標記模式完整實現 (`src/services/deidentification/mask.ts`, `redactor.ts`, `types.ts`)**:
+  - 完整移植 `dean9703111/data-deidentification` 遮蔽引擎並擴充為 5 種標記模式：
+    1. `code`（編碼）：可逆標記格式 `[類別:代碼]`（如 `王[姓名:6e679d]`，搭配保留前綴）。
+    2. `label` / `category`（類別）：純類別佔位符 `[類別]`（如 `王[姓名]`）。
+    3. `blank` / `mask`（空白佔位）：全形圓圈佔位符 `○○○`（如 `王○○`、`A1○○○○○○○○`）。
+    4. `asterisk` / `star`（星號遮蔽）：星號遮罩 `***`（如 `王**`、`A1********`、`0912-***-***`）。
+    5. `smart`（智慧遮罩 `OO/***`）：依類別智慧格式化遮罩（如姓名 `王OO`、身分證 `A12******9`、手機 `0912-***-678`、市話 `02-****-56`、地址 `台北市信義區***`、信箱 `ma***@mail.example.org`、公司 `築夢**股份有限公司`、統編 `04*****7`）。
+- **3 段全域保留與 15 類別獨立保留微調面板 (`public/app.html`, `src/services/deid-service.ts`)**:
+  - 前端新增 Segmented Control 切換「保留模式」：`部分保留 (preview)`、`全部隱藏 (none)`、`自訂 (custom)`。
+  - 新增可摺疊「**依類別調整 (15 類)**」設定面板：支援 15 個個資類別獨立啟用/停用勾選、彩色類別標籤、各類別專屬保留策略下拉選單（`部分保留（標準）`、`全部隱藏`、`保留姓氏`、`保留到縣市`、`保留到縣市＋鄉鎮市區`、`保留前／後幾碼` [可自訂前 N 碼 / 後 M 碼]、`以分隔字元為界` [可自訂分隔符與保留之前/之後]），並提供即時動態輸出預覽。
+- **15 項內建偵測規則檢視器與自訂 RegExp 規則管理器 (`GET /api/deid/rules`, `public/app.html`)**:
+  - 後端新增 `GET /api/deid/rules`（相容 `/v1/deid/rules`）端點，回傳台灣格式 7 項與國際通用格式 8 項共 15 條內建規則定義。
+  - 前端新增可摺疊「**偵測規則設定（台灣格式 7 項・國際與通用格式 8 項・自訂規則）**」面板：支援分組「全部啟用」切換、單一規則勾選啟用/停用、點擊「`[查看規則]`」展開完整正規表達式與演算法檢核說明（如統編邏輯乘積和、Luhn 檢核、IBAN mod-97），以及「`＋ 新增自訂規則`」表單（支援規則名稱、15 類別歸屬、RegExp 語法即時驗證與「填入範例」一鍵帶入員工編號 `EMP-\d{6}`）。
+
+### Security & Privacy (Zero Internal Tech Exposure)
+- **徹底移除前端與公開 API 之內部底層技術名稱揭露 (`public/app.html`, `src/api/crawler.ts`, `public/SKILL.md`, `public/llms.txt`, `public/llms-full.txt`)**:
+  - 前端 UI (`public/app.html`)、變數命名與國際化字串全面移除內部評估節點與模型代號，統一呈現為「AI 隱私脫敏完整度評估」與「AI 文本個資風險評估」。
+  - 後端 `/api/capabilities`、`/api/deid`、`/api/deid/score` 與爬蟲 `formatted.deid` 響應全面過濾內部節點 URL、模型名稱與原始底層回應（僅保留 `available`, `hasPii`, `piiProbability`, `completenessScore`, `riskScore`, `latencyMs`）。
+
 ## [2026.10.18.5] - 2026-10-18 - 修復前端去識別化 RPC 響應解包與異常捕獲 (Fix De-ID RPC Response Unwrap & Hardened Error Handling)
 
 ### Fixed
