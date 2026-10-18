@@ -44,6 +44,18 @@ services:
       S3_LOG_ACCESS_KEY_ID: ${S3_LOG_ACCESS_KEY_ID:-}
       S3_LOG_SECRET_ACCESS_KEY: ${S3_LOG_SECRET_ACCESS_KEY:-}
       S3_LOG_PREFIX: ${S3_LOG_PREFIX:-url2md-logs/}
+      # --- OCR Service Configuration ---
+      OCR_SERVICE_URLS: ${OCR_SERVICE_URLS:-https://ocr.aiurl.tw}
+      OCR_SECRET_KEY: ${OCR_SECRET_KEY:-}
+      OCR_TIMEOUT_MS: ${OCR_TIMEOUT_MS:-120000}
+      OCR_HEALTH_TIMEOUT_MS: ${OCR_HEALTH_TIMEOUT_MS:-6000}
+      OCR_POLL_INTERVAL_MS: ${OCR_POLL_INTERVAL_MS:-30000}
+      # --- De-Identification & Privacy Risk Scoring (Clef / Jev) ---
+      CLEF_PRIMARY_URL: ${CLEF_PRIMARY_URL:-https://clef.create360.ai/v1/systemone}
+      CLEF_FALLBACK_URL: ${CLEF_FALLBACK_URL:-https://clef.aiurl.tw/v1/systemone}
+      TYPESAFE_API_URL: ${TYPESAFE_API_URL:-https://api.typesafe.ai/v1/systemone}
+      TYPESAFE_API_KEY: ${TYPESAFE_API_KEY:-}
+      JEV_API_KEY: ${JEV_API_KEY:-}
     labels:
       - "com.centurylinklabs.watchtower.enable=true"
       - "com.centurylinklabs.watchtower.scope=url2md"

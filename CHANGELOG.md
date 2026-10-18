@@ -2,6 +2,12 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.10.18.3] - 2026-10-18 - 補齊 Docker Compose 容器 OCR 與 Clef/Jev 環境變數透傳 (Pass OCR & Clef Env to Container)
+
+### Fixed
+- **Docker Compose 環境變數透傳補齊**: 在 `docker-compose.yml` 之 `888-url2md` 服務環境變數清單中補齊 `OCR_SERVICE_URLS`（預設指向 `https://ocr.aiurl.tw`）、`OCR_SECRET_KEY`、`OCR_TIMEOUT_MS`、`OCR_HEALTH_TIMEOUT_MS`、`OCR_POLL_INTERVAL_MS`，以及 Clef/Jev 去識別化打分服務相關變數（`CLEF_PRIMARY_URL`、`CLEF_FALLBACK_URL`、`TYPESAFE_API_URL`、`TYPESAFE_API_KEY`、`JEV_API_KEY`）。
+- **前端 OCR 功能頁籤恢復**: 修正因未透傳 `OCR_SERVICE_URLS` 導致 `/api/capabilities` 之 `ocr.available` 被誤判為 `false`，進而使前端動態探測將「圖片辨識 (OCR)」頁籤隱藏的問題。更新後前端首頁完整呈現 5 個功能頁籤（即時搜尋、網址轉換、文檔解析、圖片辨識 OCR、隱私脫敏 De-ID）。
+
 ## [2026.10.18.2] - 2026-10-18 - 修正 civkit 多路由 Method 名稱衝突 (Fix Duplicate RPC Names)
 
 ### Fixed
