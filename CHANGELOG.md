@@ -2,6 +2,20 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.10.18.4] - 2026-10-18 - Skill 與 llms.txt 全量同步 De-ID 個資脫敏規格 (Sync De-ID Spec to Skill & LLMs Docs)
+
+### Added
+- **AI Agent Skill 規格全量同步 (`public/SKILL.md` 與 `generateSkillMd()`)**:
+  - 新增章節 `### 6. PII De-Identification & Privacy Shield (Taiwan & Intl Rules + Clef / Jev Scoring)`。
+  - 明確定義獨立呼叫端點：`POST /api/deid` (可逆脫敏與 CSV 輸出)、`POST /api/deid/score` (Clef 隱私風險評估)、`POST /api/deid/restore` (CSV 映射表還原)。
+  - 明確定義爬蟲與文檔解析整合：說明任何網頁或文檔轉譯請求均可帶入 `X-Deidentify: true`、`?deid=true` 或 `"deid": true` 於送入 LLM 上下文前預先脫敏。
+  - 在 `### 10. Optional Headers` 加入 `X-Deidentify`、`X-Deid-Mode`、`X-Deid-Partial`、`X-Deid-Score` 標頭規範。
+- **LLM Discovery 文件全量同步 (`public/llms.txt`, `public/llms-full.txt`, `generateLlmstxt()`)**:
+  - 在 Capabilities 區塊加入 PII De-Identification 核心能力說明。
+  - 在 Endpoints 清單加入 `/api/deid`、`/api/deid/score`、`/api/deid/restore`。
+  - 在 Quick Usage Examples 加入 Section 6 完整的 curl 指令呼叫範例。
+  - 在 Optional Customization Headers 清單補齊 De-ID 標頭矩陣。
+
 ## [2026.10.18.3] - 2026-10-18 - 補齊 Docker Compose 容器 OCR 與 Clef/Jev 環境變數透傳 (Pass OCR & Clef Env to Container)
 
 ### Fixed

@@ -13,9 +13,10 @@ If you are an LLM or AI Agent accessing this service for the first time:
 1. Use **Single URL mode** to read individual web pages or online documents.
 2. Use **Document File Upload mode** to parse PDF, Word, Excel, PPT, EPUB, CSV files via multipart form-data.
 3. Use **Image OCR mode** (`POST /api/ocr` or `/v1/ocr`) to extract text and tables from images (PNG, JPG, WEBP, BMP) using PP-OCRv4.
-4. Use **Web Search mode** to execute live web search queries.
-5. Use **Multi-URL Batch mode** to fetch and extract multiple pages concurrently in a single request.
-6. Include `Accept: application/json` header for JSON responses or `Accept: text/plain` for clean Markdown text.
+4. Use **PII De-Identification & Privacy Shield** (`POST /api/deid` or add `X-Deidentify: true` to crawler/document requests) to strip Taiwan and international personal identifiable info with reversible tokens and Clef/Jev scoring.
+5. Use **Web Search mode** to execute live web search queries.
+6. Use **Multi-URL Batch mode** to fetch and extract multiple pages concurrently in a single request.
+7. Include `Accept: application/json` header for JSON responses or `Accept: text/plain` for clean Markdown text.
 
 ---
 
@@ -107,26 +108,62 @@ async function insertOcrTableIntoBlockNote(editor: BlockNoteEditor, imageBlob: B
 }
 ```
 
-### 6. Response Formats
+### 6. PII De-Identification & Privacy Shield (Taiwan & Intl Rules + Clef / Jev Scoring)
+Protect sensitive data before sending text to downstream LLMs. Features rule-based sub-5ms PII masking with reversible tokens, RFC 4180 CSV mapping tables, and 3-tier Clef/Jev System One privacy risk scoring.
+
+- **A. Standalone Text De-Identification**:
+  - `POST /api/deid` (or `/v1/deid`)
+  - *JSON Body*:
+    ```json
+    {
+      "text": "專案經理陳大明（身分證 A123456789，電話 0912345678）負責本案。",
+      "mode": "code",
+      "partial": true,
+      "scoreWithClef": true
+    }
+    ```
+  - *Modes (`mode`)*:
+    - `code` (default): Reversible marker format `[類別:代碼]` (e.g. `[姓名:b0d96e]`, `[身分證:fbd20c]`).
+    - `label` / `category`: Category placeholder `[類別]` (e.g. `[姓名]`, `[身分證]`).
+    - `blank` / `mask`: Character mask `○○○` or `***`.
+  - *Partial Semantic Retention (`partial`)*:
+    - Retains non-sensitive structure for analysis: Keep surname (`王○○`), TWID first 2 digits (`A1********`), telecom prefix (`0912-******`), city/district (`台北市信義區***`).
+  - *Response*: Returns de-identified text, match count, array of mappings, standard CSV mapping table for recovery, and Clef-Flash completeness score.
+
+- **B. Raw Privacy Risk Exposure Scoring**:
+  - `POST /api/deid/score` (or `/v1/deid/score`, `/api/privacy/score`)
+  - Evaluates raw or masked text through Clef-Flash System One model (<200ms) with 1–5 risk scale and `hasPii` detection.
+
+- **C. Lossless Text Restoration via CSV Mapping**:
+  - `POST /api/deid/restore` (or `/v1/deid/restore`)
+  - *JSON Body*:
+    ```json
+    {
+      "text": "專案經理[姓名:b0d96e]（身分證 [身分證:fbd20c]）",
+      "csvMapping": "code,category,original\r\nb0d96e,姓名,陳大明\r\nfbd20c,身分證,A123456789\r\n"
+    }
+    ```
+  - Restores exact original text losslessly.
+
+- **D. Auto De-Identification on Web & Document Crawls**:
+  - Add header `X-Deidentify: true` (or `X-Deid: true`), query `?deid=true`, or body `"deid": true` to any Reader or AnyDoc request.
+  - Web pages and uploaded documents (PDF, Word, Excel, OCR images) are automatically sanitized before returning Markdown to the LLM.
+
+### 7. Response Formats
 - **Markdown / Plain Text (Default / `Accept: text/plain` or `Accept: text/markdown`)**:
   Returns clean Markdown content directly. When `mode=table` is specified, returns only the isolated GFM table. Batch requests separate pages with `---`.
 - **JSON (`Accept: application/json`)**:
   Returns structured JSON object:
   - For standard crawler: `data` array with extracted pages.
   - For `/api/ocr`: `data.markdown` (full document), `data.tableMarkdown` (isolated clean GFM table), `data.tables` (isolated tables array), `data.text`, and `data.lines`.
+  - For `/api/deid`: `data.text`, `data.mappings`, `data.csvMapping`, and `data.clefScore`.
   - `data.tableMarkdown` is `null` when no table is detected. In `mode=table`, no-table input returns an empty Markdown body instead of full OCR text.
-  ```json
-  {
-    "code": 200,
-    "status": 20000,
-    "data": [
-      { "url": "https://example.com/page1", "title": "...", "content": "..." },
-      { "url": "https://example.com/page2", "title": "...", "content": "..." }
-    ]
-  }
-  ```
 
-### 7. Optional Headers
+### 8. Optional Headers
+- `X-Deidentify: true` (or `X-Deid: true`): Sanitize sensitive PII in web crawls and document extractions before returning text to LLMs.
+- `X-Deid-Mode: code | label | blank`: Select marker style (`code` for reversible token, `label` for category name, `blank` for symbol mask).
+- `X-Deid-Partial: true | false`: Toggle partial semantic retention (e.g. keep surname, TWID first 2 digits, telecom prefix).
+- `X-Deid-Score: true | false`: Toggle Clef-Flash System One privacy completeness evaluation.
 - `X-With-Ocr: true` (or `X-Ocr: true`): Explicitly opt-in to OCR extraction for documents and scanned PDFs. Pure image scanned PDFs (with < 50 characters) automatically fall back to OCR.
 - `X-Respond-With`: `markdown` | `html` | `text` | `frontmatter`
 - `X-Preset`: `reader` | `index` | `research` | `agent` | `spider`
@@ -143,7 +180,7 @@ async function insertOcrTableIntoBlockNote(editor: BlockNoteEditor, imageBlob: B
 - `X-Adaptive-Id`: Identify the persisted selector profile.
 - `X-Adaptive-Threshold`: Confidence threshold from `0.5` to `0.95`.
 
-### 7. Advanced JSON Options
+### 9. Advanced JSON Options
 
 The POST body can also include:
 

@@ -277,11 +277,12 @@ If you are an LLM or AI Agent accessing this service for the first time:
 1. Use **Single URL mode** to read individual web pages.
 2. Use **Document File Upload mode** to parse PDF, Word, Excel, PPT, EPUB, CSV files via multipart form-data.
 3. Use **Image OCR mode** (\`POST ${baseDomain}/api/ocr\` or \`/v1/ocr\`) to extract text and tables from images (PNG, JPG, WEBP, BMP) using PP-OCRv4.
-4. Use **Web Search mode** to execute live web search queries.
-5. Use **Multi-URL Batch mode** to fetch and extract multiple pages concurrently in a single request.
-6. Use **Advanced Extraction mode** with CSS/XPath schemas when you need records instead of prose.
-7. Use **Deep Crawl mode** with explicit depth/page limits to explore a site from a starting URL.
-8. Include \`Accept: application/json\` header for JSON responses or \`Accept: text/plain\` for clean Markdown text.
+4. Use **PII De-Identification & Privacy Shield** (\`POST ${baseDomain}/api/deid\` or add \`X-Deidentify: true\` to crawler/document requests) to strip Taiwan and international personal identifiable info with reversible tokens and Clef/Jev scoring.
+5. Use **Web Search mode** to execute live web search queries.
+6. Use **Multi-URL Batch mode** to fetch and extract multiple pages concurrently in a single request.
+7. Use **Advanced Extraction mode** with CSS/XPath schemas when you need records instead of prose.
+8. Use **Deep Crawl mode** with explicit depth/page limits to explore a site from a starting URL.
+9. Include \`Accept: application/json\` header for JSON responses or \`Accept: text/plain\` for clean Markdown text.
 
 ---
 
@@ -373,20 +374,61 @@ async function insertOcrTableIntoBlockNote(editor: BlockNoteEditor, imageBlob: B
 }
 \`\`\`
 
-### 6. Response Formats
+### 6. PII De-Identification & Privacy Shield (Taiwan & Intl Rules + Clef / Jev Scoring)
+Protect sensitive data before sending text to downstream LLMs. Features rule-based sub-5ms PII masking with reversible tokens, RFC 4180 CSV mapping tables, and 3-tier Clef/Jev System One privacy risk scoring.
+
+- **A. Standalone Text De-Identification**:
+  - \`POST ${baseDomain}/api/deid\` (or \`/v1/deid\`)
+  - *JSON Body*:
+    \`\`\`json
+    {
+      "text": "專案經理陳大明（身分證 A123456789，電話 0912345678）負責本案。",
+      "mode": "code",
+      "partial": true,
+      "scoreWithClef": true
+    }
+    \`\`\`
+  - *Modes (\`mode\`)*:
+    - \`code\` (default): Reversible marker format \`[類別:代碼]\` (e.g. \`[姓名:b0d96e]\`, \`[身分證:fbd20c]\`).
+    - \`label\` / \`category\`: Category placeholder \`[類別]\` (e.g. \`[姓名]\`, \`[身分證]\`).
+    - \`blank\` / \`mask\`: Character mask \`○○○\` or \`***\`.
+  - *Partial Semantic Retention (\`partial\`)*:
+    - Retains non-sensitive structure for analysis: Keep surname (\`王○○\`), TWID first 2 digits (\`A1********\`), telecom prefix (\`0912-******\`), city/district (\`台北市信義區***\`).
+  - *Response*: Returns de-identified text, match count, array of mappings, standard CSV mapping table for recovery, and Clef-Flash completeness score.
+
+- **B. Raw Privacy Risk Exposure Scoring**:
+  - \`POST ${baseDomain}/api/deid/score\` (or \`/v1/deid/score\`, \`/api/privacy/score\`)
+  - Evaluates raw or masked text through Clef-Flash System One model (<200ms) with 1–5 risk scale and \`hasPii\` detection.
+
+- **C. Lossless Text Restoration via CSV Mapping**:
+  - \`POST ${baseDomain}/api/deid/restore\` (or \`/v1/deid/restore\`)
+  - *JSON Body*:
+    \`\`\`json
+    {
+      "text": "專案經理[姓名:b0d96e]（身分證 [身分證:fbd20c]）",
+      "csvMapping": "code,category,original\\r\\nb0d96e,姓名,陳大明\\r\\nfbd20c,身分證,A123456789\\r\\n"
+    }
+    \`\`\`
+  - Restores exact original text losslessly.
+
+- **D. Auto De-Identification on Web & Document Crawls**:
+  - Add header \`X-Deidentify: true\` (or \`X-Deid: true\`), query \`?deid=true\`, or body \`"deid": true\` to any Reader or AnyDoc request.
+  - Web pages and uploaded documents (PDF, Word, Excel, OCR images) are automatically sanitized before returning Markdown to the LLM.
+
+### 7. Response Formats
 - **Markdown / Plain Text (Default / \`Accept: text/plain\` or \`Accept: text/markdown\`)**:
   Returns clean Markdown content directly. If \`mode=table\` is specified, returns only the isolated GFM table. Batch requests separate pages with \`---\`.
 - **JSON (\`Accept: application/json\`)**:
   Returns structured JSON object with \`data.text\`, \`data.markdown\`, \`data.tableMarkdown\` (isolated clean GFM table string, e.g. \`| ... |\`), \`data.tables\` (array of isolated clean GFM tables), and \`data.lines\` (bounding boxes and confidence scores).
 
-### 7. Advanced Crawl and Extraction
+### 8. Advanced Crawl and Extraction
 - Add \`extraction\` with \`type\`, \`baseSelector\`, and \`fields\` to return deterministic \`extracted\` JSON records.
 - Add \`adaptive: true\` to CSS structured extraction to persist safe element signatures and relocate selectors after compatible markup changes. Matching is conservative and disabled by default.
 - Add \`contentFilter: "pruning"\` or \`"bm25"\` and optional \`contentQuery\` to return compact \`fitMarkdown\` while preserving \`rawMarkdown\`.
 - Add \`deepCrawl: { "maxDepth": 2, "maxPages": 20 }\` for bounded BFS exploration. Optional \`concurrency\`, \`concurrencyPerDomain\`, and \`autoThrottle\` control crawl pressure.
 - Add \`sessionId\` to reuse session cookies, or \`virtualScroll: { "maxScrolls": 20 }\` for bounded infinite-scroll content.
 
-### 8. Async Jobs
+### 9. Async Jobs
 - Add \`asyncJob: true\` to run a deep crawl in the background.
 - Poll \`GET ${baseDomain}/jobs/{jobId}\`, cancel with \`POST ${baseDomain}/jobs/{jobId}/cancel\`, resume with \`POST ${baseDomain}/jobs/{jobId}/resume\`, or list metrics with \`GET ${baseDomain}/jobs\`.
 - Optional \`webhook: { "url": "https://..." }\` receives the final job status. Webhook URLs must use HTTPS.
@@ -397,7 +439,11 @@ async function insertOcrTableIntoBlockNote(editor: BlockNoteEditor, imageBlob: B
 - Poll \`GET ${baseDomain}/jobs/{data.id}\` every 2–5s with \`X-Job-Token: {data.accessToken}\`; read state from \`data.status\` and results from \`data.result\`.
 - Stop at \`completed\`, \`failed\`, or \`cancelled\`. Cancel and resume both require \`POST\`; after cancel, poll until \`data.status=cancelled\` before resuming. Never put the token in the URL or submit duplicate jobs.
 
-### 9. Optional Headers
+### 10. Optional Headers
+- \`X-Deidentify: true\` (or \`X-Deid: true\`): Sanitize sensitive PII in web crawls and document extractions before returning text to LLMs.
+- \`X-Deid-Mode: code | label | blank\`: Select marker style (\`code\` for reversible token, \`label\` for category name, \`blank\` for symbol mask).
+- \`X-Deid-Partial: true | false\`: Toggle partial semantic retention (e.g. keep surname, TWID first 2 digits, telecom prefix).
+- \`X-Deid-Score: true | false\`: Toggle Clef-Flash System One privacy completeness evaluation.
 - \`X-With-Ocr: true\` (or \`X-Ocr: true\"): Explicitly opt-in to OCR extraction for documents and scanned PDFs. Pure image scanned PDFs (with < 50 characters) automatically fall back to OCR.
 - \`X-Respond-With\`: \`markdown\` | \`html\` | \`text\` | \`frontmatter\`
 - \`X-Preset\`: \`reader\` | \`index\` | \`research\` | \`agent\` | \`spider\`
@@ -414,7 +460,7 @@ async function insertOcrTableIntoBlockNote(editor: BlockNoteEditor, imageBlob: B
 - \`X-Session-Id: ...\`: Reuse session cookies for related requests.
 - \`X-Detach-Invisibles: true\`: Remove display:none elements from snapshot.
 
-### 9. WebMCP Browser Tools
+### 11. WebMCP Browser Tools
 
 When the homepage is opened in a WebMCP-enabled Chrome browser, it registers
 the following read-only tools through \`document.modelContext\`:
@@ -486,6 +532,7 @@ without \`document.modelContext\` continue to use the regular API and forms.
 - **Single URL Web Reader & Scraper**: Convert any web page or online document URL into clean LLM-friendly Markdown by calling \`GET ${baseDomain}/<URL>\` or \`POST ${baseDomain}/\` with \`{"url": "..."}\`.
 - **High-Speed Document & PDF Parsing (AnyDoc Engine)**: Extract and convert local document files (PDF, DOCX, DOC, XLSX, XLS, PPTX, PPT, EPUB, RTF, ODT, ODS, ODP, CSV) into clean Markdown with sub-5ms latency via \`POST ${baseDomain}/\` using multipart form-data (\`file=@document.pdf\` or \`pdf=@document.pdf\`), or by providing direct remote PDF/document URLs.
 - **Image OCR & Text Extraction (PaddleOCR PP-OCRv4 Engine)**: Convert local image files (PNG, JPG, JPEG, WEBP, BMP) or screenshots into clean Markdown and structured JSON with line-level bounding box coordinates via \`POST ${baseDomain}/api/ocr\` (or \`/v1/ocr\`). Powered by PP-OCRv4 (Chinese & English) with multi-node failover pool and single-flight anti-thundering-herd protection.
+- **PII De-Identification & Privacy Shield (Taiwan & Intl Rules + Clef / Jev Scoring)**: Automatically detect and mask Taiwan PII (TWID, Unified Business Number, mobile, address, phone, compound surnames, email) and international PII (credit cards with Luhn check, SSN, IBAN, IPv4/IPv6, DOB) using sub-5ms rules with reversible token mapping, CSV export, and 3-tier Clef/Jev AI privacy scoring via \`POST ${baseDomain}/api/deid\` or \`X-Deidentify: true\` on any reader/crawler/document endpoint.
 - **Real-Time Live Web Search (SERP)**: Execute zero-config live web searches and get structured Markdown snippets by calling \`GET ${baseDomain}/s/<QUERY>\` or \`GET ${baseDomain}/search?q=<QUERY>\`. Powered by DuckDuckGo with multi-engine fallback.
 - **Multi-URL Batch Crawling**: Fetch, scrape, and convert multiple web pages concurrently in a single HTTP request by calling \`POST ${baseDomain}/v1/batch\` (or \`POST ${baseDomain}/\`) with \`{"urls": ["...", "..."]}\`. Features isolated fault tolerance where individual failures do not disrupt the entire batch.
 - **Advanced Extraction and Deep Crawl**: Use CSS/XPath schemas for deterministic JSON extraction, Pruning/BM25 filters for compact Fit Markdown, or bounded BFS crawling with \`maxDepth\` and \`maxPages\`. Deep crawls optionally support bounded concurrency and per-domain AutoThrottle.
@@ -502,6 +549,9 @@ without \`document.modelContext\` continue to use the regular API and forms.
 - [Multi-URL Batch Crawl](${baseDomain}/v1/batch): \`POST ${baseDomain}/v1/batch\` with \`{"urls": ["URL1", "URL2"]}\`
 - [Document File & PDF Upload](${baseDomain}/): \`POST ${baseDomain}/\` with multipart form-data \`file=@document.pdf\`
 - [Image OCR & Text Extraction](${baseDomain}/api/ocr): \`POST ${baseDomain}/api/ocr\` with multipart form-data \`file=@screenshot.png\`
+- [PII De-Identification](${baseDomain}/api/deid): \`POST ${baseDomain}/api/deid\` for text de-identification with reversible tokens and CSV mapping
+- [Privacy Risk Scoring](${baseDomain}/api/deid/score): \`POST ${baseDomain}/api/deid/score\` for Clef System One privacy risk scoring
+- [Text Restoration](${baseDomain}/api/deid/restore): \`POST ${baseDomain}/api/deid/restore\` to restore sanitized text with CSV mapping
 - [Service Capabilities & Health](${baseDomain}/api/capabilities): \`GET ${baseDomain}/api/capabilities\` for dynamic OCR and feature status
 - [Agent Skill Specification](${baseDomain}/skill.md): Complete LLM skill specification and tool schema
 - [Full LLM Documentation](${baseDomain}/llms-full.txt): Complete full-text documentation and reference guide for LLMs
@@ -553,8 +603,34 @@ curl -s -X POST "${baseDomain}/api/ocr" -H "Accept: application/json" -F "file=@
 # Max upload payload: 50MB per request (supports high-res retina PNG screenshots and document scans).
 \`\`\`
 
+### 6. PII De-Identification & Privacy Risk Scoring (Rules + Clef / Jev)
+\`\`\`bash
+# De-identify sensitive text with reversible tokens & CSV mapping table
+curl -s -X POST "${baseDomain}/api/deid" \\
+  -H "Content-Type: application/json" \\
+  -H "Accept: application/json" \\
+  -d '{"text": "專案經理陳大明（身分證 A123456789，電話 0912345678）負責本案。", "scoreWithClef": true}'
+
+# Evaluate raw privacy risk score via Clef-Flash System One (<200ms)
+curl -s -X POST "${baseDomain}/api/deid/score" \\
+  -H "Content-Type: application/json" \\
+  -d '{"text": "專案經理陳大明（身分證 A123456789，電話 0912345678）"}'
+
+# Restore de-identified text losslessly using CSV mapping
+curl -s -X POST "${baseDomain}/api/deid/restore" \\
+  -H "Content-Type: application/json" \\
+  -d '{"text": "專案經理[姓名:b0d96e]（身分證 [身分證:fbd20c]）", "csvMapping": "code,category,original\\r\\nb0d96e,姓名,陳大明\\r\\nfbd20c,身分證,A123456789\\r\\n"}'
+
+# Crawl web page or upload document with automatic PII sanitization:
+curl -s -H "Accept: text/plain" -H "X-Deidentify: true" "${baseDomain}/https://example.com/confidential-report"
+\`\`\`
+
 ## Optional Customization Headers
 
+- \`X-Deidentify\`: Set to \`true\` (or \`X-Deid: true\`) to automatically de-identify PII before returning Markdown.
+- \`X-Deid-Mode\`: \`code\` (default, reversible \`[類別:代碼]\`) | \`label\` (\`[類別]\`) | \`blank\` (\`○○○\`)
+- \`X-Deid-Partial\`: \`true\` (default, keep surname, prefixes) | \`false\` (full masking)
+- \`X-Deid-Score\`: \`true\` | \`false\` (call Clef-Flash System One to evaluate completeness)
 - \`X-With-Ocr\`: Set to \`true\` (or \`X-Ocr: true\`) to opt into OCR text/table extraction for documents. Scanned PDFs (< 50 chars) automatically fall back to OCR.
 - \`X-Respond-With\`: \`markdown\` (default) | \`html\` | \`text\` | \`frontmatter\`
 - \`X-Preset\`: \`reader\` (default) | \`index\` | \`research\` | \`agent\` | \`spider\`

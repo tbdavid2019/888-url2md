@@ -11,7 +11,8 @@
 3. **Real-Time Live Web Search (SERP)**: Execute zero-config live web searches and get structured Markdown snippets powered by DuckDuckGo with multi-engine fallback.
 4. **Multi-URL Batch Crawling**: Fetch, scrape, and convert multiple web pages concurrently in a single HTTP request with isolated fault tolerance.
 5. **Image OCR & Text Extraction (PaddleOCR PP-OCRv4 Engine)**: Convert image files (PNG, JPG, JPEG, WEBP, BMP) and screenshots into clean Markdown or line-level bounding box JSON with multi-node failover pool and anti-thundering-herd protection.
-6. **Flexible Response Formats**: Supports clean GitHub-Flavored Markdown (`Accept: text/plain` or default), structured JSON (`Accept: application/json`), or SSE event streaming (`Accept: text/event-stream`).
+6. **PII De-Identification & Privacy Shield (Taiwan & Intl Rules + Clef / Jev Scoring)**: Automatically detect and mask Taiwan PII (TWID, Unified Business Number, mobile, address, phone, compound surnames, email) and international PII (credit cards with Luhn check, SSN, IBAN, IPv4/IPv6, DOB) using sub-5ms rules with reversible token mapping, CSV export, and 3-tier Clef/Jev AI privacy scoring via `POST /api/deid` or `X-Deidentify: true` on any reader/crawler/document endpoint.
+7. **Flexible Response Formats**: Supports clean GitHub-Flavored Markdown (`Accept: text/plain` or default), structured JSON (`Accept: application/json`), or SSE event streaming (`Accept: text/event-stream`).
 7. **WebMCP Browser Tools**: For Chrome browsers supporting WebMCP (`document.modelContext`), automatically registers `search_web`, `read_web_page`, and `read_web_pages` client tools.
 8. **Adaptive Structured Extraction**: Opt-in CSS selector relocation with bounded, origin-scoped profiles and ambiguity rejection.
 9. **Resumable Deep Crawling**: Bounded concurrency, optional per-domain AutoThrottle, and checkpoint resume for asynchronous jobs.
@@ -118,6 +119,47 @@
   - `GET https://<HOST>/api/capabilities`: Probe dynamic OCR cluster status (`data.ocr.available`, latency, nodes).
   - `GET https://<HOST>/api/ocr/status`: Inspect active node and cluster health.
 
+### 2.6 PII De-Identification & Privacy Shield (Taiwan & Intl Rules + Clef / Jev Scoring)
+Protect sensitive data before sending text to downstream LLMs. Features rule-based sub-5ms PII masking with reversible tokens, RFC 4180 CSV mapping tables, and 3-tier Clef/Jev System One privacy risk scoring.
+
+- **A. Standalone Text De-Identification**:
+  - `POST /api/deid` (or `/v1/deid`)
+  - *JSON Body*:
+    ```json
+    {
+      "text": "專案經理陳大明（身分證 A123456789，電話 0912345678）負責本案。",
+      "mode": "code",
+      "partial": true,
+      "scoreWithClef": true
+    }
+    ```
+  - *Modes (`mode`)*:
+    - `code` (default): Reversible marker format `[類別:代碼]` (e.g. `[姓名:b0d96e]`, `[身分證:fbd20c]`).
+    - `label` / `category`: Category placeholder `[類別]` (e.g. `[姓名]`, `[身分證]`).
+    - `blank` / `mask`: Character mask `○○○` or `***`.
+  - *Partial Semantic Retention (`partial`)*:
+    - Retains non-sensitive structure for analysis: Keep surname (`王○○`), TWID first 2 digits (`A1********`), telecom prefix (`0912-******`), city/district (`台北市信義區***`).
+  - *Response*: Returns de-identified text, match count, array of mappings, standard CSV mapping table for recovery, and Clef-Flash completeness score.
+
+- **B. Raw Privacy Risk Exposure Scoring**:
+  - `POST /api/deid/score` (or `/v1/deid/score`, `/api/privacy/score`)
+  - Evaluates raw or masked text through Clef-Flash System One model (<200ms) with 1–5 risk scale and `hasPii` detection.
+
+- **C. Lossless Text Restoration via CSV Mapping**:
+  - `POST /api/deid/restore` (or `/v1/deid/restore`)
+  - *JSON Body*:
+    ```json
+    {
+      "text": "專案經理[姓名:b0d96e]（身分證 [身分證:fbd20c]）",
+      "csvMapping": "code,category,original\r\nb0d96e,姓名,陳大明\r\nfbd20c,身分證,A123456789\r\n"
+    }
+    ```
+  - Restores exact original text losslessly.
+
+- **D. Auto De-Identification on Web & Document Crawls**:
+  - Add header `X-Deidentify: true` (or `X-Deid: true`), query `?deid=true`, or body `"deid": true` to any Reader or AnyDoc request.
+  - Web pages and uploaded documents (PDF, Word, Excel, OCR images) are automatically sanitized before returning Markdown to the LLM.
+
 ---
 
 ## 3. Response Formats
@@ -146,6 +188,10 @@ Returns clean GitHub-Flavored Markdown. For batch requests, pages are separated 
 
 | Header | Values | Description |
 | :--- | :--- | :--- |
+| `X-Deidentify` | `true` \| `false` | Automatically de-identify sensitive PII before returning Markdown |
+| `X-Deid-Mode` | `code` \| `label` \| `blank` | Select marker format (`code` for reversible token, `label` for category, `blank` for mask) |
+| `X-Deid-Partial` | `true` \| `false` | Toggle partial semantic retention (keep surname, TWID first 2 digits, etc.) |
+| `X-Deid-Score` | `true` \| `false` | Call Clef-Flash System One model to evaluate de-identification completeness score |
 | `X-Respond-With` | `markdown` \| `html` \| `text` \| `frontmatter` | Output format selection (default: `markdown`) |
 | `X-Preset` | `reader` \| `index` \| `research` \| `agent` \| `spider` | Extraction preset configuration |
 | `X-Target-Selector` | CSS Selector string (e.g. `article`, `main`) | Focus extraction on matching DOM elements |
