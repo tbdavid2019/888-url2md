@@ -942,6 +942,7 @@
             searchFailed: err => `搜尋失敗：${err}`,
             conversionFailed: err => `網址轉換失敗：${err}`,
             ocrFailed: err => `圖片辨識失敗：${err}`,
+            deidFailed: err => `個資脫敏處理失敗：${err}`,
             unknownError: '未知錯誤',
             providerCredit: 'david888.com 技術提供',
             searching: query => `正在搜尋「${query}」…`,
@@ -1013,6 +1014,7 @@
             searchFailed: err => `Search failed: ${err}`,
             conversionFailed: err => `URL conversion failed: ${err}`,
             ocrFailed: err => `Image recognition failed: ${err}`,
+            deidFailed: err => `De-identification failed: ${err}`,
             unknownError: 'Unknown error',
             providerCredit: 'Technology by david888.com',
             searching: query => `Searching for “${query}”…`,
@@ -1144,12 +1146,13 @@
         });
 
         // Result Show Helper
-        const showResult = (markdown, meta = {}) => {
-          result.textContent = markdown;
-          resultStats = { chars: markdown.length, words: markdown.split(/\s+/).filter(Boolean).length };
+        const showResult = (markdown = '', meta = {}) => {
+          const textVal = typeof markdown === 'string' ? markdown : (markdown != null ? String(markdown) : '');
+          result.textContent = textVal;
+          resultStats = { chars: textVal.length, words: textVal.split(/\s+/).filter(Boolean).length };
           renderStatsBadge();
 
-          currentCsvMapping = meta.csvMapping || null;
+          currentCsvMapping = meta?.csvMapping || null;
           downloadCsvBtn.hidden = !currentCsvMapping;
 
           if (meta.clefScore) {
@@ -1496,15 +1499,16 @@
                 score: Boolean(deidScore.checked)
               })
             });
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.message || data.error || `Server error ${response.status}`);
-            showResult(data.text, {
-              csvMapping: data.csvMapping,
-              clefScore: data.clefScore
+            const res = await response.json();
+            if (!response.ok) throw new Error(res?.message || res?.error || `Server error ${response.status}`);
+            const payload = res?.data || res;
+            showResult(payload.text || '', {
+              csvMapping: payload.csvMapping,
+              clefScore: payload.clefScore
             });
             announce(statusRegions.deid, 'deidDone');
           } catch (err) {
-            announce(statusRegions.deid, 'unknownError', [], true);
+            announce(statusRegions.deid, 'deidFailed', [err.message || text('unknownError')], true);
             console.error('Deid error:', err);
           } finally {
             deidBtn.disabled = false;
@@ -1536,14 +1540,15 @@
               },
               body: JSON.stringify({ text: deidInput.value })
             });
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.message || data.error || `Server error ${response.status}`);
+            const res = await response.json();
+            if (!response.ok) throw new Error(res?.message || res?.error || `Server error ${response.status}`);
+            const payload = res?.data || res;
             showResult(deidInput.value, {
-              clefScore: data
+              clefScore: payload.clefScore || payload
             });
             announce(statusRegions.deid, 'deidScoreDone');
           } catch (err) {
-            announce(statusRegions.deid, 'unknownError', [], true);
+            announce(statusRegions.deid, 'deidFailed', [err.message || text('unknownError')], true);
             console.error('Score error:', err);
           } finally {
             deidBtn.disabled = false;
@@ -1581,12 +1586,13 @@
                 csv
               })
             });
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.message || data.error || `Server error ${response.status}`);
-            showResult(data.restoredText || data.text || '');
+            const res = await response.json();
+            if (!response.ok) throw new Error(res?.message || res?.error || `Server error ${response.status}`);
+            const payload = res?.data || res;
+            showResult(payload.restoredText || payload.text || '');
             announce(statusRegions.deid, 'deidRestoreDone');
           } catch (err) {
-            announce(statusRegions.deid, 'unknownError', [], true);
+            announce(statusRegions.deid, 'deidFailed', [err.message || text('unknownError')], true);
             console.error('Restore error:', err);
           } finally {
             deidBtn.disabled = false;

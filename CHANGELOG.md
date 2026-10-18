@@ -2,6 +2,16 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.10.18.5] - 2026-10-18 - 修復前端去識別化 RPC 響應解包與異常捕獲 (Fix De-ID RPC Response Unwrap & Hardened Error Handling)
+
+### Fixed
+- **前端 RPC 資料解包修正 (`public/app.html`)**:
+  - 修正前端 `deidForm`、`deidScoreBtn` 與 `deidRestoreBtn` 直接存取 `data.text`、`data.clefScore` 等欄位之問題。由於 Civkit RPC 返回格式包含標準信封 `{ code: 200, status: 20000, data: { ... } }`，已統一修正為 `const payload = res?.data || res` 進行解包，徹底消除 `data.text` 為 `undefined` 導致 `markdown.length` 拋出 `TypeError: Cannot read properties of undefined (reading 'length')` 的問題。
+  - `showResult()` 函數強化防禦性檢查：針對傳入之 `markdown` 預設為空字串並轉型驗證，避免非字串或未定義值引發前端渲染中斷。
+  - 改善錯誤提示：去識別化、打分與還原操作之 `catch` 區塊改用專屬的 `deidFailed` 國際化翻譯（中英雙語），向使用者呈現明確的後端錯誤訊息而非模糊的「未知錯誤」。
+- **Codex Code Review 驗證**:
+  - 通過本機 `codex review --uncommitted` 對前端 JavaScript 與 RPC 互動代碼進行全面代碼審查。
+
 ## [2026.10.18.4] - 2026-10-18 - Skill 與 llms.txt 全量同步 De-ID 個資脫敏規格 (Sync De-ID Spec to Skill & LLMs Docs)
 
 ### Added
