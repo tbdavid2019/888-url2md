@@ -41,6 +41,7 @@ import {
     ServiceNodeResourceDrainError,
 } from '../services/errors';
 import { OcrClientService, OcrPredictionResult, selectOcrMarkdown } from '../services/ocr-client';
+import { DeidService } from '../services/deid-service';
 import { PDFExtractor } from '../services/pdf-extract';
 
 import { countGPTToken as estimateToken } from '../utils/openai';
@@ -141,6 +142,7 @@ export class CrawlerHost extends RPCHost {
         protected adaptiveSelectorService: AdaptiveSelectorService,
         protected ocrClientService: OcrClientService,
         protected pdfExtractor: PDFExtractor,
+        protected deidService: DeidService,
     ) {
         super(...arguments);
 
@@ -2380,6 +2382,26 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
                 },
             );
         }
+        if (crawlerOptions.deid) {
+            const textToDeid = formatted.content || formatted.text || formatted.rawMarkdown || '';
+            if (textToDeid) {
+                const deidRes = await this.deidService.deidentify(textToDeid, {
+                    mode: crawlerOptions.deidMode || 'code',
+                    partial: crawlerOptions.deidPartial !== false,
+                    score: Boolean(crawlerOptions.deidScore),
+                });
+                if (formatted.content) formatted.content = deidRes.redactedText;
+                if (formatted.rawMarkdown) formatted.rawMarkdown = deidRes.redactedText;
+                if (formatted.text) formatted.text = deidRes.redactedText;
+                if (formatted.fitMarkdown) formatted.fitMarkdown = deidRes.redactedText;
+                formatted.deid = {
+                    itemsCount: deidRes.itemsCount,
+                    mappings: deidRes.mapping,
+                    csvMapping: deidRes.csvMapping,
+                    clefScore: deidRes.clefScore,
+                };
+            }
+        }
         return formatted;
     }
 
@@ -2590,6 +2612,234 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
     async getCapabilitiesCtrl() {
         return {
             ocr: this.ocrClientService.getStatus(),
+            deid: {
+                available: true,
+                rules: true,
+                systemone: true,
+                clefPrimary: process.env.CLEF_PRIMARY_URL || 'https://clef.create360.ai/v1/systemone',
+                clefFallback: process.env.CLEF_FALLBACK_URL || 'https://clef.aiurl.tw/v1/systemone',
+            },
+        };
+    }
+
+    @Method({
+        name: 'deidentifyText',
+        description: 'De-identify personal identifiable information (PII) using rules and optional Clef scoring',
+        proto: {
+            http: {
+                action: 'post',
+                path: '/api/deid',
+            }
+        },
+        tags: ['privacy', 'deid'],
+        returnType: [RawString, Object],
+    })
+    @Method({
+        proto: {
+            http: {
+                action: 'post',
+                path: '/v1/deid',
+            }
+        },
+        tags: ['privacy', 'deid'],
+        returnType: [RawString, Object],
+    })
+    async deidentifyCtrl(
+        @RPCReflect() rpcReflect: RPCReflection,
+        @Ctx() ctx: Context,
+        @Param({ type: AUTH_DTO_CLS }) auth: BaseAuthDTO,
+        crawlerOptionsParamsAllowed: CrawlerOptions,
+    ) {
+        const body = (ctx.request?.body || {}) as any;
+        const query = (ctx.query || {}) as any;
+
+        let text: string = body.text || body.content || body.input || query.text || '';
+        if (!text && crawlerOptionsParamsAllowed?.file) {
+            const rawFile = crawlerOptionsParamsAllowed.file;
+            if (rawFile instanceof FancyFile) {
+                const buf = await readFile(await rawFile.filePath);
+                text = buf.toString('utf-8');
+            } else if (Buffer.isBuffer(rawFile)) {
+                text = rawFile.toString('utf-8');
+            } else if (typeof rawFile === 'string') {
+                text = rawFile;
+            }
+        }
+
+        if (!text) {
+            throw new ParamValidationError({
+                message: 'No text provided for de-identification (expected field "text" or multipart "file")',
+                path: 'text',
+            });
+        }
+
+        const mode = (body.mode || query.mode || ctx.get('x-deid-mode') || crawlerOptionsParamsAllowed?.deidMode || 'code') as any;
+        const isPartial = body.partial !== undefined
+            ? Boolean(body.partial)
+            : query.partial !== undefined
+            ? query.partial !== 'false'
+            : ctx.get('x-deid-partial') !== 'false' && crawlerOptionsParamsAllowed?.deidPartial !== false;
+        const score = body.score !== undefined
+            ? Boolean(body.score)
+            : query.score !== undefined
+            ? query.score !== 'false'
+            : ctx.get('x-deid-score') === 'true' || Boolean(crawlerOptionsParamsAllowed?.deidScore);
+        const categories = body.categories || undefined;
+
+        const result = await this.deidService.deidentify(text, {
+            mode,
+            partial: isPartial,
+            score,
+            categories,
+        });
+
+        const acceptsJson = ctx.accepts('application/json');
+        const acceptsText = ctx.accepts('text/markdown', 'text/plain');
+
+        if (!acceptsJson && acceptsText) {
+            return assignTransferProtocolMeta(result.redactedText, {
+                contentType: 'text/markdown; charset=utf-8',
+                envelope: null,
+            });
+        }
+
+        return {
+            status: 'ok',
+            text: result.redactedText,
+            originalLength: text.length,
+            redactedLength: result.redactedText.length,
+            itemsCount: result.itemsCount,
+            mappings: result.mapping,
+            csvMapping: result.csvMapping,
+            clefScore: result.clefScore,
+        };
+    }
+
+    @Method({
+        name: 'scorePrivacy',
+        description: 'Score privacy risk or unmasked PII presence using Clef / Jev System One',
+        proto: {
+            http: {
+                action: 'post',
+                path: '/api/deid/score',
+            }
+        },
+        tags: ['privacy', 'deid'],
+        returnType: [Object],
+    })
+    @Method({
+        proto: {
+            http: {
+                action: 'post',
+                path: '/v1/deid/score',
+            }
+        },
+        tags: ['privacy', 'deid'],
+        returnType: [Object],
+    })
+    @Method({
+        proto: {
+            http: {
+                action: 'post',
+                path: '/api/privacy/score',
+            }
+        },
+        tags: ['privacy', 'deid'],
+        returnType: [Object],
+    })
+    async scorePrivacyCtrl(
+        @RPCReflect() rpcReflect: RPCReflection,
+        @Ctx() ctx: Context,
+        @Param({ type: AUTH_DTO_CLS }) auth: BaseAuthDTO,
+    ) {
+        const body = (ctx.request?.body || {}) as any;
+        const query = (ctx.query || {}) as any;
+        const text: string = body.text || body.content || body.input || query.text || '';
+
+        if (!text) {
+            throw new ParamValidationError({
+                message: 'No text provided for privacy scoring (expected field "text")',
+                path: 'text',
+            });
+        }
+
+        const scoreRes = await this.deidService.scorePrivacy(text);
+        return {
+            status: 'ok',
+            hasPii: scoreRes.hasPii,
+            piiProbability: scoreRes.piiProbability,
+            riskScore: scoreRes.riskScore,
+            node: scoreRes.node,
+            model: scoreRes.model,
+            latencyMs: scoreRes.latencyMs,
+            available: scoreRes.available,
+            error: scoreRes.error,
+        };
+    }
+
+    @Method({
+        name: 'restoreDeidentifiedText',
+        description: 'Restore de-identified text using code mapping table or CSV',
+        proto: {
+            http: {
+                action: 'post',
+                path: '/api/deid/restore',
+            }
+        },
+        tags: ['privacy', 'deid'],
+        returnType: [RawString, Object],
+    })
+    @Method({
+        proto: {
+            http: {
+                action: 'post',
+                path: '/v1/deid/restore',
+            }
+        },
+        tags: ['privacy', 'deid'],
+        returnType: [RawString, Object],
+    })
+    async restoreDeidCtrl(
+        @RPCReflect() rpcReflect: RPCReflection,
+        @Ctx() ctx: Context,
+        @Param({ type: AUTH_DTO_CLS }) auth: BaseAuthDTO,
+    ) {
+        const body = (ctx.request?.body || {}) as any;
+        const query = (ctx.query || {}) as any;
+        const text: string = body.text || body.content || body.input || query.text || '';
+
+        if (!text) {
+            throw new ParamValidationError({
+                message: 'No text provided for restoration (expected field "text")',
+                path: 'text',
+            });
+        }
+
+        const mappingOrCsv = body.mappings || body.mapping || body.csv || query.csv;
+        if (!mappingOrCsv) {
+            throw new ParamValidationError({
+                message: 'No mapping table or CSV provided for restoration (expected "mappings" array or "csv" string)',
+                path: 'mappings',
+            });
+        }
+
+        const restored = this.deidService.restore(text, mappingOrCsv);
+
+        const acceptsJson = ctx.accepts('application/json');
+        const acceptsText = ctx.accepts('text/markdown', 'text/plain');
+
+        if (!acceptsJson && acceptsText) {
+            return assignTransferProtocolMeta(restored.restoredText, {
+                contentType: 'text/markdown; charset=utf-8',
+                envelope: null,
+            });
+        }
+
+        return {
+            status: 'ok',
+            text: restored.restoredText,
+            restoredCount: restored.restoredCount,
+            missingCodes: restored.missingCodes,
         };
     }
 

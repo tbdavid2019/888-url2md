@@ -53,6 +53,12 @@ Currently deployed at: [**create360.ai**](https://create360.ai) (or easily self-
   - **高可用備援池（Failover Pool）**：支援以逗號分隔多個節點（`OCR_SERVICE_URLS`，如 `https://ocr.aiurl.tw,https://ocr2.aiurl.tw`），主節點異常自動平滑故障轉移。
   - **防驚群效應（Anti-Thundering Herd）**：內建 Single-Flight 請求合併、隨機抖動背景輪詢（Jittered Probing）與熔斷冷卻期（Circuit Breaker Cooldown）。
   - **動態特性探測**：節點在線時顯示圖片 OCR 區與 `/#ocr` 錨點，全部離線時隱藏該區。
+11. **繁中與國際規則個資去識別化與 Clef 隱私防護引擎 (PII De-identification & Clef Privacy Shield)**
+  - **全方位個資過濾與校驗**：內建台灣身分證字號 (TWID) 權重模數校驗、統一編號 (統編) 2023 最新 mod-5/10 演算校驗、台灣手機號碼 (`09xx`)、市內電話 (`02..08`)、台灣地址結構、百家姓與中文姓名上下文評估與停用詞過濾、公司名稱、電子郵件、IPv4/IPv6、國際信用卡 (Luhn 檢核)、美國 SSN、國際電話、IBAN (mod-97) 與出生日期檢驗。
+  - **三種標記模式與統計保留**：支援隨機十六進位代碼可逆標記 (`code`, 如 `[姓名:王8f2a1b]`)、類別標記 (`category`, 如 `[姓名]`) 與符號遮罩 (`mask`, 如 `○○○`)；支援統計保留模式（保留姓氏、身分證首兩碼、電信前綴，便於分析）。
+  - **RFC 4180 CSV 映射表與無損還原**：輸出標準 CSV 對照表，支援憑表無損還原原始文本。
+  - **3 級容錯 Clef / Jev System One 隱私評估客戶端**：支援三階層自動故障轉移（自建 Clef-Flash <200ms -> 備援 Clef-Flash-Q4 -> TypeSafe Jev），深度評估未脫敏文本個資暴露風險與去識別化完整度評分。
+  - **純後端 API 與爬蟲/文檔無縫整合**：提供 `POST /api/deid`、`POST /api/deid/score`、`POST /api/deid/restore`；所有網頁抓取與 AnyDoc 文檔解析皆可透過 `?deid=true` 或 Header `X-Deidentify: true` 一鍵啟用個資脫敏。
 
 ---
 
@@ -147,6 +153,10 @@ services:
 | `OCR_HEALTH_TIMEOUT_MS` | (選填) 單次健康檢查探測逾時（毫秒） | `2000` (2 秒) |
 | `OCR_POLL_INTERVAL_MS` | (選填) 背景探測間隔時間（毫秒） | `30000` (30 秒) |
 | `OCR_SECRET_KEY` | (選填) OCR 微服務 API Key（透過 `X-API-Key` 傳遞） | 自訂密鑰 |
+| `CLEF_PRIMARY_URL` | (選填) 自建 Clef-Flash 主要評估端點 | `https://clef.create360.ai/v1/systemone` |
+| `CLEF_FALLBACK_URL` | (選填) 自建 Clef-Flash-Q4 次要備援端點 | `https://clef.aiurl.tw/v1/systemone` |
+| `TYPESAFE_API_URL` | (選填) TypeSafe Jev 官方服務端點 | `https://api.typesafe.ai/v1/systemone` |
+| `TYPESAFE_API_KEY` | (選填) TypeSafe / Jev API Key（亦可設為 `JEV_API_KEY`） | `your_typesafe_api_key_here` |
 
 ---
 
@@ -447,6 +457,59 @@ curl -s "https://create360.ai/api/capabilities" | jq .ocr
 
 ---
 
+### 1.12 個資去識別化、隱私評估與還原 API (PII De-identification & Privacy Shield)
+
+#### **A. 執行個資去識別化 (`POST /api/deid` 或 `POST /v1/deid`)**
+支援繁體中文（身分證字號、統編、電話、地址、姓名、公司）與國際格式（信用卡、SSN、IBAN、Email、IP）：
+
+```bash
+# 預設 code 標記模式，啟用部分保留與 Clef 完整度評分 (回傳 JSON)
+curl -X POST "https://create360.ai/api/deid" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "立契約人：王小明（身分證字號：A123456789），聯絡電話：0912-345-678，公司為宏達實業股份有限公司（統一編號：04595257），電子信箱：user@example.com。",
+    "mode": "code",
+    "partial": true,
+    "score": true
+  }'
+
+# 直接回傳乾淨脫敏後的 Markdown 格式 (Accept: text/markdown)
+curl -X POST "https://create360.ai/api/deid" \
+  -H "Content-Type: application/json" \
+  -H "Accept: text/markdown" \
+  -d '{"text": "專案負責人：林志穎，電話：0987-654-321"}'
+```
+
+#### **B. Clef / Jev System One 隱私暴露風險評估 (`POST /api/deid/score`)**
+```bash
+curl -X POST "https://create360.ai/api/deid/score" \
+  -H "Content-Type: application/json" \
+  -d '{"text": "這是未脫敏的機密文件，包含客戶身分證 A123456789 與電話 0912-345-678。"}'
+```
+
+#### **C. 憑 CSV 編碼對照表還原原始文本 (`POST /api/deid/restore`)**
+```bash
+curl -X POST "https://create360.ai/api/deid/restore" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "立契約人：[姓名:王8f2a1b]（身分證字號：[身分證:A14c1d2e]）。",
+    "csv": "code,category,original,replacement\n8f2a1b,姓名,王小明,[姓名:王8f2a1b]\n4c1d2e,身分證,A123456789,[身分證:A14c1d2e]"
+  }'
+```
+
+#### **D. 網頁抓取與文檔解析一鍵脫敏 (`?deid=true`)**
+在任何單網址、批次網址或 AnyDoc 文檔解析請求中加入 `deid=true` 或 Header `X-Deidentify: true`：
+```bash
+# 抓取網頁並自動過濾 PII
+curl "https://create360.ai/https://example.com/contact?deid=true"
+
+# 上傳文檔並去識別化
+curl -X POST "https://create360.ai/?deid=true" \
+  -F "file=@customer-agreement.pdf"
+```
+
+---
+
 ### 2. 即時 Web 搜尋 (Real-time Web Search)
 
 本服務提供兩種靈活的 Web 搜尋呼叫方式，皆會自動進行 Web 搜尋並將最相關結果轉譯為乾淨的 Markdown：
@@ -587,6 +650,10 @@ curl -X POST 'https://create360.ai/v1/batch' \
 - `X-Session-Id`: 跨請求共用 Cookie 會話 UUID
 - `X-Detach-Invisibles: true`: 產生 Markdown 前徹底剔除 `display:none` 隱形元素
 - `X-With-Ocr: true` / `X-Ocr: true`: 啟用 AnyDoc 文檔解析的光學字符辨識（OCR）
+- `X-Deidentify: true`: 啟用自動個資去識別化 (PII Filtering)
+- `X-Deid-Mode`: 指定去識別化標記模式 (`code` | `category` | `mask`，預設 `code`)
+- `X-Deid-Partial`: 是否保留統計前綴 (`true` | `false`，預設 `true`)
+- `X-Deid-Score`: 是否在去識別化後執行 Clef System One 完整度評分 (`true` | `false`)
 - `X-Adaptive: true`: 啟用 CSS 結構化抽取的保守式 adaptive selector
 - `X-Adaptive-Id`: adaptive profile 識別名稱，只允許安全識別字元
 - `X-Adaptive-Threshold`: adaptive selector 信心門檻，範圍 `0.5`–`0.95`
@@ -695,6 +762,12 @@ Currently deployed at: [**create360.ai**](https://create360.ai) (or easily self-
    - **Multi-Node Failover Pool**: Define fallback endpoints with `OCR_SERVICE_URLS` (e.g. `https://ocr.aiurl.tw,https://ocr2.aiurl.tw`) with seamless in-flight retry.
    - **Anti-Thundering-Herd Architecture**: Single-Flight promise coalescing, jittered background health probes, and 30-second circuit breaker cooldown.
    - **Dynamic Feature Flagging**: The Web UI shows the OCR section and its direct `/#ocr` anchor only when healthy OCR nodes exist.
+11. **PII De-identification & Clef Privacy Shield**
+   - **Comprehensive Taiwanese & International PII Validation**: Taiwan National ID (TWID checksum), Unified Business Number (8-digit Tax ID 2023 mod-5/10), Taiwan mobile (`09xx`), landline (`02..08`), structured addresses, Chinese surnames/names context analysis & stopword exclusion, company names, emails, IPv4/IPv6, credit cards (Luhn check), US SSN, international phones, IBAN (mod-97), and ROC/ISO dates.
+   - **Three Redaction Modes & Statistical Retention**: Random hexadecimal code reversible tokens (`code`, e.g. `[姓名:王8f2a1b]`), category markers (`category`, e.g. `[姓名]`), and circle masks (`mask`, e.g. `○○○`). Supports statistical retention (retaining surname, ID first 2 chars, carrier prefix `0912-`, area code).
+   - **RFC 4180 CSV Mapping & Lossless Restoration**: Reversible token mapping table exported as standard CSV; lossless text restoration via `POST /api/deid/restore`.
+   - **3-Tier Failover Clef / Jev System One Privacy Evaluator**: Built-in 3-tier failover (Primary Clef-Flash <200ms -> Secondary Clef-Flash-Q4 -> TypeSafe Jev) to score raw privacy risk and de-identification completeness.
+   - **Pure Backend APIs & Seamless Crawler Integration**: Full downstream REST endpoints (`POST /api/deid`, `POST /api/deid/score`, `POST /api/deid/restore`) and one-click crawler/AnyDoc integration via `?deid=true` or `X-Deidentify: true`.
 
 ## Web 介面導覽 (Web Interface Navigation)
 
@@ -792,6 +865,10 @@ services:
 | `OCR_HEALTH_TIMEOUT_MS` | (Optional) Health check probe timeout in milliseconds | `2000` (2 seconds) |
 | `OCR_POLL_INTERVAL_MS` | (Optional) Background probing interval in milliseconds | `30000` (30 seconds) |
 | `OCR_SECRET_KEY` | (Optional) API key passed via `X-API-Key` header | Cluster secret |
+| `CLEF_PRIMARY_URL` | (Optional) Primary self-hosted Clef-Flash System One endpoint | `https://clef.create360.ai/v1/systemone` |
+| `CLEF_FALLBACK_URL` | (Optional) Secondary self-hosted Clef-Flash-Q4 fallback endpoint | `https://clef.aiurl.tw/v1/systemone` |
+| `TYPESAFE_API_URL` | (Optional) TypeSafe Jev official service endpoint | `https://api.typesafe.ai/v1/systemone` |
+| `TYPESAFE_API_KEY` | (Optional) TypeSafe / Jev API Key (or `JEV_API_KEY`) | `your_typesafe_api_key_here` |
 
 ### 4.1 Moli Priority and Chrome Fallback
 
@@ -1080,6 +1157,59 @@ curl -s "https://create360.ai/api/capabilities" | jq .ocr
 
 ---
 
+### 1.12 PII De-identification, Risk Scoring & Restoration API
+
+#### **A. De-identify Text (`POST /api/deid` or `POST /v1/deid`)**
+Supports localized Taiwanese and international personal data:
+
+```bash
+# JSON response with code tokens, CSV mapping, and Clef completeness score
+curl -X POST "https://create360.ai/api/deid" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "Contract party: John Doe (ID: A123456789), Phone: 0912-345-678, Company: Acme Corp (Tax ID: 04595257), Email: user@example.com.",
+    "mode": "code",
+    "partial": true,
+    "score": true
+  }'
+
+# Clean de-identified Markdown stream directly (Accept: text/markdown)
+curl -X POST "https://create360.ai/api/deid" \
+  -H "Content-Type: application/json" \
+  -H "Accept: text/markdown" \
+  -d '{"text": "Contact: Alice Wang, Phone: 0987-654-321"}'
+```
+
+#### **B. Clef / Jev Privacy Risk Scoring (`POST /api/deid/score`)**
+```bash
+curl -X POST "https://create360.ai/api/deid/score" \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Sensitive document containing ID A123456789 and phone 0912-345-678."}'
+```
+
+#### **C. Restore Text from CSV Mapping Table (`POST /api/deid/restore`)**
+```bash
+curl -X POST "https://create360.ai/api/deid/restore" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "text": "Party: [姓名:王8f2a1b] (ID: [身分證:A14c1d2e]).",
+    "csv": "code,category,original,replacement\n8f2a1b,姓名,王小明,[姓名:王8f2a1b]\n4c1d2e,身分證,A123456789,[身分證:A14c1d2e]"
+  }'
+```
+
+#### **D. One-Click Crawler & Document De-identification (`?deid=true`)**
+Add `deid=true` or `X-Deidentify: true` to any crawl or AnyDoc parsing request:
+```bash
+# Scrape webpage with automatic PII removal
+curl "https://create360.ai/https://example.com/contact?deid=true"
+
+# Parse document with PII removal
+curl -X POST "https://create360.ai/?deid=true" \
+  -F "file=@agreement.pdf"
+```
+
+---
+
 ### 2. Real-time Web Search
 
 #### **A. Path-based Search**
@@ -1176,6 +1306,10 @@ Control crawler behavior via request headers:
 - `X-Session-Id`: Persistent session UUID to share cookies across sequential requests
 - `X-Detach-Invisibles: true`: Strip `display:none` and invisible DOM nodes prior to markdown generation
 - `X-With-Ocr: true` / `X-Ocr: true`: Enable OCR image and scanned document text/table recognition in AnyDoc parsing
+- `X-Deidentify: true`: Enable automatic PII de-identification on crawled or parsed pages
+- `X-Deid-Mode`: Set marker mode (`code` | `category` | `mask`, default: `code`)
+- `X-Deid-Partial`: Preserve statistical prefixes (`true` | `false`, default: `true`)
+- `X-Deid-Score`: Perform Clef System One completeness evaluation after redaction (`true` | `false`)
 - `X-Adaptive: true`: Enable conservative adaptive selectors for CSS structured extraction
 - `X-Adaptive-Id`: Adaptive profile identifier; only safe identifier characters are accepted
 - `X-Adaptive-Threshold`: Adaptive selector confidence threshold from `0.5` to `0.95`

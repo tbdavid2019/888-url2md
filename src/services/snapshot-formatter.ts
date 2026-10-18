@@ -51,6 +51,12 @@ export interface FormattedPage {
     metadata?: { [k: string]: string; };
     external?: { [rel: string]: { [href: string]: { [k: string]: string; }; }; };
     numPages?: number;
+    deid?: {
+        itemsCount?: number;
+        mappings?: Array<{ code: string; category: string; original: string; prefix?: string; suffix?: string; }>;
+        csvMapping?: string;
+        clefScore?: any;
+    };
 
     [Symbol.dispose]?: () => void;
 }
@@ -114,6 +120,15 @@ export class FormattedPageDto extends Coercible {
         type: [Object, DictOf(DictOf(DictOf(String, Object), Object), Object)],
     })
     external?: { [rel: string]: { [href: string]: { [k: string]: string; }; }; };
+    @Prop({
+        type: Object,
+    })
+    deid?: {
+        itemsCount?: number;
+        mappings?: Array<{ code: string; category: string; original: string; prefix?: string; suffix?: string; }>;
+        csvMapping?: string;
+        clefScore?: any;
+    };
 
     get textRepresentation() {
         if (!this.content) {

@@ -2,7 +2,32 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
-## [2026.10.16.6] - 2026-10-16 - 標題字級層次優化 (Heading Type Hierarchy)
+## [2026.10.18.1] - 2026-10-18 - 個資去識別化引擎與 Clef 隱私評估整合 (PII De-identification & Clef Privacy Shield)
+
+### Added
+- **繁中與國際規則個資去識別化核心 (`src/services/deidentification/`)**:
+  - 支援台灣身分證字號 (TWID) 字母權重模數檢核、統一編號 (統編) 2023 最新 mod-5/10 演算檢核、台灣手機號碼 (`09xx`)、市內電話 (`02..08`)、台灣地址結構（含縣市區鄉鎮路段巷弄號樓）、百家姓與中文姓名上下文評估與停用詞過濾、公司名稱、電子郵件、IPv4/IPv6、國際信用卡 (Luhn 檢核)、美國 SSN、國際電話、IBAN (mod-97) 與出生日期檢驗。
+  - 支援三種標記模式：隨機十六進位代碼可逆標記 (`code`, 如 `[姓名:王8f2a1b]`)、類別標記 (`category`, 如 `[姓名]`)、符號遮罩 (`mask`, 如 `○○○`)。
+  - 支援統計保留模式（保留姓氏、身分證首兩碼、電信前綴 `0912-`、縣市區域碼，便於統計分析）。
+  - 提供標準 RFC 4180 CSV 映射表匯出與無損還原機制 (`restore`)。
+- **3 級容錯 Clef / Jev System One 隱私評估客戶端 (`src/services/systemone-client.ts`)**:
+  - 三階層自動故障轉移架構：
+    1. Primary: 自建 Clef-Flash (`https://clef.create360.ai/v1/systemone`，回應 <200ms)
+    2. Fallback 2: 自建備援節點 Clef-Flash-Q4 (`https://clef.aiurl.tw/v1/systemone`)
+    3. Fallback 3: TypeSafe 官方 Jev 服務 (`https://api.typesafe.ai/v1/systemone`，透過環境變數注入金鑰)
+  - 支援未脫敏文本個資暴露風險評估 (`scoreRawPrivacy`，包含 `has_pii` 及 5 級風險評分) 與去識別化完整度評估 (`scoreDeidCompleteness`，包含 `unmasked_pii_exists` 及 5 級完整度評估)。
+- **純後端獨立 API 端點**:
+  - `POST /api/deid` (相容 `/v1/deid`): 提供下游應用程式呼叫純文字/Markdown 個資去識別化，支援回傳 JSON 或 text/markdown，並附帶 CSV 映射表與 Clef 評估。
+  - `POST /api/deid/score` (相容 `/v1/deid/score`, `/api/privacy/score`): 評估文字的個資暴露風險與機率。
+  - `POST /api/deid/restore` (相容 `/v1/deid/restore`): 憑 CSV 或映射資料還原被去識別化的原始文本。
+  - `GET /api/capabilities`: 動態提供 `deid` 支援狀態與節點資訊。
+- **爬蟲與文檔解析無縫整合**:
+  - `CrawlerOptions` 新增 `deid`, `deidMode`, `deidPartial`, `deidScore` 參數。
+  - 網頁爬取與文檔轉譯支援 `?deid=true` 與 HTTP 標頭 `X-Deidentify: true`、`X-Deid-Mode`、`X-Deid-Partial`、`X-Deid-Score`，轉譯後輸出自動去除個資並附帶去識別中繼資料。
+- **前端 Web 介面整合 (`public/app.html`)**:
+  - 新增「隱私脫敏 (De-ID)」獨立導覽頁籤與 `#deid` 操作區塊，提供互動式輸入、標記模式選擇、部分保留切換、Clef 打分開關、一鍵 CSV 下載、僅風險評估與憑表還原功能。
+  - 在網址轉換與文檔上傳區新增「啟用個資去識別化」快速勾選選項。
+
 
 ### Changed
 - 提高工具區標題字級，讓桌面與手機版標題相對 16px 內文都有明確的尺寸層次；同步更新雙語 README 與 OG 快取版本。

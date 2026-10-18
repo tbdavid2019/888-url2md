@@ -523,6 +523,26 @@ export class CrawlerOptions extends Coercible {
     })
     ocr?: boolean;
 
+    @Prop({
+        type: PseudoBoolean,
+    })
+    deid?: boolean;
+
+    @Prop({
+        type: String,
+    })
+    deidMode?: 'code' | 'category' | 'mask';
+
+    @Prop({
+        type: PseudoBoolean,
+    })
+    deidPartial?: boolean;
+
+    @Prop({
+        type: PseudoBoolean,
+    })
+    deidScore?: boolean;
+
     @Prop({ default: 'all', type: IMAGE_RETENTION_MODE_VALUES })
     retainImages?: typeof IMAGE_RETENTION_MODES[number];
 
@@ -815,6 +835,23 @@ export class CrawlerOptions extends Coercible {
         }
         if (instance.ocr && instance.withOcr === undefined) {
             instance.withOcr = Boolean(instance.ocr);
+        }
+
+        const deid = ctx?.get('x-deidentify') ?? ctx?.get('x-deid');
+        if (deid !== undefined) {
+            instance.deid = Boolean(deid);
+        }
+        const deidMode = ctx?.get('x-deid-mode');
+        if (deidMode && (deidMode === 'code' || deidMode === 'category' || deidMode === 'mask')) {
+            instance.deidMode = deidMode;
+        }
+        const deidPartial = ctx?.get('x-deid-partial');
+        if (deidPartial !== undefined) {
+            instance.deidPartial = Boolean(deidPartial);
+        }
+        const deidScore = ctx?.get('x-deid-score');
+        if (deidScore !== undefined) {
+            instance.deidScore = Boolean(deidScore);
         }
         const withLinksSummary = ctx?.get('x-with-links-summary');
         if (withLinksSummary) {

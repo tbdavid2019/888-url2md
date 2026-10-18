@@ -85,3 +85,4 @@ local*.md
 data/
 __pycache__/
 *.pyc
+.impeccable/

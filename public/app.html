@@ -664,6 +664,10 @@
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2m10 0h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2m4-9h8m-8 4h10M7 16h6"/></svg>
           <span data-i18n="ocrTab">圖片辨識 (OCR)</span>
         </a>
+        <a href="#deid" id="nav-deid" hidden>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          <span data-i18n="deidTab">隱私脫敏 (De-ID)</span>
+        </a>
       </nav>
 
       <div class="tool-stack">
@@ -689,6 +693,12 @@
           <form id="urls-form">
             <label for="urls-input" class="sr-only" data-i18n="urlsLabel">網址轉換</label>
             <textarea id="urls-input" name="urls" spellcheck="false" placeholder="貼上網址，每行一筆" data-i18n-placeholder="urlsPlaceholder"></textarea>
+            <div class="option-row">
+              <label class="switch-label">
+                <input type="checkbox" id="urls-deid" name="deid" value="true">
+                <span data-i18n="deidOptIn">啟用個資去識別化 (自動過濾身分證/電話/姓名/地址等 PII)</span>
+              </label>
+            </div>
             <div class="actions">
               <button class="primary-btn" id="convert-btn" type="submit">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20M2 12h20"></path></svg>
@@ -712,10 +722,14 @@
               <div class="dropzone-text" id="file-name-display" data-i18n="dropzonePrompt">拖曳檔案至此，或點擊選擇檔案上傳</div>
               <div class="file-types-hint" id="file-types-hint" data-i18n="dropzoneHint">支援 PDF, Word (.docx/.doc), Excel (.xlsx/.xls), PowerPoint (.pptx/.ppt), EPUB, RTF, CSV, ODT...</div>
             </div>
-            <div class="option-row">
+            <div class="option-row" style="display: flex; flex-direction: column; gap: 8px;">
               <label class="switch-label">
                 <input type="checkbox" id="upload-with-ocr" name="ocr" value="true">
                 <span data-i18n="uploadOcrOption">啟用 OCR 圖片/掃描文檔文字辨識 (強制調用 PaddleOCR 繁中 & 表格模型)</span>
+              </label>
+              <label class="switch-label">
+                <input type="checkbox" id="upload-deid" name="deid" value="true">
+                <span data-i18n="deidOptIn">啟用個資去識別化 (自動過濾身分證/電話/姓名/地址等 PII)</span>
               </label>
             </div>
             <div class="actions" style="margin-top: 18px">
@@ -750,6 +764,48 @@
             <div id="status-ocr" role="status" aria-live="polite"></div>
           </form>
         </section>
+
+        <!-- Privacy & De-identification -->
+        <section id="deid" class="card tool-section" aria-labelledby="deid-title" hidden>
+          <h2 id="deid-title" data-i18n="deidLabel">個資去識別化與隱私防護 (De-ID)</h2>
+          <form id="deid-form">
+            <label for="deid-input" class="sr-only" data-i18n="deidLabel">個資去識別化</label>
+            <textarea id="deid-input" name="text" spellcheck="false" placeholder="貼上包含姓名、身分證字號、電話、地址、統編、Email 等個資之文本或 Markdown..." data-i18n-placeholder="deidPlaceholder" style="min-height: 120px"></textarea>
+            <div class="option-row" style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 16px; align-items: center;">
+              <label style="display: inline-flex; align-items: center; gap: 6px;">
+                <span style="font-weight: 500; font-size: 0.9rem;" data-i18n="deidMarkerLabel">標記模式：</span>
+                <select id="deid-mode" name="mode" style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color, #ccc); background: var(--bg-surface, #fff); color: inherit;">
+                  <option value="code" selected>可逆隨機編碼 [姓名:6e679d] (附 CSV 表)</option>
+                  <option value="category">類別標籤 [姓名]</option>
+                  <option value="mask">公文遮蔽 王○○ / 0912-○○○-○○○</option>
+                </select>
+              </label>
+              <label class="switch-label">
+                <input type="checkbox" id="deid-partial" name="partial" value="true" checked>
+                <span data-i18n="deidPartialLabel">部分保留（露出姓氏/地區碼/電信前綴，便於統計）</span>
+              </label>
+              <label class="switch-label">
+                <input type="checkbox" id="deid-score" name="score" value="true" checked>
+                <span data-i18n="deidScoreLabel">Clef / Jev 深度打分（評估去識別完整度與殘留風險）</span>
+              </label>
+            </div>
+            <div class="actions" style="margin-top: 18px; display: flex; gap: 12px; flex-wrap: wrap;">
+              <button class="primary-btn" id="deid-btn" type="submit">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                <span data-i18n="deidAction">執行個資去識別化</span>
+              </button>
+              <button class="secondary-btn" id="deid-score-btn" type="button">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                <span data-i18n="deidScoreOnlyAction">僅 Clef 評估風險</span>
+              </button>
+              <button class="secondary-btn" id="deid-restore-btn" type="button">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="1 4 1 10 7 10"></polyline><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path></svg>
+                <span data-i18n="deidRestoreAction">憑編碼表還原</span>
+              </button>
+            </div>
+            <div id="status-deid" role="status" aria-live="polite"></div>
+          </form>
+        </section>
       </div>
 
       <!-- Result Section -->
@@ -764,12 +820,17 @@
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
               <span data-i18n="copyBtn">複製內容</span>
             </button>
+            <button class="secondary-btn" id="download-csv-btn" type="button" hidden>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+              <span data-i18n="downloadCsvBtn">下載編碼表 (CSV)</span>
+            </button>
             <button class="secondary-btn" id="download-btn" type="button">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
               <span data-i18n="downloadBtn">下載 .md</span>
             </button>
           </div>
         </div>
+        <div id="clef-score-card" style="margin-bottom: 12px; padding: 10px 14px; border-radius: 8px; background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.2); font-size: 0.9rem;" hidden></div>
         <pre id="result"></pre>
         <div id="status-result" role="status" aria-live="polite"></div>
       </section>
@@ -807,11 +868,27 @@
         const ocrFileNameDisplay = document.querySelector('#ocr-file-name-display');
         const ocrBtn = document.querySelector('#ocr-btn');
 
+        const deidTabBtn = document.querySelector('#nav-deid');
+        const deidForm = document.querySelector('#deid-form');
+        const deidInput = document.querySelector('#deid-input');
+        const deidMode = document.querySelector('#deid-mode');
+        const deidPartial = document.querySelector('#deid-partial');
+        const deidScore = document.querySelector('#deid-score');
+        const deidBtn = document.querySelector('#deid-btn');
+        const deidScoreBtn = document.querySelector('#deid-score-btn');
+        const deidRestoreBtn = document.querySelector('#deid-restore-btn');
+        const urlsDeidCheckbox = document.querySelector('#urls-deid');
+        const uploadDeidCheckbox = document.querySelector('#upload-deid');
+        const downloadCsvBtn = document.querySelector('#download-csv-btn');
+        const clefScoreCard = document.querySelector('#clef-score-card');
+        let currentCsvMapping = null;
+
         const statusRegions = {
           search: document.querySelector('#status-search'),
           urls: document.querySelector('#status-urls'),
           upload: document.querySelector('#status-upload'),
           ocr: document.querySelector('#status-ocr'),
+          deid: document.querySelector('#status-deid'),
           result: document.querySelector('#status-result'),
         };
         const statusMessages = new Map();
@@ -876,7 +953,25 @@
             ocrUploading: name => name.toLowerCase().endsWith('.pdf') ? `正在透過 PaddleOCR 逐頁辨識 PDF 文件「${name}」…` : `正在透過 PaddleOCR 辨識「${name}」…`,
             ocrUploaded: name => `已完成「${name}」的文字與表格轉譯。`,
             copied: '已複製 Markdown 到剪貼簿！',
-            copyFailed: '無法自動複製，請手動選取內容。'
+            copyFailed: '無法自動複製，請手動選取內容。',
+            deidTab: '隱私脫敏 (De-ID)',
+            deidLabel: '個資去識別化與隱私防護 (De-ID)',
+            deidPlaceholder: '貼上包含姓名、身分證字號、電話、地址、統編、Email 等個資之文本或 Markdown...',
+            deidMarkerLabel: '標記模式：',
+            deidPartialLabel: '部分保留（露出姓氏/地區碼/電信前綴，便於統計）',
+            deidScoreLabel: 'Clef / Jev 深度打分（評估去識別完整度與殘留風險）',
+            deidAction: '執行個資去識別化',
+            deidScoreOnlyAction: '僅 Clef 評估風險',
+            deidRestoreAction: '憑編碼表還原',
+            deidOptIn: '啟用個資去識別化 (自動過濾身分證/電話/姓名/地址等 PII)',
+            deidRequired: '請輸入要處理的文本或 Markdown。',
+            deidProcessing: '正在執行繁中與國際規則個資去識別化…',
+            deidScoring: '正在透過 Clef / Jev System One 評估隱私暴露風險…',
+            deidRestoring: '正在依據編碼表還原原始文本…',
+            deidDone: '已完成個資去識別化。',
+            deidScoreDone: '已完成 Clef 隱私風險評估。',
+            deidRestoreDone: '已成功還原原始文本。',
+            downloadCsvBtn: '下載編碼表 (CSV)'
           },
           en: {
             intro: 'Search the web, convert URLs and documents, and bring the content into Markdown.',
@@ -929,7 +1024,25 @@
             ocrUploading: name => name.toLowerCase().endsWith('.pdf') ? `Processing PDF document “${name}” with PaddleOCR…` : `Processing “${name}” with PaddleOCR…`,
             ocrUploaded: name => `Successfully converted “${name}” to Markdown.`,
             copied: 'Copied Markdown to clipboard!',
-            copyFailed: 'Failed to copy automatically. Please select text manually.'
+            copyFailed: 'Failed to copy automatically. Please select text manually.',
+            deidTab: 'Privacy De-ID',
+            deidLabel: 'PII De-identification & Privacy Shield',
+            deidPlaceholder: 'Paste text or Markdown containing personal data (names, IDs, phones, addresses, tax IDs, emails)...',
+            deidMarkerLabel: 'Marker Style:',
+            deidPartialLabel: 'Partial retention (keep surname/area code/carrier prefix for statistics)',
+            deidScoreLabel: 'Clef / Jev System One scoring (evaluate de-ID completeness & residual risk)',
+            deidAction: 'De-identify PII',
+            deidScoreOnlyAction: 'Evaluate Risk with Clef',
+            deidRestoreAction: 'Restore via Mapping',
+            deidOptIn: 'De-identify PII (filter ID, phone, name, address, etc.)',
+            deidRequired: 'Please enter text or Markdown to process.',
+            deidProcessing: 'De-identifying personal data with localized & international rules...',
+            deidScoring: 'Evaluating privacy risk via Clef / Jev System One...',
+            deidRestoring: 'Restoring original text from mapping table...',
+            deidDone: 'De-identification completed.',
+            deidScoreDone: 'Clef privacy risk evaluation completed.',
+            deidRestoreDone: 'Original text restored successfully.',
+            downloadCsvBtn: 'Download Mapping (CSV)'
           }
         };
 
@@ -1031,13 +1144,58 @@
         });
 
         // Result Show Helper
-        const showResult = markdown => {
+        const showResult = (markdown, meta = {}) => {
           result.textContent = markdown;
           resultStats = { chars: markdown.length, words: markdown.split(/\s+/).filter(Boolean).length };
           renderStatsBadge();
+
+          currentCsvMapping = meta.csvMapping || null;
+          downloadCsvBtn.hidden = !currentCsvMapping;
+
+          if (meta.clefScore) {
+            clefScoreCard.hidden = false;
+            const cs = meta.clefScore;
+            let badgeColor = '#10b981';
+            let statusText = '';
+            if (cs.unmaskedPiiExists !== undefined) {
+              badgeColor = cs.unmaskedPiiExists ? '#ef4444' : '#10b981';
+              const piiText = cs.unmaskedPiiExists ? '⚠️ 存在未遮蔽個資' : '✅ 未檢出殘留個資';
+              const prob = (typeof cs.unmaskedProbability === 'number') ? ` (機率: ${(cs.unmaskedProbability * 100).toFixed(1)}%)` : '';
+              const scoreText = cs.completenessScore !== null && cs.completenessScore !== undefined ? ` | 完整度: ${cs.completenessScore}/5` : '';
+              const nodeText = cs.node ? ` | 評估節點: ${cs.node}` : '';
+              const latText = cs.latencyMs ? ` (${cs.latencyMs}ms)` : '';
+              statusText = `<strong>Clef 脫敏品質評估：</strong> ${piiText}${prob}${scoreText}${nodeText}${latText}`;
+            } else if (cs.hasPii !== undefined) {
+              badgeColor = cs.hasPii ? '#f59e0b' : '#10b981';
+              const piiText = cs.hasPii ? '⚠️ 偵測到敏感個資' : '✅ 未發現顯著個資';
+              const prob = (typeof cs.piiProbability === 'number') ? ` (機率: ${(cs.piiProbability * 100).toFixed(1)}%)` : '';
+              const scoreText = cs.riskScore !== null && cs.riskScore !== undefined ? ` | 風險等級: ${cs.riskScore}/5` : '';
+              const nodeText = cs.node ? ` | 評估節點: ${cs.node}` : '';
+              const latText = cs.latencyMs ? ` (${cs.latencyMs}ms)` : '';
+              statusText = `<strong>Clef 個資風險評估：</strong> ${piiText}${prob}${scoreText}${nodeText}${latText}`;
+            } else {
+              statusText = `<strong>Clef 評估回應：</strong> ${JSON.stringify(cs)}`;
+            }
+            clefScoreCard.style.borderLeft = `4px solid ${badgeColor}`;
+            clefScoreCard.innerHTML = statusText;
+          } else {
+            clefScoreCard.hidden = true;
+            clefScoreCard.innerHTML = '';
+          }
+
           resultArea.hidden = false;
           resultArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         };
+
+        downloadCsvBtn.addEventListener('click', () => {
+          if (!currentCsvMapping) return;
+          const blob = new Blob([currentCsvMapping], { type: 'text/csv;charset=utf-8' });
+          const link = document.createElement('a');
+          link.href = URL.createObjectURL(blob);
+          link.download = `deid-mapping-${new Date().toISOString().slice(0, 10)}.csv`;
+          link.click();
+          URL.revokeObjectURL(link.href);
+        });
 
         const readMarkdownResponse = async response => {
           const markdown = await response.text();
@@ -1049,17 +1207,27 @@
           headers: { 'Accept': 'text/plain', 'X-No-Cache': 'true' }
         }).then(readMarkdownResponse);
 
-        const requestSingleUrl = url => fetch('/', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Accept': 'text/plain' },
-          body: JSON.stringify({ url })
-        }).then(readMarkdownResponse);
+        const requestSingleUrl = url => {
+          const headers = { 'Content-Type': 'application/json', 'Accept': 'text/plain' };
+          const withDeid = Boolean(urlsDeidCheckbox && urlsDeidCheckbox.checked);
+          if (withDeid) headers['X-Deidentify'] = 'true';
+          return fetch('/', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ url, deid: withDeid })
+          }).then(readMarkdownResponse);
+        };
 
-        const requestBatch = urls => fetch('/v1/batch', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Accept': 'text/plain' },
-          body: JSON.stringify({ urls })
-        }).then(readMarkdownResponse);
+        const requestBatch = urls => {
+          const headers = { 'Content-Type': 'application/json', 'Accept': 'text/plain' };
+          const withDeid = Boolean(urlsDeidCheckbox && urlsDeidCheckbox.checked);
+          if (withDeid) headers['X-Deidentify'] = 'true';
+          return fetch('/v1/batch', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({ urls, deid: withDeid })
+          }).then(readMarkdownResponse);
+        };
 
         // 1. Search Keyboard & Form Listener (Enter key submits search!)
         queryInput.addEventListener('keydown', e => {
@@ -1171,6 +1339,7 @@
           }
           const file = fileInput.files[0];
           const withOcr = Boolean(uploadWithOcrCheckbox && uploadWithOcrCheckbox.checked);
+          const withDeid = Boolean(uploadDeidCheckbox && uploadDeidCheckbox.checked);
           uploadBtn.disabled = true;
           announce(statusRegions.upload, 'uploading', [file.name, withOcr], false, true);
           resultArea.hidden = true;
@@ -1181,12 +1350,21 @@
             if (withOcr) {
               formData.append('ocr', 'true');
             }
+            if (withDeid) {
+              formData.append('deid', 'true');
+            }
             const headers = { 'Accept': 'text/plain', 'X-No-Cache': 'true' };
             if (withOcr) {
               headers['X-With-Ocr'] = 'true';
               headers['X-Ocr'] = 'true';
             }
-            const endpoint = withOcr ? '/?ocr=true&noCache=true' : '/?noCache=true';
+            if (withDeid) {
+              headers['X-Deidentify'] = 'true';
+            }
+            const queryParams = new URLSearchParams({ noCache: 'true' });
+            if (withOcr) queryParams.set('ocr', 'true');
+            if (withDeid) queryParams.set('deid', 'true');
+            const endpoint = `/?${queryParams.toString()}`;
             const response = await fetch(endpoint, {
               method: 'POST',
               headers,
@@ -1288,8 +1466,137 @@
           }
         });
 
-        // Dynamic Capability Probing for OCR Service
-        const checkOcrCapability = async () => {
+        // 5. De-identification Form, Score & Restore Listeners
+        deidForm.addEventListener('submit', async event => {
+          event.preventDefault();
+          const textVal = deidInput.value.trim();
+          if (!textVal) {
+            announce(statusRegions.deid, 'deidRequired', [], true);
+            deidInput.focus();
+            return;
+          }
+
+          deidBtn.disabled = true;
+          deidScoreBtn.disabled = true;
+          deidRestoreBtn.disabled = true;
+          announce(statusRegions.deid, 'deidProcessing', [], false, true);
+          resultArea.hidden = true;
+
+          try {
+            const response = await fetch('/api/deid', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+              },
+              body: JSON.stringify({
+                text: deidInput.value,
+                mode: deidMode.value,
+                partial: Boolean(deidPartial.checked),
+                score: Boolean(deidScore.checked)
+              })
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || data.error || `Server error ${response.status}`);
+            showResult(data.text, {
+              csvMapping: data.csvMapping,
+              clefScore: data.clefScore
+            });
+            announce(statusRegions.deid, 'deidDone');
+          } catch (err) {
+            announce(statusRegions.deid, 'unknownError', [], true);
+            console.error('Deid error:', err);
+          } finally {
+            deidBtn.disabled = false;
+            deidScoreBtn.disabled = false;
+            deidRestoreBtn.disabled = false;
+          }
+        });
+
+        deidScoreBtn.addEventListener('click', async () => {
+          const textVal = deidInput.value.trim();
+          if (!textVal) {
+            announce(statusRegions.deid, 'deidRequired', [], true);
+            deidInput.focus();
+            return;
+          }
+
+          deidBtn.disabled = true;
+          deidScoreBtn.disabled = true;
+          deidRestoreBtn.disabled = true;
+          announce(statusRegions.deid, 'deidScoring', [], false, true);
+          resultArea.hidden = true;
+
+          try {
+            const response = await fetch('/api/deid/score', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+              },
+              body: JSON.stringify({ text: deidInput.value })
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || data.error || `Server error ${response.status}`);
+            showResult(deidInput.value, {
+              clefScore: data
+            });
+            announce(statusRegions.deid, 'deidScoreDone');
+          } catch (err) {
+            announce(statusRegions.deid, 'unknownError', [], true);
+            console.error('Score error:', err);
+          } finally {
+            deidBtn.disabled = false;
+            deidScoreBtn.disabled = false;
+            deidRestoreBtn.disabled = false;
+          }
+        });
+
+        deidRestoreBtn.addEventListener('click', async () => {
+          const textVal = deidInput.value.trim();
+          if (!textVal) {
+            announce(statusRegions.deid, 'deidRequired', [], true);
+            deidInput.focus();
+            return;
+          }
+
+          const csv = currentCsvMapping || window.prompt(locale === 'zh-Hant' ? '請貼上還原用之 CSV 編碼對照表：' : 'Paste CSV mapping table for restoration:');
+          if (!csv) return;
+
+          deidBtn.disabled = true;
+          deidScoreBtn.disabled = true;
+          deidRestoreBtn.disabled = true;
+          announce(statusRegions.deid, 'deidRestoring', [], false, true);
+          resultArea.hidden = true;
+
+          try {
+            const response = await fetch('/api/deid/restore', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+              },
+              body: JSON.stringify({
+                text: deidInput.value,
+                csv
+              })
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.message || data.error || `Server error ${response.status}`);
+            showResult(data.restoredText || data.text || '');
+            announce(statusRegions.deid, 'deidRestoreDone');
+          } catch (err) {
+            announce(statusRegions.deid, 'unknownError', [], true);
+            console.error('Restore error:', err);
+          } finally {
+            deidBtn.disabled = false;
+            deidScoreBtn.disabled = false;
+            deidRestoreBtn.disabled = false;
+          }
+        });
+
+        // Dynamic Capability Probing for OCR and De-ID Services
+        const checkCapabilities = async () => {
           try {
             const resp = await fetch('/api/capabilities');
             if (resp.ok) {
@@ -1298,22 +1605,34 @@
               if (payload?.ocr?.available) {
                 ocrTabBtn.hidden = false;
                 document.querySelector('#ocr').hidden = false;
-                updateCurrentSection();
-                if (window.location.hash === '#ocr') document.querySelector('#ocr').scrollIntoView();
               } else {
                 ocrTabBtn.hidden = true;
                 document.querySelector('#ocr').hidden = true;
               }
+              if (payload?.deid?.available) {
+                deidTabBtn.hidden = false;
+                document.querySelector('#deid').hidden = false;
+              } else {
+                deidTabBtn.hidden = true;
+                document.querySelector('#deid').hidden = true;
+              }
+              updateCurrentSection();
+              if (window.location.hash === '#ocr') document.querySelector('#ocr').scrollIntoView();
+              if (window.location.hash === '#deid') document.querySelector('#deid').scrollIntoView();
             } else {
               ocrTabBtn.hidden = true;
               document.querySelector('#ocr').hidden = true;
+              deidTabBtn.hidden = true;
+              document.querySelector('#deid').hidden = true;
             }
           } catch {
             ocrTabBtn.hidden = true;
             document.querySelector('#ocr').hidden = true;
+            deidTabBtn.hidden = true;
+            document.querySelector('#deid').hidden = true;
           }
         };
-        checkOcrCapability();
+        checkCapabilities();
 
         // WebMCP integration. Browsers without document.modelContext continue
         // to use the regular UI unchanged.
