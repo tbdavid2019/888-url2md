@@ -2,6 +2,13 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.10.18.7] - 2026-10-18 - 強化台灣身分證與統編前後文語意保護機制 (Context-Aware TWID & Tax ID Protection)
+
+### Fixed
+- **台灣身分證字號與統一編號前後文感知遮蔽 (`src/services/deidentification/patterns.ts`, `detector.ts`)**:
+  - 原先 `tw-id`（台灣身分證字號）與 `tw-tax-id`（統一編號）僅依賴嚴格的最後一碼檢核碼驗證 (`isValidTwId` / `isValidTaxId`)；當使用者輸入手打之測試證號、OCR 辨識尾碼微偏或尾碼不符標準權重（如 `身分證 A123947473`，其標準檢核尾碼為 `4` 而非 `3`）時會被跳過不遮蔽。
+  - 現已擴充 `detector.ts` 前文視窗至 16 字元，並於 `tw-id` 與 `tw-tax-id` 加入前後文語意感知：只要前方明確出現「`身分證` / `身份證` / `統一證號` / `居留證` / `證號` / `ID`」或「`統一編號` / `統編` / `Tax ID`」等標籤，即使尾碼檢核不符亦強制視為敏感證號予以遮蔽保護（例如 `專案經理陳國豪（身分證 A123947473）` 精確遮蔽為 `專案經理陳○○（身分證 A1○○○○○○○○）`），同時在無標籤的一般文本中維持嚴格檢核碼驗證以避免誤殺普通編號。
+
 ## [2026.10.18.6] - 2026-10-18 - 完整移植 5 種遮蔽標記、15 類精細保留調整、15+N 規則管理與徹底隱藏內部基礎架構名稱 (Full De-ID Masking & Rules Parity + Zero Internal Tech Exposure)
 
 ### Added

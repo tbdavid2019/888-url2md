@@ -106,13 +106,15 @@ export const BUILTIN_PATTERNS: Pattern[] = [
     id: 'tw-id',
     name: '台灣身分證字號',
     group: 'tw',
-    note: '身分證檢核碼驗證，錯誤號碼不命中',
+    note: '身分證檢核碼驗證（若前方明確標示「身分證／統一證號／ID」亦強制保護）',
     category: '身分證',
     source: 'builtin',
     regex: '(?<![A-Za-z0-9])[A-Z][1289]\\d{8}(?!\\d)',
     example: 'A123456789',
     enabled: true,
-    validate: isValidTwId,
+    validate: (m: string, before = '') =>
+      isValidTwId(m) ||
+      /(?:[身生][份分]證|統一證號|居留證|證號|\bID)(?:字號|號碼|編號|\s*No\.?)?\s*[:：#（(]?\s*$/iu.test(before),
   },
   {
     id: 'us-ssn',
@@ -179,13 +181,14 @@ export const BUILTIN_PATTERNS: Pattern[] = [
     id: 'tw-tax-id',
     name: '統一編號',
     group: 'tw',
-    note: '統一編號檢核碼驗證（含 2023 年新制）',
+    note: '統一編號檢核碼驗證（含 2023 年新制；若前方標示「統編／統一編號」亦強制保護）',
     category: '統編',
     source: 'builtin',
     regex: '(?<![\\d-])\\d{8}(?![\\d-])',
     example: '統一編號 04595257',
     enabled: true,
-    validate: isValidTaxId,
+    validate: (m: string, before = '') =>
+      isValidTaxId(m) || /(?:統一編號|統編|Tax\s*ID)(?:號碼|\s*No\.?)?\s*[:：#（(]?\s*$/iu.test(before),
   },
   {
     id: 'email',

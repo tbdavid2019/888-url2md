@@ -241,6 +241,14 @@ describe('DeidService integration', () => {
     assert.ok(!res.redactedText.includes('EMP-123456'));
     // 地址 retention kind 'city' -> keeps 台北市, masks 信義區市府路45號
     assert.ok(res.redactedText.includes('台北市*********'));
+
+    // Context-labeled TWID (e.g. 身分證 A123947473 where check digit is non-standard) must still be masked
+    const resContextTwId = await service.deidentify('專案經理陳國豪（身分證 A123947473）', {
+      mode: 'blank',
+      retentionMode: 'preview',
+    });
+    assert.ok(!resContextTwId.redactedText.includes('A123947473'));
+    assert.ok(resContextTwId.redactedText.includes('A1○○○○○○○○'));
   });
 });
 

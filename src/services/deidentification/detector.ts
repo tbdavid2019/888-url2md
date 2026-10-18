@@ -186,7 +186,7 @@ export function detect(
         re.lastIndex++;
         continue;
       }
-      const verdict = p.validate ? p.validate(m[0], text.slice(Math.max(0, m.index - 3), m.index)) : true;
+      const verdict = p.validate ? p.validate(m[0], text.slice(Math.max(0, m.index - 16), m.index)) : true;
       if (verdict === false || verdict === 0) {
         re.lastIndex = m.index + Math.min(2, m[0].length);
         continue;
