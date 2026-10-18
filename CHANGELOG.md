@@ -2,6 +2,11 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.10.18.2] - 2026-10-18 - 修正 civkit 多路由 Method 名稱衝突 (Fix Duplicate RPC Names)
+
+### Fixed
+- 為 `deidentifyCtrl`、`scorePrivacyCtrl` 與 `restoreDeidCtrl` 的多個 `@Method` 裝飾器賦予唯一 RPC 方法名稱（如 `scorePrivacy`、`scorePrivacyV1`、`scorePrivacyLegacy` 等），消除 Docker build 階段 `npm run dry-run` 拋出之 `Duplicated RPC: scorePrivacyCtrl` 衝突錯誤。
+
 ## [2026.10.18.1] - 2026-10-18 - 個資去識別化引擎與 Clef 隱私評估整合 (PII De-identification & Clef Privacy Shield)
 
 ### Added

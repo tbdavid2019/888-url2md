@@ -2635,6 +2635,7 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
         returnType: [RawString, Object],
     })
     @Method({
+        name: 'deidentifyTextV1',
         proto: {
             http: {
                 action: 'post',
@@ -2728,6 +2729,7 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
         returnType: [Object],
     })
     @Method({
+        name: 'scorePrivacyV1',
         proto: {
             http: {
                 action: 'post',
@@ -2738,6 +2740,7 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
         returnType: [Object],
     })
     @Method({
+        name: 'scorePrivacyLegacy',
         proto: {
             http: {
                 action: 'post',
@@ -2790,6 +2793,7 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
         returnType: [RawString, Object],
     })
     @Method({
+        name: 'restoreDeidentifiedTextV1',
         proto: {
             http: {
                 action: 'post',
