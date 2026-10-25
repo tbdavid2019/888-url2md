@@ -2,6 +2,15 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.10.25.1] - 2026-10-25 - 容器基底全面升級 Node.js 26 (v26.12.1) 與最新 CVE 安全防護加固 (Node.js 26 Runtime & Security Hardening)
+
+### Changed
+- **容器運行環境升級 Node.js 26 (`v26.12.1`)**:
+  - `Dockerfile` 基礎映像檔升級為 `node:26.12.1 AS base`，`.nvmrc` 更新為 `26.12.1`。
+  - 全面啟用最新 V8 引擎，提升大量網頁爬取、HTML 轉 Markdown 與文字清理之執行效能與垃圾回收（GC）效率。
+  - 完整防護 October 2026 官方安全公告 CVE（包含 CVE-2026-111497 Brotli 解碼器越界寫入 RCE 漏洞、CVE-2026-105482/83/69 等）。
+  - CI/CD 流程（`.github/workflows/oss-image.yml`、`moli-upstream.yml`）同步升級 Node 26 執行環境。
+
 ## [2026.10.18.7] - 2026-10-18 - 強化台灣身分證與統編前後文語意保護機制 (Context-Aware TWID & Tax ID Protection)
 
 ### Fixed

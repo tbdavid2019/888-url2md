@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM node:24.22.1 AS base
+FROM node:26.12.1 AS base
 
 FROM base AS moli-runtime
 ARG TARGETARCH
