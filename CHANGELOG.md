@@ -10,6 +10,7 @@ All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888
   - 全面啟用最新 V8 引擎，提升大量網頁爬取、HTML 轉 Markdown 與文字清理之執行效能與垃圾回收（GC）效率。
   - 完整防護 October 2026 官方安全公告 CVE（包含 CVE-2026-111497 Brotli 解碼器越界寫入 RCE 漏洞、CVE-2026-105482/83/69 等）。
   - CI/CD 流程（`.github/workflows/oss-image.yml`、`moli-upstream.yml`）同步升級 Node 26 執行環境。
+  - 修復 Debian 13 (Trixie) 套件相容性：使用 `/etc/apt/keyrings/google-chrome.gpg` 替代棄用的 `apt-key`，並移除 Trixie 已下架的 `fonts-kacst`。
 
 ## [2026.10.18.7] - 2026-10-18 - 強化台灣身分證與統編前後文語意保護機制 (Context-Aware TWID & Tax ID Protection)
 

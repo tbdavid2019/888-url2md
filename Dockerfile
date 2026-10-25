@@ -13,14 +13,14 @@ RUN apt-get update \
     && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /etc/apt/keyrings/google-chrome.gpg \
     && echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list \
     && apt-get update \
-    && apt-get install -y libreoffice google-chrome-stable fonts-noto-cjk-extra fonts-noto-color-emoji fonts-liberation fonts-ipafont-gothic fonts-wqy-zenhei fonts-thai-tlwg fonts-kacst fonts-freefont-ttf libxss1 zstd libc++-dev \
+    && apt-get install -y libreoffice google-chrome-stable fonts-noto-cjk-extra fonts-noto-color-emoji fonts-liberation fonts-ipafont-gothic fonts-wqy-zenhei fonts-thai-tlwg fonts-freefont-ttf libxss1 zstd libc++-dev \
     --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 ENV OVERRIDE_CHROME_EXECUTABLE_PATH=/usr/bin/google-chrome-stable
 
 FROM base AS build-arm64
 RUN apt-get update \
-    && apt-get install -y libreoffice chromium fonts-noto-cjk-extra fonts-noto-color-emoji fonts-liberation fonts-ipafont-gothic fonts-wqy-zenhei fonts-thai-tlwg fonts-kacst fonts-freefont-ttf libxss1 zstd libc++-dev \
+    && apt-get install -y libreoffice chromium fonts-noto-cjk-extra fonts-noto-color-emoji fonts-liberation fonts-ipafont-gothic fonts-wqy-zenhei fonts-thai-tlwg fonts-freefont-ttf libxss1 zstd libc++-dev \
     --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 ENV OVERRIDE_CHROME_EXECUTABLE_PATH=/usr/bin/chromium
