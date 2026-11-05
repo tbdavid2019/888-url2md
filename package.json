@@ -57,7 +57,7 @@
     "maxmind": "^4.3.18",
     "minio": "^8.0.7",
     "pdfjs-dist": "^4.10.38",
-    "puppeteer": "^24.42.0",
+    "puppeteer": "^25.16.0",
     "robots-parser": "^3.0.1",
     "set-cookie-parser": "^2.6.0",
     "stripe": "^11.11.0",
