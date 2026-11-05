@@ -2,6 +2,20 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.11.05.4] - 2026-11-05 - Dependabot 安全修補與核心相依性漏洞升級 (Dependabot Security Vulnerabilities Remediation)
+
+### Security
+- **修補 Dependabot 警告與 npm audit 安全漏洞 (`package.json`, `package-lock.json`)**:
+  - 升級 `undici` 至 `^7.30.1`（修補 cross-origin redirects 跨域重定向漏洞、TLS certificate bypass 與 DoS 等多項漏洞，涵蓋 PR #1 及 Dependabot Alerts #60-#62, #65-#69）。
+  - 透過 `overrides` 升級 `express` 至 `^4.22.3` 與 `qs` 至 `^6.16.2`（修補陣列括號解析 DoS 漏洞與未捕捉之 TypeError DoS，涵蓋 PR #2 及 Dependabot Alert #64）。
+  - 升級 `proxy-addr` 至 `^2.0.8`（修補 IPv4-mapped IPv6 trust subnet 偽造之 Critical 嚴重性 IP Spoofing 漏洞，Dependabot Alert #52）。
+  - 升級 `body-parser` 至 `^1.20.9`（修補解壓縮 trailing bytes 造成之 High 嚴重性 DoS 漏洞，Dependabot Alert #56）。
+  - 升級 `adm-zip` 至 `^0.6.1`（修補解壓縮任意路徑寫入、未限制記憶體分配與符號連結特權提升等 7 項 High 漏洞）。
+  - 升級 `nodemailer` 至 `^10.3.1`（修補 SMTP AUTH 正則回溯 DoS、DKIM 標頭折疊 DoS、RFC 5322 註解解析等多項漏洞，涵蓋 Dependabot Alerts #47, #53, #57, #58, #59, #63）。
+  - 升級 `decode-uri-component` 至 `^0.5.1` 與 `basic-ftp` 至 `^6.2.6`。
+  - 固定 `@nomagick/node-libcurl-impersonate` 於穩定版 `5.0.4`，確保編譯型原生模組 API 一致性與執行期穩定。
+
+
 ## [2026.11.05.3] - 2026-11-05 - 前端動態限制參數化顯示與 OCR/PDF 擴展至 500 頁 (Dynamic Parameterized UI Limits & 500-Page OCR Scaling)
 
 ### Added
