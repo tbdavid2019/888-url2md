@@ -29,9 +29,9 @@ Currently deployed at: [**create360.ai**](https://create360.ai) (or easily self-
   - 內建 `/llms.txt` 與 `/llms-full.txt` 端點，方便 AI Agent（如 Cursor, Windsurf, LangChain, LlamaIndex, OpenAI GPTs, Claude 等）在 Inference 階段自動識別與導覽網站能力。
 5. **動態 Domain 參數化 (Dynamic Domain Detection)**
   - 自動偵測環境變數 (`PUBLIC_DOMAIN`, `BASE_URL`) 或 HTTP 請求 Header (`x-forwarded-host`, `Host`)，自動將說明文件與 JSON 內的網址替換為目前部署的域名（如 `https://create360.ai` 或 `http://localhost:3000`）。
-6. **Firecrawl AnyDoc 超極速多格式文檔轉譯 (High-Performance AnyDoc Parser)**
-  - 整合 Firecrawl 最新開源的 Rust 文檔解析引擎 `@firecrawl/anydoc`。
-  - 支援 PDF, Word (.docx/.doc), Excel (.xlsx/.xls), PowerPoint (.pptx/.ppt), EPUB, RTF, OpenDocument (ODT/ODS/ODP), CSV 等 14+ 種文檔格式。
+6. **超極速多引擎文件轉譯 (High-Speed Multi-Engine Document Parser)**
+  - 整合 Firecrawl 開源 Rust 文檔解析引擎 `@firecrawl/anydoc` 與高效排版轉譯管線。
+  - 支援 PDF, Word (.docx/.doc), Excel (.xlsx/.xls), PowerPoint (.pptx/.ppt), EPUB, RTF, OpenDocument (ODT/ODS/ODP), CSV 等 14+ 種文件格式。
   - 提供 **&lt; 5ms 毫秒級解析超高速度**與統一高品質 GitHub-Flavored Markdown 輸出，大幅超越傳統 LibreOffice 轉換速度。
 7. **Magika 本地檔案格式辨識 (Local File-Type Detection)**
   - 在 Docker build 階段內建固定版本的 Magika AI 模型，服務運行時從本地載入一次，不依賴模型下載網路。
@@ -58,7 +58,7 @@ Currently deployed at: [**create360.ai**](https://create360.ai) (or easily self-
   - **三種標記模式與統計保留**：支援隨機十六進位代碼可逆標記 (`code`, 如 `[姓名:王8f2a1b]`)、類別標記 (`category`, 如 `[姓名]`) 與符號遮罩 (`mask`, 如 `○○○`)；支援統計保留模式（保留姓氏、身分證首兩碼、電信前綴，便於分析）。
   - **RFC 4180 CSV 映射表與無損還原**：輸出標準 CSV 對照表，支援憑表無損還原原始文本。
   - **3 級容錯 Clef / Jev System One 隱私評估客戶端**：支援三階層自動故障轉移（自建 Clef-Flash <200ms -> 備援 Clef-Flash-Q4 -> TypeSafe Jev），深度評估未脫敏文本個資暴露風險與去識別化完整度評分。
-  - **純後端 API 與爬蟲/文檔無縫整合**：提供 `POST /api/deid`、`POST /api/deid/score`、`POST /api/deid/restore`；所有網頁抓取與 AnyDoc 文檔解析皆可透過 `?deid=true` 或 Header `X-Deidentify: true` 一鍵啟用個資脫敏。
+  - **純後端 API 與爬蟲/文檔無縫整合**：提供 `POST /api/deid`、`POST /api/deid/score`、`POST /api/deid/restore`；所有網頁抓取與文件解析皆可透過 `?deid=true` 或 Header `X-Deidentify: true` 一鍵啟用個資脫敏。
 12. **PaperPilot Pure-Rust PDF & OCR 側車微服務整合 (PaperPilot Rust Engine Integration)**
   - **純 Rust 高效能 PDF 轉 Markdown**：透過 HTTP/REST 介接 [PaperPilot Gateway](https://github.com/KrushnaVardhanReddy/PaperPilot)（基於 Axum），支援 Tika 4 相容端點 `/tika/json/md` 與 `/tika/text`，以 Rust `pdf_oxide` / `lopdf` 即時抽取結構化表格與佈局感知 Markdown。
   - **雙軌優先與智慧降級**：配置 `PAPERPILOT_ENDPOINT` 時自動啟用；若未配置或連線異常，系統自動平滑無縫回退至內建 `AnyDoc`、`pdfjs-dist` 與 PaddleOCR 微服務，確保高可用性與 100% 向下相容。
@@ -668,7 +668,7 @@ curl -X POST 'https://create360.ai/v1/batch' \
 - `X-Content-Query`: 搭配 BM25 評分的關鍵詞搜尋字串
 - `X-Session-Id`: 跨請求共用 Cookie 會話 UUID
 - `X-Detach-Invisibles: true`: 產生 Markdown 前徹底剔除 `display:none` 隱形元素
-- `X-With-Ocr: true` / `X-Ocr: true`: 啟用 AnyDoc 文檔解析的光學字符辨識（OCR）
+- `X-With-Ocr: true` / `X-Ocr: true`: 啟用文件解析的光學字符辨識（OCR）
 - `X-Deidentify: true`: 啟用自動個資去識別化 (PII Filtering)
 - `X-Deid-Mode`: 指定去識別化標記模式 (`code` | `label` | `blank` | `asterisk` | `smart`，預設 `code`)
 - `X-Deid-Partial`: 是否保留統計前綴 (`true` | `false`，預設 `true`)
@@ -758,8 +758,8 @@ Currently deployed at: [**create360.ai**](https://create360.ai) (or easily self-
 5. **Dynamic Domain Parameterization**
    - Automatically detects environment variables (`PUBLIC_DOMAIN`, `BASE_URL`) or HTTP request headers (`x-forwarded-host`, `Host`) to substitute the deployment domain seamlessly.
 
-6. **Firecrawl AnyDoc Ultra-Fast Document Parser**
-   - Integrated with Firecrawl's open-source Rust document parsing engine `@firecrawl/anydoc`.
+6. **High-Speed Multi-Engine Document Parser**
+   - Integrated with Firecrawl's open-source Rust document parsing engine `@firecrawl/anydoc` and high-speed layout translation pipeline.
    - Supports 14+ document formats including PDF, Word (.docx/.doc), Excel (.xlsx/.xls), PowerPoint (.pptx/.ppt), EPUB, RTF, OpenDocument (ODT/ODS/ODP), CSV, and TXT.
    - Ultra-fast **< 5ms parsing speed** with unified, clean GitHub-Flavored Markdown output.
 7. **Magika Local File-Type Detection**
@@ -786,7 +786,7 @@ Currently deployed at: [**create360.ai**](https://create360.ai) (or easily self-
    - **Three Redaction Modes & Statistical Retention**: Random hexadecimal code reversible tokens (`code`, e.g. `[姓名:王8f2a1b]`), category markers (`category`, e.g. `[姓名]`), and circle masks (`mask`, e.g. `○○○`). Supports statistical retention (retaining surname, ID first 2 chars, carrier prefix `0912-`, area code).
    - **RFC 4180 CSV Mapping & Lossless Restoration**: Reversible token mapping table exported as standard CSV; lossless text restoration via `POST /api/deid/restore`.
    - **3-Tier Failover Clef / Jev System One Privacy Evaluator**: Built-in 3-tier failover (Primary Clef-Flash <200ms -> Secondary Clef-Flash-Q4 -> TypeSafe Jev) to score raw privacy risk and de-identification completeness.
-   - **Pure Backend APIs & Seamless Crawler Integration**: Full downstream REST endpoints (`POST /api/deid`, `POST /api/deid/score`, `POST /api/deid/restore`) and one-click crawler/AnyDoc integration via `?deid=true` or `X-Deidentify: true`.
+   - **Pure Backend APIs & Seamless Crawler Integration**: Full downstream REST endpoints (`POST /api/deid`, `POST /api/deid/score`, `POST /api/deid/restore`) and one-click crawler/document parser integration via `?deid=true` or `X-Deidentify: true`.
 12. **PaperPilot Pure-Rust PDF & OCR Sidecar Integration (PaperPilot Rust Engine)**
    - **High-Performance Pure-Rust PDF to Markdown**: Seamlessly communicates over HTTP/REST with [PaperPilot Gateway](https://github.com/KrushnaVardhanReddy/PaperPilot) (built on Axum), supporting Tika 4 compatible `/tika/json/md` and `/tika/text` endpoints for layout-aware Markdown and structured table extraction with Rust-native PaddleOCR (`rten`).
    - **Dual-Track Priority & Graceful Fallback**: Automatically prioritized when `PAPERPILOT_ENDPOINT` is configured. If unreachable or unconfigured, the pipeline gracefully falls back to built-in `AnyDoc`, `pdfjs-dist`, and PaddleOCR microservice clusters with zero downtime.
@@ -1237,7 +1237,7 @@ curl -X POST "https://create360.ai/api/deid/restore" \
 ```
 
 #### **D. One-Click Crawler & Document De-identification (`?deid=true`)**
-Add `deid=true` or `X-Deidentify: true` to any crawl or AnyDoc parsing request:
+Add `deid=true` or `X-Deidentify: true` to any crawl or document parsing request:
 ```bash
 # Scrape webpage with automatic PII removal
 curl "https://create360.ai/https://example.com/contact?deid=true"
@@ -1295,7 +1295,7 @@ curl -X POST 'https://create360.ai/v1/batch' \
 
 ---
 
-### 4. Document File Parsing (AnyDoc Engine)
+### 4. Multi-Engine Document & PDF Parsing
 
 Upload documents via `multipart/form-data` to `/v1/upload`, `/upload`, or `/`:
 
@@ -1344,7 +1344,7 @@ Control crawler behavior via request headers:
 - `X-Content-Query`: Query string used for BM25 score ranking
 - `X-Session-Id`: Persistent session UUID to share cookies across sequential requests
 - `X-Detach-Invisibles: true`: Strip `display:none` and invisible DOM nodes prior to markdown generation
-- `X-With-Ocr: true` / `X-Ocr: true`: Enable OCR image and scanned document text/table recognition in AnyDoc parsing
+- `X-With-Ocr: true` / `X-Ocr: true`: Enable OCR image and scanned document text/table recognition in document parsing
 - `X-Deidentify: true`: Enable automatic PII de-identification on crawled or parsed pages
 - `X-Deid-Mode`: Set marker mode (`code` | `label` | `blank` | `asterisk` | `smart`, default: `code`)
 - `X-Deid-Partial`: Preserve statistical prefixes (`true` | `false`, default: `true`)

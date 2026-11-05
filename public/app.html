@@ -845,23 +845,23 @@
       <nav class="section-nav" aria-label="工具區導覽" data-i18n-aria-label="toolsNav">
         <a href="#search" id="nav-search">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-          <span data-i18n="searchTab">網頁搜尋 (Live SERP)</span>
+          <span data-i18n="searchTab">網頁搜尋</span>
         </a>
         <a href="#urls" id="nav-urls">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20M2 12h20"></path></svg>
-          <span data-i18n="urlsTab">網址轉換 (URL)</span>
+          <span data-i18n="urlsTab">網址轉換</span>
         </a>
         <a href="#documents" id="nav-documents">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 2 2h12a2 2 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-          <span data-i18n="uploadTab">文件轉換 (Document)</span>
+          <span data-i18n="uploadTab">文件轉換</span>
         </a>
         <a href="#ocr" id="nav-ocr" hidden>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2m10 0h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2m4-9h8m-8 4h10M7 16h6"/></svg>
-          <span data-i18n="ocrTab">圖片辨識 (OCR)</span>
+          <span data-i18n="ocrTab">圖片辨識</span>
         </a>
         <a href="#deid" id="nav-deid" hidden>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
-          <span data-i18n="deidTab">隱私脫敏 (De-ID)</span>
+          <span data-i18n="deidTab">隱私脫敏</span>
         </a>
       </nav>
 
@@ -965,7 +965,7 @@
         <!-- Privacy & De-identification -->
         <section id="deid" class="card tool-section" aria-labelledby="deid-title" hidden>
           <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px;">
-            <h2 id="deid-title" data-i18n="deidLabel" style="margin: 0;">個資去識別化與隱私防護 (De-ID)</h2>
+            <h2 id="deid-title" data-i18n="deidLabel" style="margin: 0;">個資去識別化與隱私防護</h2>
             <button type="button" class="deid-small-btn" id="deid-sample-btn" data-i18n="deidSampleBtn">填入完整測試範例</button>
           </div>
           <form id="deid-form">
@@ -1177,10 +1177,11 @@
         const translations = {
           'zh-Hant': {
             intro: '搜尋網頁、轉換網址與文件，將內容整理成 Markdown。',
-            searchTab: '網頁搜尋 (Live SERP)',
-            urlsTab: '網址轉換 (URL)',
-            uploadTab: '文件轉換 (Document)',
-            ocrTab: '圖片辨識 (OCR)',
+            searchTab: '網頁搜尋',
+            urlsTab: '網址轉換',
+            uploadTab: '文件轉換',
+            ocrTab: '圖片辨識',
+            deidTab: '隱私脫敏',
             toolsNav: '工具區導覽',
             searchLabel: '網頁搜尋',
             searchPlaceholder: '輸入搜尋關鍵字',
@@ -1229,8 +1230,8 @@
             ocrUploaded: name => `已完成「${name}」的文字與表格轉譯。`,
             copied: '已複製 Markdown 到剪貼簿！',
             copyFailed: '無法自動複製，請手動選取內容。',
-            deidTab: '隱私脫敏 (De-ID)',
-            deidLabel: '個資去識別化與隱私防護 (De-ID)',
+            deidTab: '隱私脫敏',
+            deidLabel: '個資去識別化與隱私防護',
             deidSampleBtn: '填入完整測試範例',
             deidOutputSettingsTitle: '輸出設定',
             deidRetentionLabel: '保留',
@@ -1262,10 +1263,10 @@
           },
           en: {
             intro: 'Search the web, convert URLs and documents, and bring the content into Markdown.',
-            searchTab: 'Web Search (SERP)',
+            searchTab: 'Web Search',
             urlsTab: 'URL Converter',
             uploadTab: 'Document Converter',
-            ocrTab: 'Image & PDF OCR',
+            ocrTab: 'Image OCR',
             toolsNav: 'Tool sections',
             searchLabel: 'Web search',
             searchPlaceholder: 'Enter search terms',

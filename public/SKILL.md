@@ -52,12 +52,13 @@ If you are an LLM or AI Agent accessing this service for the first time:
   }
   ```
 
-### 4. Document File Upload & Parsing (AnyDoc Engine)
+### 4. Multi-Engine Document & PDF Parsing
 - **POST Request**: `/`
   *Multipart Form-Data*: Attach file in form-data parameter `file` or `pdf`:
   `curl -X POST 'https://<HOST>/' -H 'Accept: text/plain' -F "file=@report.pdf"`
   *Supported Formats*: PDF, Word (.docx/.doc), Excel (.xlsx/.xls), PowerPoint (.pptx/.ppt), EPUB, RTF, OpenDocument (.odt/.ods/.odp), CSV.
-  *Latency*: Sub-5ms conversion via Firecrawl AnyDoc engine.
+  *Limits*: Up to 500 pages for PDF, up to 256MB file size (dynamic values via `GET /api/capabilities`).
+  *Architecture*: Multi-engine pipeline combining pure-Rust layout parsing and cross-format document conversion with automated OCR fallback for scanned PDFs.
 
 ### 5. Image OCR & Table Reconstruction (PaddleOCR PP-OCRv4 Engine)
 - **POST Request**: `/api/ocr` or `/v1/ocr`
@@ -153,7 +154,7 @@ Protect sensitive data before sending text to downstream LLMs. Features rule-bas
   - Restores exact original text losslessly.
 
 - **D. Auto De-Identification on Web & Document Crawls**:
-  - Add header `X-Deidentify: true` (or `X-Deid: true`), query `?deid=true`, or body `"deid": true` to any Reader or AnyDoc request.
+  - Add header `X-Deidentify: true` (or `X-Deid: true`), query `?deid=true`, or body `"deid": true` to any Reader or Document conversion request.
   - Web pages and uploaded documents (PDF, Word, Excel, OCR images) are automatically sanitized before returning Markdown to the LLM.
 
 ### 7. Response Formats

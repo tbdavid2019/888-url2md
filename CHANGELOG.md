@@ -2,6 +2,23 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.11.05.6] - 2026-11-05 - 全面去除技術括號贅字與文檔/Skill 多引擎規格同步 (UI Tab Jargon Cleanup & Multi-Engine Documentation Sync)
+
+### Changed
+- **前端導覽頁籤全面去除技術代號贅字 (`public/app.html`)**:
+  - 徹底移除導覽頁籤上過度暴露內部實作與冗贅的英文技術括號：
+    - `網頁搜尋 (Live SERP)` $\rightarrow$ **`網頁搜尋`**（英文介面：`Web Search`）
+    - `網址轉換 (URL)` $\rightarrow$ **`網址轉換`**（英文介面：`URL Converter`）
+    - `文件轉換 (Document)` $\rightarrow$ **`文件轉換`**（英文介面：`Document Converter`）
+    - `圖片辨識 (OCR)` $\rightarrow$ **`圖片辨識`**（英文介面：`Image OCR`）
+    - `隱私脫敏 (De-ID)` $\rightarrow$ **`隱私脫敏`**（英文介面：`Privacy De-ID`）
+  - 同步清理導覽列靜態預設 HTML、多語系字典 (`translations['zh-Hant']`, `translations['en']`) 與標題宣告，提供使用者直覺俐落的產品介面。
+- **專案 Agent 與對外 API 文檔規格同步 (`public/SKILL.md`, `public/llms.txt`, `public/llms-full.txt`, `src/api/crawler.ts`)**:
+  - 去除 `AnyDoc Engine` / `Firecrawl AnyDoc` 等特定單一套件內部命名，正名為「**高鐵多引擎文件與 PDF 解析 (High-Speed Multi-Engine Document & PDF Parsing)**」。
+  - 明確載明純 Rust 排版引擎與跨格式解析管線架構，以及已擴展之 500 頁與 256MB 動態參數規格。
+- **本地 Agent Skill 擴充支援 (`~/.gemini/config/skills/create360-reader/SKILL.md`)**:
+  - 擴充 `create360-reader` 技能定義，新增第 3 節「本機文件檔案上傳轉換（PDF、Word、Excel、PPT、EPUB、CSV 至 500 頁 / 256MB）」與第 4 節「圖片與 PDF OCR 辨識（PaddleOCR PP-OCRv4）」，並補充 `X-Deidentify: true` 隱私脫敏調用教學。
+
 ## [2026.11.05.5] - 2026-11-05 - 前端文件轉換頁籤去內部代號化與在地化用語優化 (UI Document Converter De-Branding & Terminology Optimization)
 
 ### Changed

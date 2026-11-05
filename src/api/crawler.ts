@@ -321,12 +321,12 @@ If you are an LLM or AI Agent accessing this service for the first time:
   }
   \`\`\`
 
-### 4. Document File Upload & Parsing (AnyDoc Engine)
+### 4. Multi-Engine Document & PDF Parsing
 - **POST Request**: \`${baseDomain}/\`
   *Multipart Form-Data*: Attach file in form-data parameter \`file\` or \`pdf\`:
   \`curl -X POST '${baseDomain}/' -H 'Accept: text/plain' -F "file=@report.pdf"\`
-  *Supported Formats*: PDF, Word (.docx/.doc), Excel (.xlsx/.xls), PowerPoint (.pptx/.ppt), EPUB, RTF, OpenDocument (.odt/.ods/.odp), CSV.
-  *Latency*: Sub-5ms conversion via Firecrawl AnyDoc engine.
+  *Supported Formats*: PDF, Word (.docx/.doc), Excel (.xlsx/.xls), PowerPoint (.pptx/.ppt), EPUB, RTF, OpenDocument (.odt/.ods/.odp), CSV (up to 500 pages for PDF, up to 256MB file size).
+  *Latency*: Sub-5ms high-speed document extraction.
 
 ### 5. Image OCR & Table Reconstruction (PaddleOCR PP-OCRv4 Engine)
 - **POST Request**: \`${baseDomain}/api/ocr\` or \`${baseDomain}/v1/ocr\`
@@ -421,7 +421,7 @@ Protect sensitive data before sending text to downstream LLMs. Features rule-bas
   - Restores exact original text losslessly.
 
 - **D. Auto De-Identification on Web & Document Crawls**:
-  - Add header \`X-Deidentify: true\` (or \`X-Deid: true\`), query \`?deid=true\`, or body \`"deid": true\` to any Reader or AnyDoc request.
+  - Add header \`X-Deidentify: true\` (or \`X-Deid: true\`), query \`?deid=true\`, or body \`"deid": true\` to any Reader or Document conversion request.
   - Web pages and uploaded documents (PDF, Word, Excel, OCR images) are automatically sanitized before returning Markdown to the LLM.
 
 ### 7. Response Formats
@@ -535,12 +535,12 @@ without \`document.modelContext\` continue to use the regular API and forms.
     generateLlmstxt(baseDomain: string): string {
         return `# 888 URL to Markdown (888-url2md) API
 
-> High-performance Web Reader, Live Web Search (SERP), Document & PDF Parsing (Firecrawl AnyDoc), Image OCR (PaddleOCR PP-OCRv4), PII De-Identification, and Multi-URL Batch Crawling API service for LLMs and AI Agents. Converts web pages, document files (PDF, Word, Excel, PPT, EPUB, RTF, CSV), images, and live search queries into clean Markdown or structured JSON.
+> High-performance Web Reader, Live Web Search, Multi-Engine Document & PDF Parsing, Image OCR (PaddleOCR PP-OCRv4), PII De-Identification, and Multi-URL Batch Crawling API service for LLMs and AI Agents. Converts web pages, document files (PDF, Word, Excel, PPT, EPUB, RTF, CSV), images, and live search queries into clean Markdown or structured JSON.
 
 ## Capabilities
 
 - **Single URL Web Reader & Scraper**: Convert any web page or online document URL into clean LLM-friendly Markdown by calling \`GET ${baseDomain}/<URL>\` or \`POST ${baseDomain}/\` with \`{"url": "..."}\`.
-- **High-Speed Document & PDF Parsing (AnyDoc Engine)**: Extract and convert local document files (PDF, DOCX, DOC, XLSX, XLS, PPTX, PPT, EPUB, RTF, ODT, ODS, ODP, CSV) into clean Markdown with sub-5ms latency via \`POST ${baseDomain}/\` using multipart form-data (\`file=@document.pdf\` or \`pdf=@document.pdf\`), or by providing direct remote PDF/document URLs.
+- **High-Speed Multi-Engine Document & PDF Parsing**: Extract and convert local document files (PDF, DOCX, DOC, XLSX, XLS, PPTX, PPT, EPUB, RTF, ODT, ODS, ODP, CSV) up to 500 pages and 256MB into clean Markdown with sub-5ms latency via \`POST ${baseDomain}/\` using multipart form-data (\`file=@document.pdf\` or \`pdf=@document.pdf\`), or by providing direct remote PDF/document URLs.
 - **Image OCR & Text Extraction (PaddleOCR PP-OCRv4 Engine)**: Convert local image files (PNG, JPG, JPEG, WEBP, BMP) or screenshots into clean Markdown and structured JSON with line-level bounding box coordinates via \`POST ${baseDomain}/api/ocr\` (or \`/v1/ocr\`). Powered by PP-OCRv4 (Chinese & English) with multi-node failover pool and single-flight anti-thundering-herd protection.
 - **PII De-Identification & Privacy Shield (15 Taiwan & Intl Rules + Custom Rules + AI Privacy Scoring)**: Automatically detect and mask Taiwan PII (TWID, Unified Business Number, mobile, address, phone, compound surnames, email) and international PII (credit cards with Luhn check, SSN, IBAN, IPv4/IPv6, DOB) using sub-5ms rules with 5 marker modes (\`code\`, \`label\`, \`blank\`, \`asterisk\`, \`smart\`), per-category retention policies, custom RegExp rules, reversible CSV mapping, and AI privacy scoring via \`POST ${baseDomain}/api/deid\` or \`X-Deidentify: true\` on any reader/crawler/document endpoint.
 - **Real-Time Live Web Search (SERP)**: Execute zero-config live web searches and get structured Markdown snippets by calling \`GET ${baseDomain}/s/<QUERY>\` or \`GET ${baseDomain}/search?q=<QUERY>\`. Powered by DuckDuckGo with multi-engine fallback.
