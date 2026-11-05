@@ -2,6 +2,15 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.11.05.5] - 2026-11-05 - 前端文件轉換頁籤去內部代號化與在地化用語優化 (UI Document Converter De-Branding & Terminology Optimization)
+
+### Changed
+- **前端導覽頁籤去除底層套件內部代號 (`public/app.html`, `README.md`)**:
+  - 將導覽頁籤標籤由「`文檔解析 (AnyDoc)`」全面重構為「**`文件轉換 (Document)`**」（英文介面為 **`Document Converter`**），避免終端使用者誤解為僅能處理 Word 文件（`.doc`）或對底層套件名稱產生困惑。
+  - 將前端 HTML Template、Meta 標籤、頁面操作按鈕與多語系字典（`i18n`）中的中國大陸用語「文檔」在地化修訂為台灣正體中文「**文件**」（如「上傳文件並轉成 Markdown」、「啟用 OCR 圖片/掃描文件文字辨識」）。
+  - 同步更新繁體中文與英文版 `README.md` 中對應的前端操作區塊說明。
+
+
 ## [2026.11.05.4] - 2026-11-05 - Dependabot 安全修補與核心相依性漏洞升級 (Dependabot Security Vulnerabilities Remediation)
 
 ### Security

@@ -5,15 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     
     <!-- Primary Meta Tags -->
-    <title>888 URL2MD - 網頁網址、文檔檔案與搜尋結果轉 Markdown</title>
-    <meta name="title" content="888 URL2MD - 網頁網址、文檔檔案與搜尋結果轉 Markdown">
-    <meta name="description" content="888 URL2MD 是一款高效能網頁與文檔擷取工具，支援將網址、PDF、Word、Excel、PPT、EPUB、CSV 及搜尋結果快速轉換為結構化 Markdown 格式。專為 LLM、AI Agent 設計。">
+    <title>888 URL2MD - 網頁網址、文件檔案與搜尋結果轉 Markdown</title>
+    <meta name="title" content="888 URL2MD - 網頁網址、文件檔案與搜尋結果轉 Markdown">
+    <meta name="description" content="888 URL2MD 是一款高效能網頁與文件擷取工具，支援將網址、PDF、Word、Excel、PPT、EPUB、CSV 及搜尋結果快速轉換為結構化 Markdown 格式。專為 LLM、AI Agent 設計。">
     <link rel="canonical" href="https://create360.ai">
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://create360.ai">
-    <meta property="og:title" content="888 URL2MD - 網頁與文檔轉 Markdown 工具">
+    <meta property="og:title" content="888 URL2MD - 網頁與文件轉 Markdown 工具">
     <meta property="og:description" content="888 URL2MD 支援將網址、PDF、Word、Excel、PPT、EPUB、CSV 及搜尋結果快速轉換為結構化 Markdown 格式。">
     <meta property="og:image" content="https://create360.ai/og-image.png?v=2026.10.16.6">
     <meta property="og:image:width" content="1200">
@@ -852,8 +852,8 @@
           <span data-i18n="urlsTab">網址轉換 (URL)</span>
         </a>
         <a href="#documents" id="nav-documents">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-          <span data-i18n="uploadTab">文檔解析 (AnyDoc)</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 2 2h12a2 2 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          <span data-i18n="uploadTab">文件轉換 (Document)</span>
         </a>
         <a href="#ocr" id="nav-ocr" hidden>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2m10 0h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2m4-9h8m-8 4h10M7 16h6"/></svg>
@@ -921,7 +921,7 @@
             <div class="option-row" style="display: flex; flex-direction: column; gap: 8px;">
               <label class="switch-label">
                 <input type="checkbox" id="upload-with-ocr" name="ocr" value="true">
-                <span data-i18n="uploadOcrOption">啟用 OCR 圖片/掃描文檔文字辨識 (強制調用 PaddleOCR 繁中 & 表格模型)</span>
+                <span data-i18n="uploadOcrOption">啟用 OCR 圖片/掃描文件文字辨識 (強制調用 PaddleOCR 繁中 & 表格模型)</span>
               </label>
               <label class="switch-label">
                 <input type="checkbox" id="upload-deid" name="deid" value="true">
@@ -931,7 +931,7 @@
             <div class="actions" style="margin-top: 18px">
               <button class="primary-btn" id="upload-btn" type="submit">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-                <span data-i18n="uploadAction">上傳文檔並轉成 Markdown</span>
+                <span data-i18n="uploadAction">上傳文件並轉成 Markdown</span>
               </button>
             </div>
             <div id="status-upload" role="status" aria-live="polite"></div>
@@ -1179,7 +1179,7 @@
             intro: '搜尋網頁、轉換網址與文件，將內容整理成 Markdown。',
             searchTab: '網頁搜尋 (Live SERP)',
             urlsTab: '網址轉換 (URL)',
-            uploadTab: '文檔解析 (AnyDoc)',
+            uploadTab: '文件轉換 (Document)',
             ocrTab: '圖片辨識 (OCR)',
             toolsNav: '工具區導覽',
             searchLabel: '網頁搜尋',
@@ -1191,8 +1191,8 @@
             uploadLabel: '文件解析',
             dropzonePrompt: '拖曳檔案至此，或點擊選擇檔案上傳',
             dropzoneHint: '支援 PDF, Word (.docx/.doc), Excel (.xlsx/.xls), PowerPoint (.pptx/.ppt), EPUB, RTF, CSV, ODT...',
-            uploadOcrOption: '啟用 OCR 圖片/掃描文檔文字辨識 (強制調用 PaddleOCR 繁中 & 表格模型)',
-            uploadAction: '上傳文檔並轉成 Markdown',
+            uploadOcrOption: '啟用 OCR 圖片/掃描文件文字辨識 (強制調用 PaddleOCR 繁中 & 表格模型)',
+            uploadAction: '上傳文件並轉成 Markdown',
             ocrLabel: '圖片與 PDF 辨識',
             ocrDropzonePrompt: '拖曳圖片或 PDF 至此，點擊選擇檔案，或直接 Ctrl+V / Cmd+V 貼上截圖',
             ocrDropzoneHint: '支援 PNG, JPG, JPEG, WEBP, BMP, PDF 文件，以及剪貼簿截圖直接貼上...',
@@ -1205,7 +1205,7 @@
             switchLanguageAria: '切換語言',
             queryRequired: '請輸入搜尋關鍵字。',
             urlsRequired: '請至少輸入一個網址。',
-            fileRequired: '請選擇要上傳的文檔檔案。',
+            fileRequired: '請選擇要上傳的文件檔案。',
             ocrFileRequired: '請選擇圖片或 PDF 檔案，或貼上截圖。',
             wordStats: (chars, words) => `${chars} 字元 / ${words} 個詞`,
             fileLimits: (pages, size) => `頁數：最多 ${pages} 頁 / 尺寸：上限 ${size}`,
@@ -1223,8 +1223,8 @@
             searched: query => `已完成「${query}」的網頁搜尋。`,
             converting: count => `正在轉換 ${count} 個網址…`,
             converted: count => `已完成 ${count} 個網址的轉譯。`,
-            uploading: (name, withOcr) => `正在解析文檔「${name}」${withOcr ? '並啟用 OCR' : ''}…`,
-            uploaded: (name, withOcr) => `已完成文檔「${name}」${withOcr ? '（含 OCR）' : ''}的轉譯。`,
+            uploading: (name, withOcr) => `正在解析文件「${name}」${withOcr ? '並啟用 OCR' : ''}…`,
+            uploaded: (name, withOcr) => `已完成文件「${name}」${withOcr ? '（含 OCR）' : ''}的轉譯。`,
             ocrUploading: name => name.toLowerCase().endsWith('.pdf') ? `正在透過 PaddleOCR 逐頁辨識 PDF 文件「${name}」…` : `正在透過 PaddleOCR 辨識「${name}」…`,
             ocrUploaded: name => `已完成「${name}」的文字與表格轉譯。`,
             copied: '已複製 Markdown 到剪貼簿！',
@@ -1264,7 +1264,7 @@
             intro: 'Search the web, convert URLs and documents, and bring the content into Markdown.',
             searchTab: 'Web Search (SERP)',
             urlsTab: 'URL Converter',
-            uploadTab: 'Document Parser (AnyDoc)',
+            uploadTab: 'Document Converter',
             ocrTab: 'Image & PDF OCR',
             toolsNav: 'Tool sections',
             searchLabel: 'Web search',
