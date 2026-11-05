@@ -346,6 +346,21 @@
         margin-top: 8px;
       }
 
+      .file-limits-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--link, #2563eb);
+        background: rgba(37, 99, 235, 0.08);
+        border: 1px solid rgba(37, 99, 235, 0.2);
+        border-radius: 9999px;
+        padding: 3px 12px;
+        margin-top: 8px;
+        letter-spacing: 0.02em;
+      }
+
       .help-text {
         margin: 9px 0 14px;
         font-size: 0.82rem;
@@ -894,13 +909,14 @@
           <h2 id="upload-title" data-i18n="uploadLabel">文件解析</h2>
           <form id="upload-form" enctype="multipart/form-data">
             <label for="file-input" class="sr-only" data-i18n="uploadLabel">文件解析</label>
-            <div id="dropzone" class="dropzone" role="button" aria-labelledby="file-name-display" aria-describedby="file-types-hint" tabindex="0">
+            <div id="dropzone" class="dropzone" role="button" aria-labelledby="file-name-display" aria-describedby="file-types-hint documents-limits-hint" tabindex="0">
               <input type="file" id="file-input" name="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.epub,.rtf,.odt,.ods,.odp,.csv,.txt" style="display: none">
               <div class="dropzone-icon">
                 <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"></path><path d="M12 12v9"></path><path d="m16 16-4-4-4 4"></path></svg>
               </div>
               <div class="dropzone-text" id="file-name-display" data-i18n="dropzonePrompt">拖曳檔案至此，或點擊選擇檔案上傳</div>
               <div class="file-types-hint" id="file-types-hint" data-i18n="dropzoneHint">支援 PDF, Word (.docx/.doc), Excel (.xlsx/.xls), PowerPoint (.pptx/.ppt), EPUB, RTF, CSV, ODT...</div>
+              <div class="file-limits-badge" id="documents-limits-hint">頁數：最多 500 頁 / 尺寸：上限 256MB</div>
             </div>
             <div class="option-row" style="display: flex; flex-direction: column; gap: 8px;">
               <label class="switch-label">
@@ -927,13 +943,14 @@
           <h2 id="ocr-title" data-i18n="ocrLabel">圖片與 PDF 辨識</h2>
           <form id="ocr-form" enctype="multipart/form-data">
             <label for="ocr-file-input" class="sr-only" data-i18n="ocrLabel">圖片與 PDF 辨識</label>
-            <div id="ocr-dropzone" class="dropzone" role="button" aria-labelledby="ocr-file-name-display" aria-describedby="ocr-file-types-hint" tabindex="0">
+            <div id="ocr-dropzone" class="dropzone" role="button" aria-labelledby="ocr-file-name-display" aria-describedby="ocr-file-types-hint ocr-limits-hint" tabindex="0">
               <input type="file" id="ocr-file-input" name="file" accept=".png,.jpg,.jpeg,.webp,.bmp,.gif,.pdf,application/pdf" style="display: none">
               <div class="dropzone-icon">
                 <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7V5a2 2 0 0 1 2-2h2m10 0h2a2 2 0 0 1 2 2v2m0 10v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2m4-9h8m-8 4h10M7 16h6"/></svg>
               </div>
               <div class="dropzone-text" id="ocr-file-name-display" data-i18n="ocrDropzonePrompt">拖曳圖片至此，點擊選擇檔案，或直接 Ctrl+V / Cmd+V 貼上截圖</div>
               <div class="file-types-hint" id="ocr-file-types-hint" data-i18n="ocrDropzoneHint">支援 PNG, JPG, JPEG, WEBP, BMP, PDF 文件，以及剪貼簿截圖直接貼上...</div>
+              <div class="file-limits-badge" id="ocr-limits-hint">頁數：最多 500 頁 / 尺寸：上限 256MB</div>
             </div>
             <div class="actions" style="margin-top: 18px">
               <button class="primary-btn" id="ocr-btn" type="submit">
@@ -1191,6 +1208,7 @@
             fileRequired: '請選擇要上傳的文檔檔案。',
             ocrFileRequired: '請選擇圖片或 PDF 檔案，或貼上截圖。',
             wordStats: (chars, words) => `${chars} 字元 / ${words} 個詞`,
+            fileLimits: (pages, size) => `頁數：最多 ${pages} 頁 / 尺寸：上限 ${size}`,
             selectedFile: (name, size) => `已選擇檔案：${name}（${size} KB）`,
             ocrFileSelected: (name, size, isPdf) => `已選擇${isPdf ? ' PDF' : '圖片'}：${name}（${size} KB）`,
             pasteReceived: '已從剪貼簿接收截圖，點擊辨識按鈕即可轉成 Markdown。',
@@ -1275,6 +1293,7 @@
             fileRequired: 'Please select a document file to upload.',
             ocrFileRequired: 'Please select an image or PDF file, or paste a screenshot.',
             wordStats: (chars, words) => `${chars} characters / ${words} words`,
+            fileLimits: (pages, size) => `Pages: max ${pages} / Size: max ${size}`,
             selectedFile: (name, size) => `Selected file: ${name} (${size} KB)`,
             ocrFileSelected: (name, size, isPdf) => `Selected ${isPdf ? 'PDF' : 'image'}: ${name} (${size} KB)`,
             pasteReceived: 'Screenshot received from clipboard. Select OCR to convert it to Markdown.',
@@ -1362,6 +1381,19 @@
           );
         };
 
+        let currentLimits = { maxPages: 500, maxFileSize: '256MB' };
+
+        const updateLimitsDisplay = () => {
+          const fn = text('fileLimits');
+          const limitStr = typeof fn === 'function'
+            ? fn(currentLimits.maxPages, currentLimits.maxFileSize)
+            : `頁數：最多 ${currentLimits.maxPages} 頁 / 尺寸：上限 ${currentLimits.maxFileSize}`;
+          const docHint = document.querySelector('#documents-limits-hint');
+          if (docHint) docHint.textContent = limitStr;
+          const ocrHint = document.querySelector('#ocr-limits-hint');
+          if (ocrHint) ocrHint.textContent = limitStr;
+        };
+
         const applyLocale = () => {
           document.documentElement.lang = locale;
           document.querySelectorAll('[data-i18n]').forEach(el => {
@@ -1378,6 +1410,7 @@
           languageToggle.textContent = text('switchLanguage');
           updateFileNameDisplay();
           updateOcrFileNameDisplay();
+          updateLimitsDisplay();
         };
 
         // Hash navigation supports direct links, refresh, and browser history.
@@ -2510,6 +2543,11 @@
             if (resp.ok) {
               const res = await resp.json();
               const payload = res?.data || res;
+              if (payload?.limits) {
+                if (payload.limits.maxPages) currentLimits.maxPages = payload.limits.maxPages;
+                if (payload.limits.maxFileSize) currentLimits.maxFileSize = payload.limits.maxFileSize;
+                updateLimitsDisplay();
+              }
               if (payload?.ocr?.available) {
                 ocrTabBtn.hidden = false;
                 document.querySelector('#ocr').hidden = false;

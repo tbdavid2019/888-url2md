@@ -59,6 +59,10 @@ Currently deployed at: [**create360.ai**](https://create360.ai) (or easily self-
   - **RFC 4180 CSV 映射表與無損還原**：輸出標準 CSV 對照表，支援憑表無損還原原始文本。
   - **3 級容錯 Clef / Jev System One 隱私評估客戶端**：支援三階層自動故障轉移（自建 Clef-Flash <200ms -> 備援 Clef-Flash-Q4 -> TypeSafe Jev），深度評估未脫敏文本個資暴露風險與去識別化完整度評分。
   - **純後端 API 與爬蟲/文檔無縫整合**：提供 `POST /api/deid`、`POST /api/deid/score`、`POST /api/deid/restore`；所有網頁抓取與 AnyDoc 文檔解析皆可透過 `?deid=true` 或 Header `X-Deidentify: true` 一鍵啟用個資脫敏。
+12. **PaperPilot Pure-Rust PDF & OCR 側車微服務整合 (PaperPilot Rust Engine Integration)**
+  - **純 Rust 高效能 PDF 轉 Markdown**：透過 HTTP/REST 介接 [PaperPilot Gateway](https://github.com/KrushnaVardhanReddy/PaperPilot)（基於 Axum），支援 Tika 4 相容端點 `/tika/json/md` 與 `/tika/text`，以 Rust `pdf_oxide` / `lopdf` 即時抽取結構化表格與佈局感知 Markdown。
+  - **雙軌優先與智慧降級**：配置 `PAPERPILOT_ENDPOINT` 時自動啟用；若未配置或連線異常，系統自動平滑無縫回退至內建 `AnyDoc`、`pdfjs-dist` 與 PaddleOCR 微服務，確保高可用性與 100% 向下相容。
+  - **微服務能力與監控**：支援 `GET /api/paperpilot/status` 與 `GET /api/capabilities` 動態回報節點連線健康狀態與延遲。
 
 ---
 
@@ -153,6 +157,11 @@ services:
 | `OCR_HEALTH_TIMEOUT_MS` | (選填) 單次健康檢查探測逾時（毫秒） | `2000` (2 秒) |
 | `OCR_POLL_INTERVAL_MS` | (選填) 背景探測間隔時間（毫秒） | `30000` (30 秒) |
 | `OCR_SECRET_KEY` | (選填) OCR 微服務 API Key（透過 `X-API-Key` 傳遞） | 自訂密鑰 |
+| `PAPERPILOT_ENDPOINT` | (選填) PaperPilot Gateway 端點 URL（純 Rust PDF/OCR 引擎） | 範例：`http://localhost:7823` 或 `http://paperpilot:7823` |
+| `PAPERPILOT_ENABLED` | (選填) 是否啟用 PaperPilot 優先處理 PDF | `true` / `false`（預設：設定端點時為 `true`） |
+| `PAPERPILOT_TIMEOUT_MS` | (選填) PaperPilot 單次請求逾時（毫秒） | `120000` (120 秒／2 分鐘) |
+| `PDF_MAX_PAGES` | (選填) PDF 頁面抽取與 OCR 最大處理頁數 | `500` (預設 500 頁，支援 1~1000 頁) |
+| `BODY_PARSER_LIMIT` | (選填) 檔案上傳與請求 Body 大小限制 | `256mb` (256MB) |
 | `CLEF_PRIMARY_URL` | (選填) 自建 Clef-Flash 主要評估端點 | `https://clef.create360.ai/v1/systemone` |
 | `CLEF_FALLBACK_URL` | (選填) 自建 Clef-Flash-Q4 次要備援端點 | `https://clef.aiurl.tw/v1/systemone` |
 | `TYPESAFE_API_URL` | (選填) TypeSafe Jev 官方服務端點 | `https://api.typesafe.ai/v1/systemone` |
@@ -450,9 +459,12 @@ curl -X POST "https://create360.ai/api/ocr?mode=table" \
   -F "file=@table-screenshot.png"
 ```
 
-#### **B. 查詢 OCR 叢集節點健康與狀態 (`GET /api/capabilities`)**
+#### **B. 查詢服務能力、規格限制與節點狀態 (`GET /api/capabilities`)**
 ```bash
-curl -s "https://create360.ai/api/capabilities" | jq .ocr
+# 查詢伺服器能力、OCR 叢集、PaperPilot 狀態與動態規格限制 (頁數/檔案尺寸)
+curl -s "https://create360.ai/api/capabilities" | jq .
+# 僅查詢規格限制 (limits: maxPages / maxFileSize)
+curl -s "https://create360.ai/api/capabilities" | jq .limits
 ```
 
 ---
@@ -613,7 +625,8 @@ curl -X POST 'https://create360.ai/v1/batch' \
 - `**GET https://create360.ai/skill.md**`: Agent Skill 規格文檔
 - `**GET https://create360.ai/llms.txt**`: 符合 [llmstxt.org](https://llmstxt.org/) 的推理指引
 - `**GET https://create360.ai/llms-full.txt**`: 完整 API 與 Skill 規格
-- `**GET https://create360.ai/api/capabilities**`: 伺服器動態能力與 OCR 叢集狀態
+- `**GET https://create360.ai/api/capabilities**`: 伺服器動態能力、OCR 叢集、PaperPilot 引擎狀態與動態規格限制（`limits: maxPages / maxFileSize`）
+- `**GET https://create360.ai/api/paperpilot/status**`: PaperPilot PDF 引擎健康度與節點狀態
 - `**POST https://create360.ai/api/ocr**`: 圖片文字與表格結構辨識（PP-OCRv4 繁簡中英）
 
 #### **JSON Schema (適用於 Tool Call 宣告)**:
@@ -774,6 +787,10 @@ Currently deployed at: [**create360.ai**](https://create360.ai) (or easily self-
    - **RFC 4180 CSV Mapping & Lossless Restoration**: Reversible token mapping table exported as standard CSV; lossless text restoration via `POST /api/deid/restore`.
    - **3-Tier Failover Clef / Jev System One Privacy Evaluator**: Built-in 3-tier failover (Primary Clef-Flash <200ms -> Secondary Clef-Flash-Q4 -> TypeSafe Jev) to score raw privacy risk and de-identification completeness.
    - **Pure Backend APIs & Seamless Crawler Integration**: Full downstream REST endpoints (`POST /api/deid`, `POST /api/deid/score`, `POST /api/deid/restore`) and one-click crawler/AnyDoc integration via `?deid=true` or `X-Deidentify: true`.
+12. **PaperPilot Pure-Rust PDF & OCR Sidecar Integration (PaperPilot Rust Engine)**
+   - **High-Performance Pure-Rust PDF to Markdown**: Seamlessly communicates over HTTP/REST with [PaperPilot Gateway](https://github.com/KrushnaVardhanReddy/PaperPilot) (built on Axum), supporting Tika 4 compatible `/tika/json/md` and `/tika/text` endpoints for layout-aware Markdown and structured table extraction with Rust-native PaddleOCR (`rten`).
+   - **Dual-Track Priority & Graceful Fallback**: Automatically prioritized when `PAPERPILOT_ENDPOINT` is configured. If unreachable or unconfigured, the pipeline gracefully falls back to built-in `AnyDoc`, `pdfjs-dist`, and PaddleOCR microservice clusters with zero downtime.
+   - **Capabilities & Health Monitoring**: Discover engine health and latency via `GET /api/paperpilot/status` and dynamic status in `GET /api/capabilities`.
 
 ## Web 介面導覽 (Web Interface Navigation)
 
@@ -871,6 +888,11 @@ services:
 | `OCR_HEALTH_TIMEOUT_MS` | (Optional) Health check probe timeout in milliseconds | `2000` (2 seconds) |
 | `OCR_POLL_INTERVAL_MS` | (Optional) Background probing interval in milliseconds | `30000` (30 seconds) |
 | `OCR_SECRET_KEY` | (Optional) API key passed via `X-API-Key` header | Cluster secret |
+| `PAPERPILOT_ENDPOINT` | (Optional) PaperPilot Gateway endpoint URL (Pure-Rust PDF/OCR engine) | e.g. `http://localhost:7823` or `http://paperpilot:7823` |
+| `PAPERPILOT_ENABLED` | (Optional) Whether to prioritize PaperPilot for PDF processing | `true` / `false` (default: `true` if endpoint is set) |
+| `PAPERPILOT_TIMEOUT_MS` | (Optional) Per-request PaperPilot timeout in milliseconds | `120000` (120 seconds / 2 minutes) |
+| `PDF_MAX_PAGES` | (Optional) Maximum number of PDF pages to extract and OCR | `500` (default: 500, bounds: 1–1000 pages) |
+| `BODY_PARSER_LIMIT` | (Optional) Maximum upload payload and request body size limit | `256mb` (256MB) |
 | `CLEF_PRIMARY_URL` | (Optional) Primary self-hosted Clef-Flash System One endpoint | `https://clef.create360.ai/v1/systemone` |
 | `CLEF_FALLBACK_URL` | (Optional) Secondary self-hosted Clef-Flash-Q4 fallback endpoint | `https://clef.aiurl.tw/v1/systemone` |
 | `TYPESAFE_API_URL` | (Optional) TypeSafe Jev official service endpoint | `https://api.typesafe.ai/v1/systemone` |
@@ -1156,9 +1178,14 @@ curl -X POST "https://create360.ai/api/ocr?mode=table" \
   -F "file=@table-screenshot.png"
 ```
 
-#### **B. Cluster Capabilities & Node Health (`GET /api/capabilities`)**
+#### **B. Cluster Capabilities, Dynamic Limits & Node Health (`GET /api/capabilities`)**
 ```bash
-curl -s "https://create360.ai/api/capabilities" | jq .ocr
+# Inspect overall server capabilities, OCR cluster, PaperPilot status, and dynamic limits (pages/file size)
+curl -s "https://create360.ai/api/capabilities" | jq .
+# Probe limits directly (limits: maxPages / maxFileSize)
+curl -s "https://create360.ai/api/capabilities" | jq .limits
+# Probe PaperPilot Pure-Rust PDF engine status
+curl -s "https://create360.ai/api/paperpilot/status" | jq .
 ```
 
 ---

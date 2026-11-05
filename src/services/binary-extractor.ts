@@ -20,6 +20,7 @@ import { JSDomControl } from './jsdom';
 import { AnyDocService } from './anydoc';
 import { MagikaService, selectContentTypeFromMagika } from './magika';
 import { OcrClientService } from './ocr-client';
+import { PaperPilotClientService } from './paperpilot-client';
 import _ from 'lodash';
 
 @singleton()
@@ -38,12 +39,19 @@ export class BinaryExtractorService extends AsyncService {
         protected anyDocService: AnyDocService,
         protected magikaService: MagikaService,
         protected ocrClientService: OcrClientService,
+        protected paperpilotClientService: PaperPilotClientService,
     ) {
         super(...arguments);
     }
 
+    protected maxPdfPages: number = 500;
+
     override async init() {
         await this.dependencyReady();
+        const envPages = parseInt(process.env.PDF_MAX_PAGES || '500', 10);
+        if (!isNaN(envPages) && envPages > 0) {
+            this.maxPdfPages = envPages;
+        }
 
         this.emit('ready');
     }
@@ -278,6 +286,56 @@ export class BinaryExtractorService extends AsyncService {
             traits: ['blob'],
         };
 
+        const isPdf = contentType.startsWith('application/pdf') || fileName.toLowerCase().endsWith('.pdf');
+
+        // Optional PaperPilot high-performance Rust PDF & layout engine
+        if (isPdf && this.paperpilotClientService.isAvailable()) {
+            try {
+                const fileBuf = await readFile(filePath);
+                const ppResult = await this.paperpilotClientService.extractMarkdown(fileBuf, { fileName });
+                if (ppResult && ppResult.markdown && ppResult.markdown.trim().length > 0) {
+                    const rawDate = ppResult.metadata?.ModDate || ppResult.metadata?.CreationDate;
+                    let publishedTime: string | undefined;
+                    if (rawDate) {
+                        try {
+                            const parsed = this.pdfExtractor.parsePdfDate(rawDate);
+                            if (parsed && !isNaN(parsed.getTime())) {
+                                publishedTime = parsed.toISOString();
+                            } else {
+                                const directDate = new Date(rawDate);
+                                if (!isNaN(directDate.getTime())) {
+                                    publishedTime = directDate.toISOString();
+                                }
+                            }
+                        } catch {
+                            // Suppress invalid date format errors gracefully
+                        }
+                    }
+
+                    snapshot.title = ppResult.title || fileName;
+                    snapshot.text = ppResult.text || ppResult.markdown;
+                    snapshot.parsed = {
+                        content: ppResult.markdown,
+                        title: ppResult.title || fileName,
+                        byline: ppResult.metadata?.Author || ppResult.metadata?.['dc:creator'],
+                        lang: ppResult.metadata?.Language || ppResult.metadata?.['dc:language'],
+                        publishedTime,
+                    };
+                    snapshot.metadata = {
+                        ...ppResult.metadata,
+                        ...(ppResult.pageCount ? { pageCount: String(ppResult.pageCount) } : {}),
+                    };
+                    snapshot.traits!.push('pdf', 'paperpilot');
+                    if (withOcr) {
+                        snapshot.traits!.push('ocr');
+                    }
+                    return snapshot;
+                }
+            } catch (ppErr) {
+                this.logger.warn(`PaperPilot extraction failed, falling back to built-in extractor`, { ppErr, fileName });
+            }
+        }
+
         if (this.anyDocService.supports(contentType, fileName)) {
             try {
                 let markdown = '';
@@ -306,7 +364,7 @@ export class BinaryExtractorService extends AsyncService {
                             verbosity: 0,
                         });
                         const doc = await loadingTask.promise;
-                        totalPages = Math.min(doc.numPages, 20);
+                        totalPages = Math.min(doc.numPages, this.maxPdfPages);
                     } catch {
                         totalPages = 3;
                     }
@@ -448,7 +506,7 @@ export class BinaryExtractorService extends AsyncService {
                     verbosity: 0,
                 });
                 const doc = await loadingTask.promise;
-                totalPages = Math.min(doc.numPages, 20);
+                totalPages = Math.min(doc.numPages, this.maxPdfPages);
             } catch {
                 totalPages = 3;
             }

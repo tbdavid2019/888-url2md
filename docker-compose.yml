@@ -50,6 +50,12 @@ services:
       OCR_TIMEOUT_MS: ${OCR_TIMEOUT_MS:-120000}
       OCR_HEALTH_TIMEOUT_MS: ${OCR_HEALTH_TIMEOUT_MS:-6000}
       OCR_POLL_INTERVAL_MS: ${OCR_POLL_INTERVAL_MS:-30000}
+      # --- PaperPilot Pure-Rust PDF & OCR Engine (Opt-in) ---
+      PAPERPILOT_ENDPOINT: ${PAPERPILOT_ENDPOINT:-}
+      PAPERPILOT_ENABLED: ${PAPERPILOT_ENABLED:-true}
+      PAPERPILOT_TIMEOUT_MS: ${PAPERPILOT_TIMEOUT_MS:-120000}
+      PDF_MAX_PAGES: ${PDF_MAX_PAGES:-500}
+      BODY_PARSER_LIMIT: ${BODY_PARSER_LIMIT:-256mb}
       # --- De-Identification & Privacy Risk Scoring (Clef / Jev) ---
       CLEF_PRIMARY_URL: ${CLEF_PRIMARY_URL:-https://clef.create360.ai/v1/systemone}
       CLEF_FALLBACK_URL: ${CLEF_FALLBACK_URL:-https://clef.aiurl.tw/v1/systemone}
@@ -108,6 +114,17 @@ services:
       default:
         aliases:
           - minio.dev.jina.ai
+
+  # Optional PaperPilot Pure-Rust PDF & Layout / OCR Sidecar
+  paperpilot:
+    profiles: ["paperpilot", "all"]
+    image: ghcr.io/krushnavardhanreddy/paperpilot:latest
+    container_name: paperpilot-url2md
+    restart: unless-stopped
+    ports:
+      - "7823:7823"
+    environment:
+      - PORT=7823
 
 volumes:
   minio-data:

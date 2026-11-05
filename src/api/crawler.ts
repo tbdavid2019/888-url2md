@@ -41,6 +41,7 @@ import {
     ServiceNodeResourceDrainError,
 } from '../services/errors';
 import { OcrClientService, OcrPredictionResult, selectOcrMarkdown } from '../services/ocr-client';
+import { PaperPilotClientService } from '../services/paperpilot-client';
 import { DeidService } from '../services/deid-service';
 import { PDFExtractor } from '../services/pdf-extract';
 
@@ -141,6 +142,7 @@ export class CrawlerHost extends RPCHost {
         protected jobQueue: JobQueueService,
         protected adaptiveSelectorService: AdaptiveSelectorService,
         protected ocrClientService: OcrClientService,
+        protected paperpilotClientService: PaperPilotClientService,
         protected pdfExtractor: PDFExtractor,
         protected deidService: DeidService,
     ) {
@@ -2706,15 +2708,40 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
         returnType: [Object],
     })
     async getCapabilitiesCtrl() {
+        const maxPdfPages = parseInt(process.env.PDF_MAX_PAGES || '500', 10);
+        const bodyLimit = process.env.BODY_PARSER_LIMIT || '256mb';
+        const parsedBodyMb = parseInt(bodyLimit, 10);
         return {
             ocr: this.ocrClientService.getStatus(),
+            paperpilot: this.paperpilotClientService.getStatus(),
             deid: {
                 available: true,
                 rules: true,
                 rulesCount: 15,
                 aiScoring: true,
             },
+            limits: {
+                maxPages: isNaN(maxPdfPages) || maxPdfPages <= 0 ? 500 : maxPdfPages,
+                maxFileSize: bodyLimit.toUpperCase(),
+                maxFileSizeMb: isNaN(parsedBodyMb) || parsedBodyMb <= 0 ? 256 : parsedBodyMb,
+            },
         };
+    }
+
+    @Method({
+        name: 'getPaperPilotStatus',
+        description: 'Get PaperPilot PDF engine status and health',
+        proto: {
+            http: {
+                action: 'get',
+                path: '/api/paperpilot/status',
+            }
+        },
+        tags: ['paperpilot'],
+        returnType: [Object],
+    })
+    async getPaperPilotStatusCtrl() {
+        return this.paperpilotClientService.getStatus();
     }
 
     @Method({
@@ -3105,6 +3132,29 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
         fileName: string,
         opts: { lang?: string; isTableMode: boolean; maxPages?: string; totalT0: number }
     ): Promise<OcrPredictionResult> {
+        // High-speed PaperPilot Pure-Rust OCR priority
+        if (this.paperpilotClientService.isAvailable()) {
+            try {
+                const ppRes = await this.paperpilotClientService.extractMarkdown(imageBuffer, {
+                    fileName,
+                    withOcr: true,
+                    extractTables: opts.isTableMode,
+                });
+                if (ppRes && ppRes.markdown && ppRes.markdown.trim().length > 0) {
+                    return {
+                        text: ppRes.text || ppRes.markdown,
+                        markdown: ppRes.markdown,
+                        tableMarkdown: null,
+                        lines: [],
+                        nodeUrl: 'paperpilot',
+                        durationMs: Date.now() - opts.totalT0,
+                    };
+                }
+            } catch (ppErr) {
+                this.logger.debug(`PaperPilot direct PDF OCR failed, continuing with page rendering`, { ppErr, fileName });
+            }
+        }
+
         const tempFilePath = this.tempFileManager.alloc();
         this.threadLocal.ctx && this.tempFileManager.bindPathTo(this.threadLocal.ctx, tempFilePath);
         await writeFile(tempFilePath, imageBuffer);
@@ -3113,11 +3163,12 @@ When the homepage is opened in a WebMCP-enabled Chrome browser, it registers the
         this.threadLocal.ctx && this.tempFileManager.bindPathTo(this.threadLocal.ctx, tempDir);
         await mkdir(tempDir);
 
-        let maxPagesToOcr = 20;
+        const defaultOcrMax = parseInt(process.env.PDF_MAX_PAGES || '500', 10);
+        let maxPagesToOcr = isNaN(defaultOcrMax) || defaultOcrMax <= 0 ? 500 : defaultOcrMax;
         if (opts.maxPages) {
             const parsedMax = parseInt(opts.maxPages, 10);
             if (!Number.isNaN(parsedMax) && parsedMax > 0) {
-                maxPagesToOcr = Math.min(parsedMax, 50);
+                maxPagesToOcr = Math.min(parsedMax, 1000);
             }
         }
 

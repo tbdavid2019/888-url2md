@@ -2,6 +2,62 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.11.05.3] - 2026-11-05 - 前端動態限制參數化顯示與 OCR/PDF 擴展至 500 頁 (Dynamic Parameterized UI Limits & 500-Page OCR Scaling)
+
+### Added
+- **服務能力端點動態限制回傳 (`src/api/crawler.ts`)**:
+  - `GET /api/capabilities` 新增 `limits` 欄位，回傳動態可配置的規格上限：`{ maxPages: number, maxFileSize: string, maxFileSizeMb: number }`。
+  - 將後端環境變數 `PDF_MAX_PAGES`（預設提高至 `500` 頁）與 `BODY_PARSER_LIMIT`（預設 `256MB`）直接參數化暴露給客戶端與 AI Agent。
+- **前端拖曳上傳區動態參數化顯示 (`public/app.html`)**:
+  - 在「文件解析」（`#documents`）與「圖片與 PDF 辨識」（`#ocr`）的拖曳區域下方新增動態標籤 `.file-limits-badge`。
+  - 根據後端 `/api/capabilities` 回傳之 `limits` 動態渲染「頁數：最多 {maxPages} 頁 / 尺寸：上限 {maxFileSize}」（英文介面為 `Pages: max {maxPages} / Size: max {maxFileSize}`），確保使用者一目了然且未來調整環境變數時自動連動更新。
+  - 完整整合中英文雙語切換（`i18n`）即時刷新。
+
+### Changed
+- **PDF 與 OCR 頁數上限擴充至 500 頁 (`src/services/binary-extractor.ts`, `src/api/crawler.ts`, `docker-compose.yml`)**:
+  - `BinaryExtractorService` 預設 PDF 頁數抽取上限由 100 頁大幅提升至 **500 頁**。
+  - `renderAndOcrPdfPages` OCR 逐頁渲染預設上限提升至 **500 頁**，且手動指定 `maxPages` 時最高支援至 **1000 頁**。
+  - `docker-compose.yml` 之 `PDF_MAX_PAGES` 預設值同步調整為 `500`。
+
+### Tests
+- **規格限制參數化單元測試 (`tests/unit/capabilities.test.ts`)**:
+  - 驗證預設值、自訂環境變數覆寫以及無效輸入防禦之限制計算邏輯。
+  - 驗證 OCR 逐頁渲染之動態上限（支援至 1000 頁）防禦機制。
+
+
+## [2026.11.05.2] - 2026-11-05 - 大幅擴展 PDF 解析上限與 PaperPilot OCR 全面提速 (Enlarge PDF Limits & PaperPilot OCR Scaling)
+
+### Changed
+- **PaperPilot 逾時與能力全面擴充 (`src/services/paperpilot-client.ts`)**:
+  - `PAPERPILOT_TIMEOUT_MS` 預設值由 30 秒提高至 **120 秒**（2 分鐘），支援處理上百頁大型論文、工程圖紙與書籍。
+  - `extractMarkdown` 支援動態逾時覆寫，並於發往 PaperPilot Gateway 時主動帶入 `X-With-Ocr` 與 `X-Extract-Tables` 標頭，精準觸發純 Rust 原生 PaddleOCR (`rten`) 與多維表格重構。
+- **PDF 頁數上限倍增 (`src/services/binary-extractor.ts`, `src/api/crawler.ts`)**:
+  - PDF 頁面抽取與 OCR 渲染上限由 20 頁提高至 **100 頁**，並支援透過環境變數 `PDF_MAX_PAGES`（預設 `100`）彈性調整。
+  - `/api/ocr` 端點之 `maxPages` 上限由 50 頁倍增至 **100 頁**，預設自動掃描頁數由 20 頁提高至 50 頁。
+  - 在 `/api/ocr` 處理 PDF 時，若 PaperPilot 處於就緒狀態，優先透過純 Rust 引擎直出 Markdown，免除產生數十張 Canvas PNG 圖片之龐大記憶體負擔。
+- **HTTP 上傳與 BodyParser 限制大幅放寬 (`src/services/registry.ts`, `docker-compose.yml`)**:
+  - 核心請求解析上限 `_BODY_PARSER_LIMIT` 由 102MB 提高至 **256MB**（支援 `BODY_PARSER_LIMIT` 環境變數自訂），可輕鬆上傳 200MB+ 之超大高解析掃描 PDF。
+
+## [2026.11.05.1] - 2026-11-05 - 整合 PaperPilot 快速 PDF 轉 Markdown 與純 Rust OCR 微服務 (PaperPilot Pure-Rust Engine Integration)
+
+### Added
+- **PaperPilot Pure-Rust PDF & OCR 側車微服務整合 (`src/services/paperpilot-client.ts`)**:
+  - 新增 `PaperPilotClientService` 服務，透過 HTTP/REST 介接 [PaperPilot Gateway](https://github.com/KrushnaVardhanReddy/PaperPilot)（基於 Axum 構建之純 Rust 引擎）。
+  - 支援 Tika 相容之 `/tika/json/md` 與 `/tika/text` 端點，以純 Rust 的 `pdf_oxide` / `lopdf` 引擎即時抽取佈局感知（Layout-aware）Markdown 與結構化表格，並可原生利用 Rust 版 PaddleOCR (`rten`)，免除重型 Python 依賴。
+  - 具備自動節點探活（`/health`、`/`）、延遲監控（`latencyMs`）以及智慧冷卻降級（Anti-thundering-herd Cooldown）機制。
+- **PDF 解析管線優先雙軌策略 (`src/services/binary-extractor.ts`)**:
+  - 在 `BinaryExtractorService.localFileToSnapshot` 處理 PDF 時，若 `PaperPilotClientService.isAvailable()`，優先調用 PaperPilot 進行極速抽取並標記 `traits: ['blob', 'paperpilot']`。
+  - 若 PaperPilot 未部署、未配置或暫時不可用，自動無縫回退（Fallback）至內建的 `AnyDoc` $\rightarrow$ `PDFExtractor` (`pdfjs-dist`) $\rightarrow$ 啟發式標題演算法與 PaddleOCR 微服務，保證 100% 穩定性與向下相容。
+- **微服務能力與狀態監控端點 (`src/api/crawler.ts`)**:
+  - 在 `GET /api/capabilities` 中新增 `paperpilot` 狀態欄位 (`data.paperpilot`)。
+  - 新增獨立狀態探測端點 `GET /api/paperpilot/status`，供 Prometheus、Agent 或運維監控 PaperPilot 連線與節點健康狀況。
+- **Docker Compose 配置 (`docker-compose.yml`)**:
+  - 在 `888-url2md` 服務環境變數中新增 `PAPERPILOT_ENDPOINT`、`PAPERPILOT_ENABLED`、`PAPERPILOT_TIMEOUT_MS`。
+  - 新增可選的 `paperpilot` 側車容器定義（`profiles: ["paperpilot", "all"]`，映像檔 `ghcr.io/krushnavardhanreddy/paperpilot:latest`，連接埠 `7823:7823`）。
+- **完善的單元測試與端到端模擬套件 (`tests/unit/paperpilot-client.test.ts`)**:
+  - 涵蓋配置解析、Tika 4 JSON 解析、`/tika/text` 404 降級處理、連線錯誤冷卻以及與 `BinaryExtractorService` 的集成測試。
+
+>>>>>>> fae22ab (feat(pdf): integrate paperpilot rust engine and parameterize ui limits to 500 pages)
 ## [2026.10.25.1] - 2026-10-25 - 容器基底全面升級 Node.js 26 (v26.12.1) 與最新 CVE 安全防護加固 (Node.js 26 Runtime & Security Hardening)
 
 ### Changed

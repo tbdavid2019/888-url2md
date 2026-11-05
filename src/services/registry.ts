@@ -74,7 +74,7 @@ export class RPCRegistry extends KoaRPCRegistry {
     container = container;
     logger = this.globalLogger.child({ service: this.constructor.name });
     static override envelope = ReaderEnvelope;
-    override _BODY_PARSER_LIMIT = '102mb';
+    override _BODY_PARSER_LIMIT = process.env.BODY_PARSER_LIMIT || '256mb';
     override _RESPONSE_STREAM_MODE = 'koa' as const;
 
     override koaMiddlewares = [
