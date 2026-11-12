@@ -2,6 +2,14 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.11.12.1] - 2026-11-12 - 容器基底全面升級 Node.js 26 (v26.13.1) 與最新 CVE 安全防護加固 (Node.js 26 Runtime & Security Hardening)
+
+### Security
+- **容器運行環境升級 Node.js 26 (`v26.13.1`)**:
+  - `Dockerfile` 基礎映像檔升級為 `node:26.13.1 AS base`，`.nvmrc` 更新為 `26.13.1`。
+  - 完整防護 Node.js 官方 2026-11-11 發布之安全修補（包含多項 High severity 安全漏洞修復）。
+
+
 ## [2026.11.05.6] - 2026-11-05 - 全面去除技術括號贅字與文檔/Skill 多引擎規格同步 (UI Tab Jargon Cleanup & Multi-Engine Documentation Sync)
 
 ### Changed
