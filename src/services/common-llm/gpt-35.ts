@@ -9,7 +9,7 @@ import { injectable } from 'tsyringe';
 
 import { countGPTToken } from "../../utils/openai";
 import { GlobalLogger } from "../logger";
-import type { ChatCompletion, ChatCompletionChunk, ChatCompletionMessageToolCall } from 'openai/resources/index';
+import type { ChatCompletion, ChatCompletionChunk, ChatCompletionMessageFunctionToolCall, ChatCompletionMessageToolCall } from 'openai/resources/index';
 import { TempFileManager } from '../temp-file';
 import { readFile } from 'fs/promises';
 // import { OpenAICompatHTTP } from '../../3rd-party/openai-compat';
@@ -531,7 +531,7 @@ export interface ChatGPTResponseStream extends Transform {
     on(event: 'event', handler: (event: ChatCompletionChunk) => void): this;
     on(event: 'role', handler: (role: NonNullable<ChatCompletionChunk['choices'][0]['delta']['role']>) => void): this;
     on(event: 'text', handler: (textChunk: string) => void): this;
-    on(event: 'call', handler: (functionCall: ChatCompletionMessageToolCall['function'], id?: string) => void): this;
+    on(event: 'call', handler: (functionCall: ChatCompletionMessageFunctionToolCall['function'], id?: string) => void): this;
     on(event: 'tools', handler: (toolCalls: ChatCompletionMessageToolCall[]) => void): this;
     on(event: 'tool', handler: (toolCall: ChatCompletionMessageToolCall, id: string) => void): this;
     on(event: 'reason', handler: (reason: string) => void): this;
@@ -540,7 +540,7 @@ export interface ChatGPTResponseStream extends Transform {
     once(event: 'event', handler: (event: ChatCompletionChunk) => void): this;
     once(event: 'role', handler: (role: NonNullable<ChatCompletionChunk['choices'][0]['delta']['role']>) => void): this;
     once(event: 'text', handler: (textChunk: string) => void): this;
-    once(event: 'call', handler: (functionCall: ChatCompletionMessageToolCall['function'], id?: string) => void): this;
+    once(event: 'call', handler: (functionCall: ChatCompletionMessageFunctionToolCall['function'], id?: string) => void): this;
     once(event: 'tools', handler: (toolCalls: ChatCompletionMessageToolCall[]) => void): this;
     once(event: 'tool', handler: (toolCall: ChatCompletionMessageToolCall, id: string) => void): this;
     once(event: 'reason', handler: (reason: string) => void): this;
@@ -807,11 +807,13 @@ export class ChatGPT0613 extends AbstractLLM<ChatGPTModelOptions> {
             const tool_calls = _.get(x, 'message.tool_calls');
             if (tool_calls && !_.isEmpty(tool_calls)) {
                 return LLMFunctionCallRequest.from({
-                    functionCalls: tool_calls.map((x) => ({
-                        id: x.id,
-                        name: x.function.name,
-                        arguments: parseJSON(x.function!.arguments as string)
-                    })),
+                    functionCalls: tool_calls
+                        .filter((tc): tc is ChatCompletionMessageFunctionToolCall => tc.type === 'function' && 'function' in tc)
+                        .map((tc) => ({
+                            id: tc.id,
+                            name: tc.function.name,
+                            arguments: parseJSON(tc.function.arguments as string)
+                        })),
                     text: _.get(x, 'message.content') || ''
                 });
             }

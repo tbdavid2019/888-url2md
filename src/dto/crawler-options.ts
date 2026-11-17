@@ -1,6 +1,7 @@
 import { Also, Coercible, ParamValidationError, Prop, RPC_CALL_ENVIRONMENT } from 'civkit/civ-rpc';
 import { FancyFile } from 'civkit/fancy-file';
-import { Cookie, parseString as parseSetCookieString } from 'set-cookie-parser';
+import type { Cookie } from 'set-cookie-parser' with { 'resolution-mode': 'import' };
+const { parseString: parseSetCookieString } = require('set-cookie-parser') as typeof import('set-cookie-parser', { with: { 'resolution-mode': 'import' } });
 import { Context } from '../services/registry';
 import { TurnDownTweakableOptions } from './turndown-tweakable-options';
 import type { PageSnapshot } from '../services/puppeteer';
@@ -964,14 +965,16 @@ export class CrawlerOptions extends Coercible {
         const setCookieHeaders = (ctx?.get('x-set-cookie')?.split(', ') || instance.setCookies as any as string[] || []).filter(Boolean);
         if (Array.isArray(setCookieHeaders)) {
             for (const setCookie of setCookieHeaders) {
-                cookies.push({
-                    ...parseSetCookieString(setCookie, { decodeValues: true }),
-                });
+                const parsed = parseSetCookieString(setCookie, { decodeValues: true });
+                if (parsed) {
+                    cookies.push({ ...parsed });
+                }
             }
         } else if (setCookieHeaders && typeof setCookieHeaders === 'string') {
-            cookies.push({
-                ...parseSetCookieString(setCookieHeaders, { decodeValues: true }),
-            });
+            const parsed = parseSetCookieString(setCookieHeaders, { decodeValues: true });
+            if (parsed) {
+                cookies.push({ ...parsed });
+            }
         }
         instance.setCookies = cookies;
 

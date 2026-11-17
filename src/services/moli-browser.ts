@@ -1,6 +1,6 @@
 import { spawn, ChildProcess } from 'node:child_process';
 import { createServer } from 'node:net';
-import puppeteer, { Browser } from 'puppeteer';
+import type { Browser } from 'puppeteer' with { 'resolution-mode': 'import' };
 import { BrowserEngineError, browserLimit } from './browser-policy';
 
 /** Owns a loopback-only Moli process and a single CDP connection. */
@@ -51,6 +51,7 @@ export class MoliBrowser {
                         if (ws.hostname !== '127.0.0.1' || ws.port !== String(port) || ws.protocol !== 'ws:') {
                             throw new BrowserEngineError('Unexpected Moli discovery endpoint');
                         }
+                        const { default: puppeteer } = await import('puppeteer');
                         const browser = await puppeteer.connect({
                             browserWSEndpoint: ws.href,
                             protocolTimeout: browserLimit('MOLI_PROTOCOL_TIMEOUT_MS', 10000, 30000),

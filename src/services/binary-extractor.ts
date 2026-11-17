@@ -342,7 +342,13 @@ export class BinaryExtractorService extends AsyncService {
                 try {
                     markdown = await this.anyDocService.convertFile(filePath);
                 } catch (anyDocErr: any) {
-                    if (withOcr || anyDocErr?.message?.includes('OCR is required') || anyDocErr?.message?.includes('no extractable text')) {
+                    if (
+                        withOcr ||
+                        anyDocErr?.code === 'needsOcr' ||
+                        anyDocErr?.message?.includes('need OCR') ||
+                        anyDocErr?.message?.includes('OCR is required') ||
+                        anyDocErr?.message?.includes('no extractable text')
+                    ) {
                         this.logger.info(`AnyDoc indicated OCR is required or failed on scanned doc, continuing with OCR`, { anyDocErr, fileName });
                         markdown = '';
                     } else {

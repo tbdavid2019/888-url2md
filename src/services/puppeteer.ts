@@ -5,9 +5,9 @@ import fs from 'fs';
 import { Blob } from 'buffer';
 import { container, singleton } from 'tsyringe';
 
-import type { Browser, BrowserContext, CookieParam, GoToOptions, HTTPRequest, HTTPResponse, Page, Viewport } from 'puppeteer';
-import type { Cookie } from 'set-cookie-parser';
-import puppeteer, { TimeoutError } from 'puppeteer';
+import type { Browser, BrowserContext, CookieParam, GoToOptions, HTTPRequest, HTTPResponse, Page, Viewport } from 'puppeteer' with { 'resolution-mode': 'import' };
+import type { Cookie } from 'set-cookie-parser' with { 'resolution-mode': 'import' };
+const { default: puppeteer, TimeoutError } = require('puppeteer') as typeof import('puppeteer', { with: { 'resolution-mode': 'import' } });
 
 import { Defer, Deferred } from 'civkit/defer';
 import { AssertionFailureError, ParamValidationError } from 'civkit/civ-rpc';

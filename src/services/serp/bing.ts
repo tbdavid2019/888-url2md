@@ -13,10 +13,10 @@ import { retry, retryWith } from 'civkit/decorators';
 import { SERPProxyProviderService } from '../proxy-provider';
 import { readBlob, WEB_SUPPORTED_ENCODINGS } from '../../utils/encoding';
 import { createContext, Script } from 'vm';
-import { BrowserContext } from 'puppeteer';
+import type { BrowserContext } from 'puppeteer' with { 'resolution-mode': 'import' };
 import { createPool } from 'generic-pool';
 import { AsyncLocalContext } from '../async-context';
-import parse from 'set-cookie-parser';
+const { parse } = require('set-cookie-parser') as typeof import('set-cookie-parser', { with: { 'resolution-mode': 'import' } });
 
 interface SerpContext {
     proxyUrl?: string;

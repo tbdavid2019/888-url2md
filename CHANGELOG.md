@@ -2,6 +2,27 @@
 
 All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888-url2md`)** will be documented in this file.
 
+## [2026.11.17.1] - 2026-11-17 - 全面升級上游引擎與核心相依套件並修復安全漏洞 (Upstream Engine & Dependency Upgrades)
+
+### Updated
+- **Moli 無頭瀏覽器引擎升級 (`v1.1.14` $\rightarrow$ `v1.1.25`) (`scripts/install-moli.sh`, `README.md`, `docs/decisions/ADR-003-moli-chrome-fallback.md`)**:
+  - 固定 Moli `v1.1.25`；`amd64` / `arm64` Linux 發行檔均通過 ELF 架構檢查與 SHA-256 校驗。
+  - Pin Moli `v1.1.25`; both `amd64` / `arm64` release archives passed ELF architecture and SHA-256 verification.
+- **核心文件與 PDF 解析套件升級 (`@firecrawl/anydoc` `0.2.4`, `pdfjs-dist` `6.5.438`, `@napi-rs/canvas` `1.1.1`)**:
+  - 升級 `@firecrawl/anydoc` 至 `^0.2.4`（含自研 Excel 解析、LaTeX 公式與掃描頁偵測），並於 `src/services/binary-extractor.ts` 適配 `NeedsOcrError` (`code === 'needsOcr'` / `need OCR`)，確保掃描型 PDF 可正確轉入 PaddleOCR 流程。
+  - 升級 `pdfjs-dist` 至 `^6.5.438`、`@napi-rs/canvas` 至 `^1.1.1`。
+- **網路、瀏覽器與框架相依升級 (`package.json`, `package-lock.json`)**:
+  - 升級 `@nomagick/node-libcurl-impersonate` 至 `^5.2.3`，並於 `src/services/curl.ts` 以原生 `Curl.setOpt` 實作 Chrome TLS/JA3/HTTP2 指紋設定取代移除的 JS wrapper。
+  - 升級 `civkit` 至 `^0.10.5-2ed856a`、`puppeteer` 至 `^25.17.0`、`undici` 至 `^8.12.4`、`set-cookie-parser` 至 `^3.2.3`（移除過時之 `@types/set-cookie-parser`）、`koa` 至 `^3.3.0`、`linkedom` 至 `^0.18.15`、`lru-cache` 至 `^11.5.3`、`tiktoken` 至 `^1.0.22`、`google-auth-library` 至 `^11.3.4`、`jose` 至 `^6.2.17`、`maxmind` 至 `^5.1.0`、`dayjs` 至 `^1.11.23`、`tslib` 至 `^2.9.1`、`xpath` 至 `^0.0.36`、`mathml-to-latex` 至 `^1.8.0`、`stripe` 至 `^23.1.0`。
+  - 升級開發與型別工具鏈：`typescript` (`^6.0.3`)、`@types/node` (`^26.6.6`)、`@types/koa` (`^3.0.3`)、`@types/lodash` (`^4.17.27`)、`@types/supertest` (`^7.2.1`)、`eslint` (`^10.15.0`)、`@typescript-eslint/*` (`^8.73.0`)、`c8` (`^12.0.0`)、`openai` (`^7.57.0`)、`replicate` (`^1.4.0`)、`supertest` (`^7.3.2`)、`pino-pretty` (`^13.2.0`)，新增 `eslint.config.mjs` Flat Config 並適配 ESM-only 套件匯入與 OpenAI v7 `ChatCompletionMessageFunctionToolCall` 型別窄化。
+
+### Security
+- **修復高風險套件漏洞 (`overrides` 與傳遞依賴升級)**:
+  - 透過升級 `puppeteer`、`openai` 及 `overrides`（`tar` `7.5.23`、`qs` `^6.17.1`、`nodemailer` `^10.6.0`），完全消除 `npm audit` 原本檢出的 7 項 High 級別漏洞（`extract-zip`、`zod` 等），總告警數由 20 項降為 10 項（0 Critical / 0 High）。
+
+### Fixed
+- 清理 `CHANGELOG.md` 既有殘留合併標記行。
+
 ## [2026.11.12.1] - 2026-11-12 - 容器基底全面升級 Node.js 26 (v26.13.1) 與最新 CVE 安全防護加固 (Node.js 26 Runtime & Security Hardening)
 
 ### Security
@@ -105,7 +126,6 @@ All notable changes, enhancements, and bug fixes for **888 URL to Markdown (`888
 - **完善的單元測試與端到端模擬套件 (`tests/unit/paperpilot-client.test.ts`)**:
   - 涵蓋配置解析、Tika 4 JSON 解析、`/tika/text` 404 降級處理、連線錯誤冷卻以及與 `BinaryExtractorService` 的集成測試。
 
->>>>>>> fae22ab (feat(pdf): integrate paperpilot rust engine and parameterize ui limits to 500 pages)
 ## [2026.10.25.1] - 2026-10-25 - 容器基底全面升級 Node.js 26 (v26.12.1) 與最新 CVE 安全防護加固 (Node.js 26 Runtime & Security Hardening)
 
 ### Changed

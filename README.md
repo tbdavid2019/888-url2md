@@ -171,7 +171,7 @@ services:
 
 ### 4.1 Moli 優先與 Chrome 備援
 
-Docker 映像檔內建固定版本 Moli v1.1.14（amd64 / arm64），下載時驗證 SHA-256，並保留第三方授權文件。`MOLI_ENABLED=true` 時，需要瀏覽器渲染的網頁先使用 Moli，遇到引擎或協定故障、逾時或缺少可用快照時，再排入 Chrome，最多一次。HTTP／靜態 HTML 和檔案轉換仍走原有快速路徑。SERP 專用瀏覽器操作使用 Chrome，與備援擷取共用 Chrome 容量。
+Docker 映像檔內建固定版本 Moli v1.1.25（amd64 / arm64），下載時驗證 SHA-256，並保留第三方授權文件。`MOLI_ENABLED=true` 時，需要瀏覽器渲染的網頁先使用 Moli，遇到引擎或協定故障、逾時或缺少可用快照時，再排入 Chrome，最多一次。HTTP／靜態 HTML 和檔案轉換仍走原有快速路徑。SERP 專用瀏覽器操作使用 Chrome，與備援擷取共用 Chrome 容量。
 
 Moli 以自管程序啟動，只監聽容器內 `127.0.0.1`；既有私有網路封鎖政策同步套用到 Moli。Moli 使用原生網路流程與 CDP 事件觀察，透過 transport 封鎖私有地址與限制連線；發現禁止網域或濫用時關閉該頁面。每請求代理、截圖、虛擬捲動、隱形元素幾何處理與自訂 viewport 使用 Chrome。一般 Moli 文字擷取不執行實際 layout/paint，也不產生截圖；圖片和字型資源仍供文字快照使用。這避免深 DOM renderer 崩潰，並避開 mutation 後的過期 geometry。Chrome 採共用啟動程序，避免大量失敗請求同時啟動多個瀏覽器。設定 `MOLI_ENABLED=false` 可切回 Chrome。
 
@@ -900,7 +900,7 @@ services:
 
 ### 4.1 Moli Priority and Chrome Fallback
 
-Docker bundles Moli v1.1.14 for amd64 and arm64, verifies release archives with SHA-256, and preserves bundled license notices. With `MOLI_ENABLED=true`, browser rendering tries Moli first and queues a single Chrome attempt after an engine/protocol failure, timeout, or missing usable snapshot. Existing HTTP/static HTML and file conversion paths still run first. Specialized SERP browser operations use Chrome and share its admission budget with fallback rendering.
+Docker bundles Moli v1.1.25 for amd64 and arm64, verifies release archives with SHA-256, and preserves bundled license notices. With `MOLI_ENABLED=true`, browser rendering tries Moli first and queues a single Chrome attempt after an engine/protocol failure, timeout, or missing usable snapshot. Existing HTTP/static HTML and file conversion paths still run first. Specialized SERP browser operations use Chrome and share its admission budget with fallback rendering.
 
 Moli is an owned process bound to container loopback (`127.0.0.1`), with the existing private-network policy also applied to its transport. Moli uses native networking and CDP request observation, with private-address filtering and connection limits; blocked domains or abuse close the page. Moli text extraction runs without real layout or paint; image and font resources remain enabled. Per-request proxies, screenshots, virtual scrolling, invisible-element geometry, and custom viewports use Chrome for accurate geometry and to avoid Moli deep-DOM paint and layout invalidation issues. Concurrent fallback requests share one Chrome startup. Set `MOLI_ENABLED=false` to select Chrome.
 

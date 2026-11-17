@@ -3,9 +3,9 @@ import { Blob } from 'buffer';
 import { readFile } from 'fs/promises';
 import { container, singleton } from 'tsyringe';
 
-import type { Browser, BrowserContext, CookieParam, GoToOptions, Page, Viewport } from 'puppeteer';
-import { TimeoutError } from 'puppeteer';
-import type { Cookie } from 'set-cookie-parser';
+import type { Browser, BrowserContext, CookieParam, GoToOptions, Page, Viewport } from 'puppeteer' with { 'resolution-mode': 'import' };
+import type { Cookie } from 'set-cookie-parser' with { 'resolution-mode': 'import' };
+const { TimeoutError } = require('puppeteer') as typeof import('puppeteer', { with: { 'resolution-mode': 'import' } });
 
 import { Defer } from 'civkit/defer';
 import { AssertionFailureError, ParamValidationError } from 'civkit/civ-rpc';

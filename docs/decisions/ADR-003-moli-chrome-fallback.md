@@ -4,7 +4,7 @@ Date: 2026-10-07
 
 ## Decision
 
-Docker bundles Moli v1.1.14 and enables `MOLI_ENABLED=true`. Standalone runs
+Docker bundles Moli v1.1.25 and enables `MOLI_ENABLED=true`. Standalone runs
 enable it explicitly after supplying the binary. Existing HTTP/file extraction
 stays ahead of the browser stage. Browser rendering uses Moli first and Chrome
 once when Moli fails before usable output. `MOLI_ENABLED=false` selects Chrome.
@@ -25,7 +25,7 @@ Moli observes CDP requests without Fetch interception, whose HTTPS pause/resume
 path stalls on the pinned release. Its native transport caps concurrent requests
 at 100 and per-origin transfers at 16; blocked domains and abuse close the page.
 Per-request proxies use Chrome; custom headers use the native Network API.
-Upstream documentation: <https://github.com/lexmount/moli/tree/v1.1.14>.
+Upstream documentation: <https://github.com/lexmount/moli/tree/v1.1.25>.
 Pinned archives are SHA-256 verified and their license notices stay in the image.
 
 ## Failure containment

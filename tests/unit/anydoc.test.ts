@@ -26,4 +26,21 @@ describe('AnyDocService: format detection and conversion support', () => {
         assert.ok(typeof markdown === 'string');
         assert.match(markdown, /Alice/);
     });
+
+    it('rejects empty/image-only PDF bytes with needsOcr or conversion error rather than dropping pages', async () => {
+        const anyDoc = new AnyDocService({ child: () => ({}) } as any);
+        // Minimal PDF with 1 empty page (no extractable text)
+        const emptyPagePdf = Buffer.from(
+            '%PDF-1.4\n' +
+            '1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n' +
+            '2 0 obj<</Type/Pages/Count 1/Kids[3 0 R]>>endobj\n' +
+            '3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 200 200]>>endobj\n' +
+            'xref\n0 4\n0000000000 65535 f \n0000000009 00000 n \n0000000052 00000 n \n0000000101 00000 n \n' +
+            'trailer<</Size 4/Root 1 0 R>>\nstartxref\n168\n%%EOF\n'
+        );
+        await assert.rejects(
+            () => anyDoc.convertBytes(emptyPagePdf, 'scan.pdf'),
+            (err: any) => err instanceof Error && ((err as any).code === 'needsOcr' || /need OCR|malformed|empty/i.test(err.message))
+        );
+    });
 });

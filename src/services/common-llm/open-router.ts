@@ -11,7 +11,7 @@ import { AsyncLocalContext } from '../async-context';
 import { HTTPServiceRequestOptions, downloadFile, isPrimitiveType, mimeOf } from 'civkit';
 import { readFile } from 'fs/promises';
 import _ from 'lodash';
-import { ChatCompletion } from 'openai/resources/index.mjs';
+import type { ChatCompletion, ChatCompletionMessageFunctionToolCall } from 'openai/resources/index';
 import { countGPTToken } from '../../utils/openai';
 import { HarmfulContentError } from '../errors';
 import { ChatGPTResponseStream } from './gpt-35';
@@ -643,11 +643,13 @@ export class OpenRouterLLM extends AbstractLLM<OpenRouterRequestOptions> {
             const tool_calls = _.get(x, 'message.tool_calls');
             if (tool_calls) {
                 return LLMFunctionCallRequest.from({
-                    functionCalls: tool_calls.map((x) => ({
-                        id: x.id,
-                        name: x.function.name,
-                        arguments: parseJSON(x.function!.arguments as string)
-                    })),
+                    functionCalls: tool_calls
+                        .filter((tc): tc is ChatCompletionMessageFunctionToolCall => tc.type === 'function' && 'function' in tc)
+                        .map((tc) => ({
+                            id: tc.id,
+                            name: tc.function.name,
+                            arguments: parseJSON(tc.function.arguments as string)
+                        })),
                     text: _.get(x, 'message.content') || ''
                 });
             }

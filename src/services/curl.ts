@@ -2,8 +2,9 @@ import { AsyncService } from 'civkit/async-service';
 import { singleton } from 'tsyringe';
 import { Blob } from 'buffer';
 
-import { Curl, CurlCode, CurlFeature, HeaderInfo, Browser, getChromeConfig } from '@nomagick/node-libcurl-impersonate';
-import { parseString as parseSetCookieString } from 'set-cookie-parser';
+import { Curl, CurlCode, CurlFeature, CurlSslVersion, HeaderInfo } from '@nomagick/node-libcurl-impersonate';
+import type { Cookie } from 'set-cookie-parser' with { 'resolution-mode': 'import' };
+const { parseString: parseSetCookieString } = require('set-cookie-parser') as typeof import('set-cookie-parser', { with: { 'resolution-mode': 'import' } });
 
 import { ScrappingOptions } from './puppeteer';
 import { GlobalLogger } from './logger';
@@ -30,6 +31,26 @@ export interface CURLScrappingOptions<T = any> extends ScrappingOptions<T> {
 
 export const REDIRECTION_CODES = new Set([301, 302, 303, 307, 308]);
 
+const CHROME_IMPERSONATE_CURL_OPTIONS: Array<[keyof typeof Curl.option, string | number]> = [
+    ['TLS_STATUS_REQUEST', 1],
+    ['SSLVERSION', CurlSslVersion.TlsV1_2],
+    ['SSL_CIPHER_LIST', 'TLS_AES_128_GCM_SHA256:TLS_AES_256_GCM_SHA384:TLS_CHACHA20_POLY1305_SHA256:ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305:ECDHE-RSA-AES128-SHA:ECDHE-RSA-AES256-SHA:AES128-GCM-SHA256:AES256-GCM-SHA384:AES128-SHA:AES256-SHA'],
+    ['SSL_EC_CURVES', 'X25519MLKEM768:X25519:P-256:P-384'],
+    ['SSL_SIG_HASH_ALGS', 'rsa_pkcs1_sha256,ecdsa_secp256r1_sha256,rsa_pkcs1_sha384,ecdsa_secp384r1_sha384,rsa_pkcs1_sha512,rsa_pss_rsae_sha256,rsa_pss_rsae_sha384,rsa_pss_rsae_sha512'],
+    ['ACCEPT_ENCODING', 'gzip, deflate, br, zstd'],
+    ['HTTP2_PSEUDO_HEADERS_ORDER', 'masp'],
+    ['HTTP2_SETTINGS', '1:65536;2:0;4:6291456;6:262144'],
+    ['STREAM_EXCLUSIVE', 1],
+    ['HTTP2_WINDOW_UPDATE', 15663105],
+    ['SSL_ENABLE_ALPS', 1],
+    ['TLS_USE_NEW_ALPS_CODEPOINT', 1],
+    ['ECH', 'grease'],
+    ['SSL_CERT_COMPRESSION', 'brotli'],
+    ['TLS_GREASE', 1],
+    ['SSL_PERMUTE_EXTENSIONS', 1],
+    ['TLS_SIGNED_CERT_TIMESTAMPS', 1],
+];
+
 @singleton()
 export class CurlControl extends AsyncService {
 
@@ -41,8 +62,6 @@ export class CurlControl extends AsyncService {
     ua: string = `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/${this.safariVersion} (KHTML, like Gecko) Chrome/${this.chromeVersion}.0.0.0 Safari/${this.safariVersion}`;
 
     lifeCycleTrack = new WeakMap();
-
-    impersonateCfg?: ReturnType<typeof getChromeConfig>;
 
     constructor(
         protected globalLogger: GlobalLogger,
@@ -69,14 +88,14 @@ export class CurlControl extends AsyncService {
         this.chromeVersion = ua.match(/Chrome\/(\d+)/)![1];
         this.safariVersion = ua.match(/AppleWebKit\/([\d\.]+)/)![1];
         this.ua = ua;
-        this.impersonateCfg = getChromeConfig({
-            version: this.chromeVersion,
-            fingerprint: {
-                ja3: '772,4865-4866-4867-49195-49199-49196-49200-52393-52392-49171-49172-156-157-47-53,23-0-45-17613-65281-18-43-65037-5-51-16-10-27-13-35-11,4588-29-23-24,0',
-                ja4: 't13d1514h2_002f,0035,009c,009d,1301,1302,1303,c013,c014,c02b,c02c,c02f,c030,cca8,cca9_0005,000a,000b,000d,0012,0017,001b,0023,002b,002d,0033,44cd,fe0d,ff01_0401,0403,0501,0503,0601,0804,0805,0806',
-                akami: '1:65536;2:0;4:6291456;6:262144|15663105|0|m,a,s,p'
-            }
-        });
+    }
+
+    protected createImpersonatedCurl(): Curl {
+        const curl = new Curl();
+        for (const [opt, val] of CHROME_IMPERSONATE_CURL_OPTIONS) {
+            curl.setOpt(Curl.option[opt] as any, val);
+        }
+        return curl;
     }
 
     curlImpersonateHeader(curl: Curl, headers?: object) {
@@ -137,7 +156,7 @@ export class CurlControl extends AsyncService {
         }>((resolve, reject) => {
             const actx = this.asyncLocalContext.ctx;
             let contentType = '';
-            const curl = Curl.impersonate(this.impersonateCfg || Browser.Chrome);
+            const curl = this.createImpersonatedCurl();
             curl.enable(CurlFeature.StreamResponse);
             curl.setOpt('URL', urlToCrawl.toString());
             curl.setOpt(Curl.option.FOLLOWLOCATION, false);
@@ -204,7 +223,7 @@ export class CurlControl extends AsyncService {
 
             let curlStream: Readable | undefined;
             let streamRecvCounter = 0;
-            curl.on('error', (err, errCode) => {
+            curl.on('error', (err: Error, errCode: CurlCode) => {
                 this.asyncLocalContext.bridge(actx, () => {
                     curl.close();
                     const err2 = this.digestCurlCode(errCode, err.message) ||
@@ -236,9 +255,10 @@ export class CurlControl extends AsyncService {
                 }
                 curl.close();
             });
-            curl.on('stream', (stream, statusCode, headers) => {
+            curl.on('stream', (stream: Readable, statusCode: number, rawHeaders: Buffer | HeaderInfo[]) => {
+                const headers = Array.isArray(rawHeaders) ? rawHeaders : [];
                 status = statusCode;
-                for (const headerSet of (headers as HeaderInfo[])) {
+                for (const headerSet of headers) {
                     for (const [k, v] of Object.entries(headerSet)) {
                         if (k.trim().endsWith(':')) {
                             Reflect.set(headerSet, k.slice(0, k.indexOf(':')), v || '');
@@ -254,15 +274,15 @@ export class CurlControl extends AsyncService {
                         }
                     }
                 }
-                const lastResHeaders = headers[headers.length - 1];
+                const lastResHeaders = headers[headers.length - 1] || {};
                 statusText = (lastResHeaders as HeaderInfo).result?.reason;
                 for (const [k, v] of Object.entries(lastResHeaders)) {
                     const kl = k.toLowerCase();
                     if (kl === 'content-type') {
-                        contentType = (v || '').toLowerCase();
+                        contentType = String(v || '').toLowerCase();
                     }
                     if (kl === 'content-encoding') {
-                        contentEncoding = (v || '').toLowerCase();
+                        contentEncoding = String(v || '').toLowerCase();
                     }
                     if (contentType && contentEncoding) {
                         break;
@@ -270,14 +290,14 @@ export class CurlControl extends AsyncService {
                 }
 
                 curlStream = stream;
-                stream.on('data', (buf) => {
+                stream.on('data', (buf: Buffer) => {
                     if (buf.length > 0) {
                         streamRecvCounter += buf.length;
                     }
                 });
                 const passThrough = new PassThrough();
                 stream.pipe(passThrough);
-                stream.once('error', (err) => {
+                stream.once('error', (err: Error) => {
                     passThrough.destroy(err);
                 });
                 stream = passThrough;
@@ -332,7 +352,7 @@ export class CurlControl extends AsyncService {
                 headers: HeaderInfo[],
             };
 
-            const headers = r.headers[r.headers.length - 1];
+            const headers = (r.headers[r.headers.length - 1] || {}) as HeaderInfo;
             const claimedSize = parseInt(headers['Content-Length'] || headers['content-length']);
             if (crawlOpts?.maxSize && claimedSize > crawlOpts.maxSize) {
                 throw new TargetFileTooLargeError(`Target file is too large: ${humanReadableDataSize(claimedSize)} > ${humanReadableDataSize(crawlOpts.maxSize)}`);
@@ -350,7 +370,10 @@ export class CurlControl extends AsyncService {
                 const setCookieHeader = headers['Set-Cookie'] || headers['set-cookie'];
                 if (setCookieHeader) {
                     const cookieAssignments = Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader];
-                    const parsed = cookieAssignments.filter(Boolean).map((x) => parseSetCookieString(x, { decodeValues: true }));
+                    const parsed = cookieAssignments
+                        .filter(Boolean)
+                        .map((x) => parseSetCookieString(x, { decodeValues: true }))
+                        .filter((c): c is Cookie => Boolean(c));
                     if (parsed.length) {
                         opts.cookies = [...(opts.cookies || []), ...parsed];
                     }
@@ -494,7 +517,7 @@ export class CurlControl extends AsyncService {
             };
 
 
-            const headers = r.headers[r.headers.length - 1];
+            const headers = (r.headers[r.headers.length - 1] || {}) as HeaderInfo;
             const claimedSize = parseInt(headers['Content-Length'] || headers['content-length']);
             if (crawlOpts?.maxSize && claimedSize > crawlOpts.maxSize) {
                 throw new TargetFileTooLargeError(`Target file is too large: ${humanReadableDataSize(claimedSize)} > ${humanReadableDataSize(crawlOpts.maxSize)}`);
@@ -506,7 +529,10 @@ export class CurlControl extends AsyncService {
                 const setCookieHeader = headers['Set-Cookie'] || headers['set-cookie'];
                 if (setCookieHeader) {
                     const cookieAssignments = Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader];
-                    const parsed = cookieAssignments.filter(Boolean).map((x) => parseSetCookieString(x, { decodeValues: true }));
+                    const parsed = cookieAssignments
+                        .filter(Boolean)
+                        .map((x) => parseSetCookieString(x, { decodeValues: true }))
+                        .filter((c): c is Cookie => Boolean(c));
                     if (parsed.length) {
                         opts.cookies = [...(opts.cookies || []), ...parsed];
                     }
@@ -531,7 +557,7 @@ export class CurlControl extends AsyncService {
                             s.data!.once('end', resolve);
                             s.data!.once('error', reject);
                         });
-                        r.data = new Blob(chunks, { type: headers['Content-Type'] || headers['content-type'] });
+                        r.data = new Blob(chunks as Uint8Array<ArrayBuffer>[], { type: headers['Content-Type'] || headers['content-type'] });
                     }
                     return {
                         statusCode: r.statusCode,
@@ -562,7 +588,7 @@ export class CurlControl extends AsyncService {
                     s.data!.once('end', resolve);
                     s.data!.once('error', reject);
                 });
-                r.data = new Blob(chunks, { type: headers['Content-Type'] || headers['content-type'] });
+                r.data = new Blob(chunks as Uint8Array<ArrayBuffer>[], { type: headers['Content-Type'] || headers['content-type'] });
             }
 
             return {

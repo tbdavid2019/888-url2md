@@ -14,7 +14,7 @@ import { retry, retryWith } from 'civkit/decorators';
 import { SERPProxyProviderService } from '../proxy-provider';
 import { readBlob, WEB_SUPPORTED_ENCODINGS } from '../../utils/encoding';
 import { createContext, Script } from 'vm';
-import { BrowserContext } from 'puppeteer';
+import type { BrowserContext } from 'puppeteer' with { 'resolution-mode': 'import' };
 import { createPool } from 'generic-pool';
 import { randomBytes } from 'crypto';
 import { AsyncLocalContext } from '../async-context';
@@ -472,9 +472,9 @@ async function getWebSearchResults() {
         const cite = primaryLink.querySelector('cite[role=text]')?.textContent;
         let date = cite?.split('·')[1]?.trim();
         const snippets = Array.from(x.querySelectorAll('div[data-sncf*="1"] span'));
-        let snippet = snippets[snippets.length - 1]?.textContent;
+        let snippet: string | null | undefined = snippets[snippets.length - 1]?.textContent;
         if (!snippet) {
-            snippet = x.querySelector('div.IsZvec')?.textContent?.trim() || null;
+            snippet = x.querySelector('div.IsZvec')?.textContent?.trim() || undefined;
         }
         date ??= snippets[snippets.length - 2]?.textContent?.trim();
         const imageUrl = x.querySelector('div[data-sncf*="1"] img[src]:not(img[src^="data"])')?.getAttribute('src');
@@ -558,9 +558,9 @@ function getWebSearchResultsSync() {
         const cite = primaryLink.querySelector('cite[role=text]')?.textContent;
         let date = cite?.split('·')[1]?.trim();
         const snippets = Array.from(x.querySelectorAll('div[data-sncf*="1"] span'));
-        let snippet = snippets[snippets.length - 1]?.textContent;
+        let snippet: string | null | undefined = snippets[snippets.length - 1]?.textContent;
         if (!snippet) {
-            snippet = x.querySelector('div.IsZvec')?.textContent?.trim() || null;
+            snippet = x.querySelector('div.IsZvec')?.textContent?.trim() || undefined;
         }
         date ??= snippets[snippets.length - 2]?.textContent?.trim();
         const imageUrl = x.querySelector('div[data-sncf*="1"] img[src]:not(img[src^="data"])')?.getAttribute('src');
